@@ -564,8 +564,8 @@ export async function renderTopTenCertificateToCanvas(
   // 7. Recognition / Citation Paragraph (3 lines)
   const academicYear = options.academicYear || '- 2026 - 2027 م';
   const citeLine1 = isFemale
-    ? 'تقديرًا لتميزها الأكاديمي ، وتفوقها الملحوظ في الدراسة ، ومشاركتها الفعالة ، وسلوكها'
-    : 'تقديرًا لتميزه الأكاديمي ، وتفوقه الملحوظ في الدراسة ، ومشاركته الفعالة ، وسلوكه';
+    ? 'تقديرًا لتميزها الأكاديمي ، وتفوقها الملحوظ في الدراسة ، ومشاركتها الفعالة'
+    : 'تقديرًا لتميزه الأكاديمي ، وتفوقه الملحوظ في الدراسة ، ومشاركته الفعالة';
   const citeLine2 = isFemale
     ? `وسلوكها المثالي خلال العام الدراسي ${academicYear}`
     : `وسلوكه المثالي خلال العام الدراسي ${academicYear}`;
