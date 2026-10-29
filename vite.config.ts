@@ -11,11 +11,11 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
+        includeAssets: ['favicon.ico', 'appicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
         manifest: {
           id: '/',
-          name: 'سمارت كنترول 2026 - 2027',
-          short_name: 'سمارت كنترول',
+          name: 'Smart Control',
+          short_name: 'Smart Control',
           description: 'نظام متكامل لإدارة شيتات الكنترول المدرسي، درجات الطلاب، والنسخ الاحتياطية.',
           theme_color: '#059669',
           background_color: '#ffffff',

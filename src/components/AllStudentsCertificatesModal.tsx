@@ -230,11 +230,15 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
                 className="bg-slate-800 text-white py-8 px-4 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-yellow-500 cursor-pointer appearance-none w-[230px] text-center"
                 style={{ MozAppearance: 'none', WebkitAppearance: 'none', textAlignLast: 'center' }}
               >
-                {allRankedStudents.map((item, idx) => (
-                  <option key={item.student.id || idx} value={idx}>
-                    {item.student.name}
-                  </option>
-                ))}
+                {allRankedStudents.length === 0 ? (
+                  <option value={0}>لا يوجد</option>
+                ) : (
+                  allRankedStudents.map((item, idx) => (
+                    <option key={item.student.id || idx} value={idx}>
+                      {item.student.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -244,7 +248,11 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
           <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
             {/* Certificate Preview Card */}
             <div className="relative w-full rounded-2xl overflow-hidden bg-slate-950/70 border border-slate-700/80 shadow-2xl flex flex-col items-center justify-center p-3 md:p-6 group">
-              {previewDataUrl ? (
+              {allRankedStudents.length === 0 ? (
+                <div className="w-full h-72 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <span className="text-2xl md:text-3xl font-black text-amber-400">لا يوجد</span>
+                </div>
+              ) : previewDataUrl ? (
                 <div className="relative w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl border-2 border-amber-500/30 bg-black">
                   <img
                     src={previewDataUrl}
@@ -278,7 +286,7 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
               ) : (
                 <div className="w-full h-72 flex flex-col items-center justify-center gap-3 text-slate-400">
                   <div className="w-9 h-9 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm font-bold">جاري إعداد ومعاينة الشهادة الفاخرة...</span>
+                  <span className="text-sm font-bold">جاري إعداد ومعاينة الشهادات...</span>
                 </div>
               )}
 
@@ -334,7 +342,7 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
               </div>
 
               <span className="text-xs text-slate-400 font-medium">
-                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{allRankedStudents.length}</strong>
+                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{allRankedStudents.length === 0 ? 'لا يوجد' : allRankedStudents.length}</strong>
               </span>
             </div>
           </div>
@@ -347,59 +355,6 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
                 className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm md:text-base transition-all border-2 border-red-800 cursor-pointer shadow-md"
               >
                 إغلاق
-              </button>
-              <button
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (re) => {
-                        const dataUrl = re.target?.result as string;
-                        
-                        // Resize image to avoid localStorage quota issues
-                        const img = new Image();
-                        img.onload = () => {
-                          const canvas = document.createElement('canvas');
-                          const MAX_WIDTH = 300;
-                          const scaleSize = MAX_WIDTH / img.width;
-                          canvas.width = MAX_WIDTH;
-                          canvas.height = img.height * scaleSize;
-                          const ctx = canvas.getContext('2d');
-                          if (ctx) {
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                            localStorage.setItem('sheet_control_school_logo', resizedDataUrl);
-                            
-                            // Also update schoolLogo inside the main school data object for synchronization
-                            try {
-                              const saved = localStorage.getItem('sheet_control_school_data');
-                              if (saved) {
-                                const parsed = JSON.parse(saved);
-                                parsed.schoolLogo = resizedDataUrl;
-                                localStorage.setItem('sheet_control_school_data', JSON.stringify(parsed));
-                              }
-                            } catch (e) {
-                              console.error('Failed to sync school logo with main data:', e);
-                            }
-
-                            alert('تم تغيير الشعار بنجاح');
-                            window.location.reload();
-                          }
-                        };
-                        img.src = dataUrl;
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  };
-                  input.click();
-                }}
-                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-black text-sm md:text-base transition-all border-2 border-slate-700 cursor-pointer shadow-md"
-              >
-                تغيير الشعار
               </button>
             </div>
 
@@ -422,7 +377,7 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
               >
                 <Download className="w-5 h-5 text-slate-950" />
                 <span>
-                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : `تحميل جميع الشهادات ( ${allRankedStudents.length} طلاب ) - PDF`}
+                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : allRankedStudents.length === 0 ? 'تحميل جميع الشهادات ( لا يوجد ) - PDF' : `تحميل جميع الشهادات ( ${allRankedStudents.length} طلاب ) - PDF`}
                 </span>
               </button>
             </div>
