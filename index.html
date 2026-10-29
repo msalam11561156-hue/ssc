@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        window.__vite_plugin_react_preamble_installed__ = true;
+        window.$RefreshReg$ = window.$RefreshReg$ || function() {};
+        window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
+        var origError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            if (arg) {
+              var text = (typeof arg === 'string' ? arg : (arg && arg.message ? arg.message : ''));
+              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1) {
+                return;
+              }
+            }
+          }
+          origError.apply(console, arguments);
+        };
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#059669" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="كنترول المدرسة" />
+    <title>Smart Control 26 - 27</title>
+    <meta name="description" content="سمارت كنترول 2026 - 2027 - المنظومة الرقمية لريادة أعمال كنترول امتحانات المدارس المصرية : رياض أطفال - إبتدائى - إعدادى - ثانوى عام.              للمدارس الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة.                وزارة التربية والتعليم." />
+    <meta property="og:title" content="Smart Control 26 - 27" />
+    <meta property="og:description" content="سمارت كنترول 2026 - 2027 - المنظومة الرقمية لريادة أعمال كنترول امتحانات المدارس المصرية : رياض أطفال - إبتدائى - إعدادى - ثانوى عام.              للمدارس الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة.                وزارة التربية والتعليم." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
