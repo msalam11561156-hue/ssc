@@ -9,6 +9,7 @@ import topTenCertTemplateUrl from '../assets/images/top_ten_cert_template.webp';
 import royalCertTemplateUrl from '../assets/images/top_ten_cert_royal.jpg';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import qrCodeUrl from '../assets/images/asd11.jpg';
+import { getCachedCertificateTemplate } from './offlineAssetCache';
 
 export interface RankedStudent {
   student: StudentData;
@@ -296,13 +297,14 @@ export async function renderTopTenCertificateToCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // 1. Load template image
+  // 1. Load template image from local device cache (IndexedDB)
   let templateImg = cachedTemplateImg;
   if (!templateImg) {
-    const targetUrl = options.design === 'royal' ? royalCertTemplateUrl : topTenCertTemplateUrl;
-    templateImg = await loadImage(targetUrl);
-    if (!templateImg && options.design !== 'royal') {
-      templateImg = await loadImage('/assets/images/top_ten_cert_template.webp');
+    const cachedDataUrl = await getCachedCertificateTemplate(options.design === 'royal' ? 'royal' : 'classic');
+    templateImg = await loadImage(cachedDataUrl);
+    if (!templateImg) {
+      const targetUrl = options.design === 'royal' ? royalCertTemplateUrl : topTenCertTemplateUrl;
+      templateImg = await loadImage(targetUrl);
     }
   }
 
@@ -782,10 +784,11 @@ export async function exportTopTenCertificatesPdf(
       ? [rankedStudents[singleStudentIndex]]
       : rankedStudents;
 
-  // Preload template image once
-  let templateImg = await loadImage(design === 'royal' ? royalCertTemplateUrl : topTenCertTemplateUrl);
-  if (!templateImg && design !== 'royal') {
-    templateImg = await loadImage('/assets/images/top_ten_cert_template.webp');
+  // Preload template image once from local device cache (IndexedDB)
+  const cachedDataUrl = await getCachedCertificateTemplate(design === 'royal' ? 'royal' : 'classic');
+  let templateImg = await loadImage(cachedDataUrl);
+  if (!templateImg) {
+    templateImg = await loadImage(design === 'royal' ? royalCertTemplateUrl : topTenCertTemplateUrl);
   }
 
   const canvas = document.createElement('canvas');

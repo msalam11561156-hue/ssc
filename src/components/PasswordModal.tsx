@@ -8,7 +8,7 @@ import {
   verifyActivationPassword, 
   activatePaidVersion 
 } from '../utils/activationManager';
-import passwordIcon from '../assets/images/password-modal-icon.webp';
+import { PASSWORD_MODAL_ICON_BASE64 } from '../utils/offlineAssetCache';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -137,7 +137,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
             {/* Badge Frame with Black Border */}
             <div className="relative w-24 h-24 rounded-2xl bg-white border-2 border-black shadow-md flex items-center justify-center p-2.5 transition-transform hover:scale-105 duration-300">
               <img 
-                src={passwordIcon} 
+                src={PASSWORD_MODAL_ICON_BASE64} 
                 alt="أيقونة نافذة كلمة المرور" 
                 className="w-full h-full object-contain filter drop-shadow-sm"
                 loading="eager"
