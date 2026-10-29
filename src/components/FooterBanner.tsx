@@ -114,7 +114,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
           </svg>
         </a>
 
-        <PWAInstallButton />
+        <PWAInstallButton lang={lang} />
 
         {/* Share Button */}
         <button 

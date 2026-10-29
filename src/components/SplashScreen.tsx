@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../types';
 import { translations } from '../i18n';
-import { PWAInstallButton } from './PWAInstallButton';
 import innerBg from '../assets/images/control_illustration_1786475473814.jpg';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
@@ -158,8 +157,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         transition={{ delay: 0.4, duration: 0.6 }}
         className="flex flex-col items-center gap-5 w-full"
       >
-        <PWAInstallButton />
-
         {isOfficialUnlocked ? (
           <div className="flex items-center justify-center w-full px-4">
             <motion.button

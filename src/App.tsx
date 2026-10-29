@@ -19,7 +19,7 @@ import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/theme
 import { SchoolData, ControlData, Language, StudentData } from './types';
 import { translations, setCurrentAffiliatedEntity } from './i18n';
 import { AnimatedBackground } from './components/AnimatedBackground';
-import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock, Link } from 'lucide-react';
+import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock } from 'lucide-react';
 
 import { FooterBanner } from './components/FooterBanner';
 import { getAllDefaultStudentsDataByStage } from './utils/defaultStudentsData';
@@ -27,7 +27,6 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
 import { FooterSettingsModal } from './components/FooterSettingsModal';
 import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
-import { PWAInstallButton } from './components/PWAInstallButton';
 import { createBackupPayload, saveBackupToFile, BackupPayload } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
@@ -198,7 +197,6 @@ export default function App() {
   const [isBackupReminderModalOpen, setIsBackupReminderModalOpen] = useState(false);
   const [isFooterSettingsModalOpen, setIsFooterSettingsModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
-  const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [customAdText, setCustomAdText] = useState(() => localStorage.getItem('sheet_control_ad_text') || '');
 
   const handleSaveAdText = (slots: { text: string; grade: string }[]) => {
@@ -885,16 +883,6 @@ export default function App() {
         setIsAdModalOpen(true);
       },
     },
-    { 
-      id: 'shortcut', 
-      label: 'إنشاء اختصار', 
-      icon: Link, 
-      color: 'bg-emerald-600 shadow-[0_5px_15px_-3px_rgba(5,150,105,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(5,150,105,0.6)]',
-      action: () => {
-        setIsMenuOpen(false);
-        setIsShortcutModalOpen(true);
-      },
-    },
     { id: 'logout', label: t.logout, icon: LogOut, color: 'bg-[#dc2626] shadow-[0_5px_15px_-3px_rgba(220,38,38,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(220,38,38,0.6)]' },
   ];
 
@@ -1084,7 +1072,6 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2.5 relative z-10">
-              <PWAInstallButton />
               <button 
                 onClick={() => setIsMenuOpen(true)}
                 className="h-12 w-12 flex items-center justify-center text-white relative overflow-hidden rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md border-[1.5px] border-white/20 group shrink-0"
@@ -1357,46 +1344,6 @@ export default function App() {
           )}
           <AnimatePresence mode="wait">
             {(() => {
-              if (isShortcutModalOpen) {
-                return (
-                  <div key="shortcut-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-900/80 backdrop-blur-md" onClick={() => setIsShortcutModalOpen(false)}>
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                      className="w-[85vw] h-[60vh] max-w-5xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col relative border-4 border-emerald-500/20" 
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="absolute top-4 left-4 z-20">
-                        <button 
-                          onClick={() => setIsShortcutModalOpen(false)} 
-                          className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-all active:scale-90 shadow-sm"
-                        >
-                          <X className="w-6 h-6" />
-                        </button>
-                      </div>
-                      
-                      <div className="flex-1 w-full h-full p-2 flex items-center justify-center bg-slate-50">
-                        <img 
-                          src="/asd1234.jpg" 
-                          alt="Shortcut Instructions" 
-                          className="max-w-full max-h-full object-contain drop-shadow-xl rounded-xl scale-y-[1.2]" 
-                        />
-                      </div>
-
-                      <div className="absolute bottom-6 right-6 left-6 pointer-events-none">
-                        <div className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl border border-emerald-100 shadow-lg inline-block float-right">
-                          <h2 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-3">
-                            <Link className="w-6 h-6 text-emerald-600" />
-                            طريقة إنشاء اختصار للتطبيق
-                          </h2>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-                );
-              }
-
               switch (step) {
                 case 0:
                   return (
