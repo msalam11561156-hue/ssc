@@ -5107,7 +5107,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         deviceIdOverride={seatNumbersRandomId}
         isVipOption={true}
         vipOptionTitle="VIP Option"
-        customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x - 350 L.E"
+        customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x"
         skipActivation={true}
       />
 
@@ -5534,7 +5534,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         skipActivation={true}
         isVipOption={true}
         vipOptionTitle="VIP Option"
-        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي : ID : x - 350 L.E"
+        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي : ID : x"
       />
 
       <PasswordModal
@@ -5582,7 +5582,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         skipActivation={true}
         isVipOption={true}
         vipOptionTitle="شهادات التقدير"
-        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x - 350 L.E"
+        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
       />
 
       {/* Download Success Toast Notification */}

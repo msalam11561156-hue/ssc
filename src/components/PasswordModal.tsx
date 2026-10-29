@@ -61,8 +61,8 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   const finalMessage = customWhatsappMessage 
     ? customWhatsappMessage.includes('ID : x')
       ? customWhatsappMessage.replace('ID : x', `ID : ${deviceId}`)
-      : `${customWhatsappMessage}\nID : ${deviceId} - 350 L.E`
-    : `السلام عليكم، أود تفعيل النسخة الرسمية للتطبيق.\nمعرف جهازي:\nID : ${deviceId} - 350 L.E`;
+      : `${customWhatsappMessage}\nID : ${deviceId}`
+    : `السلام عليكم، أود تفعيل النسخة الرسمية للتطبيق.\nمعرف جهازي:\nID : ${deviceId}`;
     
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(finalMessage)}`;
 
@@ -231,7 +231,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
               className="font-bold text-slate-800 text-sm tracking-wide mt-0.5 select-all" 
               dir="ltr"
             >
-              ID : {deviceId} - 350 L.E
+              ID : {deviceId}
             </div>
           </form>
         </motion.div>

@@ -3259,7 +3259,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         skipActivation={true}
         isVipOption={true}
         vipOptionTitle="شهادات التقدير"
-        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x - 350 L.E"
+        customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
       />
 
       {/* شهادات التقدير */}
