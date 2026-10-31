@@ -20,6 +20,7 @@ import {
   ParsedBackupResult,
 } from '../utils/backupRestore';
 import { playClickSound } from '../utils/sound';
+import brandShield from '../assets/images/brand_shield.png';
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
@@ -140,8 +141,11 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
         {/* Header with vibrant amber/orange gradient */}
         <div className="relative overflow-hidden bg-gradient-to-l from-orange-600 via-amber-600 to-amber-700 px-6 py-5 text-white flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-inner">
-              <FolderOutput className="w-6 h-6 text-white" />
+            <div className="relative group">
+              <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-inner relative z-10">
+                <img src={brandShield} alt="Shield" className="w-8 h-8 object-contain drop-shadow-sm" />
+              </div>
+              <div className="absolute inset-0 bg-white/40 blur-xl rounded-full scale-0 group-hover:scale-110 transition-transform duration-500 -z-0" />
             </div>
             <div>
               <h3 className="text-xl font-bold leading-tight">استرجاع نسخة احتياطية</h3>

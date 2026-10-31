@@ -99,6 +99,15 @@
   will-change: transform;
 }
 
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
 @keyframes button-marquee-ltr {
   0% {
     transform: translateX(-50%);

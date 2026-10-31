@@ -22,6 +22,7 @@ import { AnimatedBackground } from './components/AnimatedBackground';
 import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock } from 'lucide-react';
 
 import { FooterBanner } from './components/FooterBanner';
+import { BrandHeader } from './components/BrandHeader';
 import { getAllDefaultStudentsDataByStage } from './utils/defaultStudentsData';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
@@ -1103,17 +1104,7 @@ export default function App() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80"
               >
-                {/* Brand Header inside Menu */}
-                <div className="flex flex-col items-center gap-1.5 pb-3">
-                  <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-amber-200 to-amber-500 uppercase tracking-widest">SMART CONTROL</h3>
-                  <div className="w-full h-[2px] bg-slate-700/80 rounded-full overflow-hidden">
-                    <motion.div
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                      className="w-full h-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
-                    />
-                  </div>
-                </div>
+                <BrandHeader variant="gold" />
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
                   return (

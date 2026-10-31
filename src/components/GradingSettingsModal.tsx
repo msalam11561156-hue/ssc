@@ -11,6 +11,7 @@ import {
 } from '../utils/gradingSettings';
 import { getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { StudentData } from '../types';
+import brandShield from '../assets/images/brand_shield.png';
 
 interface GradingSettingsModalProps {
   isOpen: boolean;
@@ -241,8 +242,14 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
               {/* View 1: Locked Settings View */}
               {!isUnlocked ? (
                 <form onSubmit={handleUnlock} className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-amber-600 mb-4 shadow-inner">
-                    <Lock className="w-8 h-8 animate-bounce" />
+                  <div className="relative mb-6">
+                    <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center relative z-10">
+                      <img src={brandShield} alt="Shield" className="w-12 h-12 object-contain" />
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white rounded-lg p-1 z-20 shadow-md border-2 border-white">
+                      <Lock className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div className="absolute inset-0 bg-amber-400/20 blur-xl rounded-full scale-150 -z-0 animate-pulse" />
                   </div>
 
                   <h3 className="text-2xl font-black text-slate-900 mb-2">

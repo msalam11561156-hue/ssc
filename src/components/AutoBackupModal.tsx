@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, ShieldCheck, CheckCircle2, X, Bell } from 'lucide-react';
 import { playClickSound } from '../utils/sound';
+import brandShield from '../assets/images/brand_shield.png';
 
 interface AutoBackupModalProps {
   isOpen: boolean;
@@ -58,8 +59,11 @@ export const AutoBackupModal: React.FC<AutoBackupModalProps> = ({ isOpen, onClos
         {/* Header */}
         <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-              <Clock className="w-6 h-6 text-white" />
+            <div className="relative group">
+              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md relative z-10 border border-white/30 shadow-inner">
+                <img src={brandShield} alt="Shield" className="w-8 h-8 object-contain" />
+              </div>
+              <div className="absolute inset-0 bg-white/30 blur-lg rounded-full scale-125 animate-pulse -z-0" />
             </div>
             <div>
               <h3 className="font-black text-lg">إعدادات الحفظ التلقائي</h3>

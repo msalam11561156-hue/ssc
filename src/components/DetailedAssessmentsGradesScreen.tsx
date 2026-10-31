@@ -26,6 +26,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { ActionMenuButton } from './ActionMenuButton';
+import { BrandHeader } from './BrandHeader';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
 import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
 import { CertificatesSelectionModal } from './CertificatesSelectionModal';
@@ -2452,6 +2453,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
               <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <BrandHeader />
                 
                 {/* خيار رقم الجلوس */}
                 <ActionMenuButton
@@ -2618,6 +2620,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
               <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <BrandHeader />
                 
                 {/* بطاقة ألوان الطباعة */}
                 <RowThemeSelector />
