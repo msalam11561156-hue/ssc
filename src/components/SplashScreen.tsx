@@ -61,7 +61,7 @@ const PrecisionLightOverlay: React.FC = () => (
         attributeName="stroke-dashoffset"
         values="220; -805; -1025; -1025"
         keyTimes="0; 0.82; 0.9; 1"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
         calcMode="linear"
       />
@@ -69,7 +69,7 @@ const PrecisionLightOverlay: React.FC = () => (
         attributeName="opacity"
         values="0; 0.95; 0.95; 0; 0"
         keyTimes="0; 0.05; 0.82; 0.88; 1"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
       />
     </path>
@@ -88,7 +88,7 @@ const PrecisionLightOverlay: React.FC = () => (
         attributeName="stroke-dashoffset"
         values="150; -875; -1025; -1025"
         keyTimes="0; 0.82; 0.9; 1"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
         calcMode="linear"
       />
@@ -96,7 +96,7 @@ const PrecisionLightOverlay: React.FC = () => (
         attributeName="opacity"
         values="0; 1; 1; 0; 0"
         keyTimes="0; 0.05; 0.82; 0.88; 1"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
       />
     </path>
@@ -105,7 +105,7 @@ const PrecisionLightOverlay: React.FC = () => (
     <g>
       <animateMotion
         path="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
         keyPoints="0; 1; 1"
         keyTimes="0; 0.82; 1"
@@ -115,7 +115,7 @@ const PrecisionLightOverlay: React.FC = () => (
         attributeName="opacity"
         values="0; 1; 1; 1; 0; 0"
         keyTimes="0; 0.04; 0.8; 0.84; 0.9; 1"
-        dur="2.8s"
+        dur="3.7s"
         repeatCount="indefinite"
       />
 
@@ -137,7 +137,7 @@ const PrecisionLightOverlay: React.FC = () => (
           type="rotate"
           from="0"
           to="360"
-          dur="2.8s"
+          dur="3.7s"
           repeatCount="indefinite"
         />
       </polygon>
@@ -429,7 +429,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           <div className="relative w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
-              transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+              transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
               className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
             />
           </div>
