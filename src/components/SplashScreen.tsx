@@ -83,105 +83,279 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col items-center gap-8">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, x: -100, scale: 0.9 }}
-        transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-        className="w-full relative p-[8px] rounded-[3rem] overflow-hidden shadow-2xl"
-      >
+    <div className="w-full flex flex-col items-center">
+      {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
+      <div className="w-full z-20">
+        <motion.div 
+          animate={{ 
+            backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            boxShadow: [
+              '0 0 10px 2px rgba(255,255,255,0.4), 0 0 20px 5px rgba(6,182,212,0.4)', 
+              '0 0 20px 4px rgba(255,255,255,0.7), 0 0 40px 10px rgba(6,182,212,0.7)', 
+              '0 0 10px 2px rgba(255,255,255,0.4), 0 0 20px 5px rgba(6,182,212,0.4)'
+            ]
+          }}
+          transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+          className="w-full bg-[length:200%_auto] py-[3px] shadow-2xl relative overflow-hidden border-b-2 border-black"
+          style={{ backgroundImage: 'linear-gradient(to right, #ffffff, #06b6d4, #3b82f6, #06b6d4, #ffffff)' }}
+        >
+          {/* Ticker Background (Blue -> Green -> Yellow) */}
+          <motion.div 
+             animate={{ backgroundColor: ['rgba(30,64,175,0.95)', 'rgba(21,128,61,0.95)', 'rgba(161,98,7,0.95)', 'rgba(30,64,175,0.95)'] }}
+             transition={{ repeat: Infinity, duration: 15, ease: 'easeInOut' }}
+             className="w-full py-3 md:py-3.5 px-4 flex items-center overflow-hidden [container-type:inline-size]"
+             dir="ltr"
+          >
+            {/* Ticker Animation */}
+            <div 
+              className="flex whitespace-nowrap w-max animate-splash-marquee"
+              dir="ltr"
+            >
+              <motion.h1 
+                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
+                className="text-base md:text-xl font-extrabold text-transparent bg-clip-text flex items-center"
+                style={{ 
+                  backgroundImage: 'linear-gradient(to right, #2dd4bf, #ffffff, #a855f7, #fbbf24, #2dd4bf)',
+                  backgroundSize: '200% auto',
+                  filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.8))' 
+                }}
+                dir="rtl"
+              >
+                <span>{translations.ar.appTitle}</span>
+              </motion.h1>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Frame & Action Buttons Area */}
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-[30px] md:mt-[42px] flex flex-col items-center gap-8">
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
-        />
-        
-        <div className="relative rounded-[2.5rem] overflow-hidden border-[3px] border-black w-full h-full flex flex-col">
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, x: -100, scale: 0.9 }}
+          transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+          className="w-full relative p-[8px] rounded-[3rem] overflow-hidden shadow-2xl"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
+          />
+          
+          <div className="relative rounded-[2.5rem] overflow-hidden border-[3px] border-black w-full h-full flex flex-col">
           <div 
             className="absolute inset-0 z-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"
           />
         
-        <div className="relative z-10 w-full min-h-[60vh] flex flex-col items-center justify-center gap-12 py-12 md:py-16 overflow-hidden">
-          
-          {/* Background Image 1 (Illustration) */}
-          <div 
-            className={`absolute inset-0 z-0 ${activeBgIndex === 0 ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              backgroundImage: `url(${bgImage1})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              transition: 'opacity 1200ms ease-in-out'
-            }}
-          />
-
-          {/* Background Image 2 (Brand Shield on Velvet) - Centered and contained so shield is fully visible */}
-          <div 
-            className={`absolute inset-0 z-0 ${activeBgIndex === 1 ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              backgroundImage: `url(${bgImage2})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundColor: '#1a0508',
-              transition: 'opacity 1200ms ease-in-out'
-            }}
-          />
-          
-          {/* Subtle Dark Overlay to preserve text contrast & depth */}
-          <div className="absolute inset-0 z-0 bg-slate-900/20 backdrop-blur-[0.5px]" />
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 1.2, ease: 'easeOut' }}
-            className="relative z-10 w-full my-auto"
-          >
-            {/* Glowing Animated Border Container */}
-            <motion.div 
-              animate={{ 
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                boxShadow: [
-                  '0 0 10px 2px rgba(255,255,255,0.4), 0 0 20px 5px rgba(6,182,212,0.4)', 
-                  '0 0 20px 4px rgba(255,255,255,0.7), 0 0 40px 10px rgba(6,182,212,0.7)', 
-                  '0 0 10px 2px rgba(255,255,255,0.4), 0 0 20px 5px rgba(6,182,212,0.4)'
-                ]
+          <div className="relative z-10 w-full min-h-[60vh] flex flex-col items-center justify-center overflow-hidden">
+            {/* Background Image 1 (Illustration) */}
+            <div 
+              className={`absolute inset-0 z-0 ${activeBgIndex === 0 ? 'opacity-100' : 'opacity-0'}`}
+              style={{
+                backgroundImage: `url(${bgImage1})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                transition: 'opacity 1200ms ease-in-out'
               }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="w-full bg-[length:200%_auto] py-[3px] shadow-2xl relative overflow-visible"
-              style={{ backgroundImage: 'linear-gradient(to right, #ffffff, #06b6d4, #3b82f6, #06b6d4, #ffffff)' }}
+            />
+
+            {/* Background Image 2 (Brand Shield on Velvet) with Precision Moving Light */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              style={{
+                backgroundColor: '#1a0508'
+              }}
             >
-              {/* Ticker Background (Blue -> Green -> Yellow) */}
-              <motion.div 
-                 animate={{ backgroundColor: ['rgba(30,64,175,0.95)', 'rgba(21,128,61,0.95)', 'rgba(161,98,7,0.95)', 'rgba(30,64,175,0.95)'] }}
-                 transition={{ repeat: Infinity, duration: 15, ease: 'easeInOut' }}
-                 className="w-full py-4 md:py-5 flex items-center overflow-hidden [container-type:inline-size]"
-                 dir="ltr"
-              >
-                {/* Ticker Animation */}
-                <div 
-                  className="flex whitespace-nowrap w-max animate-splash-marquee"
-                  dir="ltr"
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={bgImage2}
+                  alt="Smart Control Logo"
+                  className="w-full h-full object-contain pointer-events-none select-none"
+                />
+
+                {/* Precision SVG Overlay aligned 1:1 with the object-contain image */}
+                <svg 
+                  viewBox="0 0 1048 1024" 
+                  className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+                  preserveAspectRatio="xMidYMid meet"
                 >
-                  <motion.h1 
-                    animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                    transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
-                    className="text-lg md:text-2xl font-extrabold text-transparent bg-clip-text flex items-center"
-                    style={{ 
-                      backgroundImage: 'linear-gradient(to right, #2dd4bf, #ffffff, #a855f7, #fbbf24, #2dd4bf)',
-                      backgroundSize: '200% auto',
-                      filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.8))' 
-                    }}
-                    dir="rtl"
+                  <defs>
+                    <filter id="zigzagBrightGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="3" result="blur1" />
+                      <feGaussianBlur stdDeviation="8" result="blur2" />
+                      <feGaussianBlur stdDeviation="15" result="blur3" />
+                      <feMerge>
+                        <feMergeNode in="blur3" />
+                        <feMergeNode in="blur2" />
+                        <feMergeNode in="blur1" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    
+                    <radialGradient id="zigzagSparkRadial" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                      <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.95" />
+                      <stop offset="65%" stopColor="#fbbf24" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+                    </radialGradient>
+
+                    <linearGradient id="zigzagTrailGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.1" />
+                      <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.5" />
+                      <stop offset="70%" stopColor="#fbbf24" stopOpacity="0.9" />
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Luminous laser trail running behind the light */}
+                  <path
+                    d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+                    fill="none"
+                    stroke="url(#zigzagTrailGrad)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#zigzagBrightGlow)"
+                    strokeDasharray="220 1200"
                   >
-                    <span>{translations.ar.appTitle}</span>
-                  </motion.h1>
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        </div>
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      values="220; -805; -1025; -1025"
+                      keyTimes="0; 0.82; 0.9; 1"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                      calcMode="linear"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0; 0.95; 0.95; 0; 0"
+                      keyTimes="0; 0.05; 0.82; 0.88; 1"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                    />
+                  </path>
+
+                  {/* Hot white inner laser core */}
+                  <path
+                    d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray="150 1200"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      values="150; -875; -1025; -1025"
+                      keyTimes="0; 0.82; 0.9; 1"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                      calcMode="linear"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0; 1; 1; 0; 0"
+                      keyTimes="0; 0.05; 0.82; 0.88; 1"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                    />
+                  </path>
+
+                  {/* Moving Light Orb / Energy Spark traveling accurately over the broken line */}
+                  <g>
+                    <animateMotion
+                      path="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                      keyPoints="0; 1; 1"
+                      keyTimes="0; 0.82; 1"
+                      calcMode="linear"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0; 1; 1; 1; 0; 0"
+                      keyTimes="0; 0.04; 0.8; 0.84; 0.9; 1"
+                      dur="2.8s"
+                      repeatCount="indefinite"
+                    />
+
+                    {/* Outer soft aura */}
+                    <circle r="32" fill="url(#zigzagSparkRadial)" />
+
+                    {/* Intense glow aura */}
+                    <circle r="15" fill="#fbbf24" filter="url(#zigzagBrightGlow)" opacity="0.95" />
+                    <circle r="10" fill="#38bdf8" filter="url(#zigzagBrightGlow)" opacity="0.95" />
+
+                    {/* Rotating 4-pointed diamond star flare */}
+                    <polygon
+                      points="0,-24 4,-6 24,0 4,6 0,24 -4,6 -24,0 -4,-6"
+                      fill="#ffffff"
+                      opacity="0.95"
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0"
+                        to="360"
+                        dur="2.8s"
+                        repeatCount="indefinite"
+                      />
+                    </polygon>
+
+                    {/* Diamond sparkle diagonal flares */}
+                    <polygon
+                      points="0,-14 3,-3 14,0 3,3 0,14 -3,3 -14,0 -3,-3"
+                      fill="#fef08a"
+                      opacity="0.85"
+                      transform="rotate(45)"
+                    />
+
+                    {/* Pure white radiant core */}
+                    <circle r="5.5" fill="#ffffff" filter="url(#zigzagBrightGlow)" />
+                    <circle r="3" fill="#ffffff" />
+                  </g>
+
+                  {/* Top-Right Tip Flare / Sparkle upon arrival */}
+                  <g transform="translate(896, 194)">
+                    <circle r="0" fill="#ffffff" filter="url(#zigzagBrightGlow)">
+                      <animate
+                        attributeName="r"
+                        values="0; 0; 28; 0; 0"
+                        keyTimes="0; 0.8; 0.85; 0.92; 1"
+                        dur="2.8s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0; 0; 1; 0; 0"
+                        keyTimes="0; 0.8; 0.85; 0.92; 1"
+                        dur="2.8s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                    <polygon points="0,-30 5,-6 30,0 5,6 0,30 -5,6 -30,0 -5,-6" fill="#ffffff" opacity="0">
+                      <animate
+                        attributeName="opacity"
+                        values="0; 0; 0.95; 0; 0"
+                        keyTimes="0; 0.8; 0.85; 0.92; 1"
+                        dur="2.8s"
+                        repeatCount="indefinite"
+                      />
+                    </polygon>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            
+            {/* Subtle Dark Overlay to preserve text contrast & depth */}
+            <div className="absolute inset-0 z-0 bg-slate-900/20 backdrop-blur-[0.5px]" />
+          </div>
         </div>
       </motion.div>
 
@@ -256,6 +430,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </span>
         </div>
       </motion.div>
+      </div>
 
       {/* نافذة تنبيه انتهاء الجلسة التجريبية */}
       <AnimatePresence>

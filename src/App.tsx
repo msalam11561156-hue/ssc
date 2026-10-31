@@ -1337,7 +1337,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col items-center justify-center z-10 w-full ${[4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
+        <main className={`flex-1 flex flex-col items-center z-10 w-full ${step === 0 ? 'justify-start p-0 pb-[19px] pt-0' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
           {step === 10 && (
             <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
               <ColorThemeBar

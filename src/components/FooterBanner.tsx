@@ -34,7 +34,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
 
   return (
     <>
-      <div className="w-full p-2 mt-auto bg-transparent flex items-center gap-2" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="w-full px-2 pt-1 pb-2 mt-auto bg-transparent flex items-center gap-2" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {/* Marquee Banner */}
         <div className="flex-1 overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-14 flex items-center relative" dir="ltr">
           <style>
