@@ -1104,8 +1104,15 @@ export default function App() {
                 className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80"
               >
                 {/* Brand Header inside Menu */}
-                <div className="flex flex-col items-center gap-1.5 pb-3 border-b border-slate-700/80">
-                  <h3 className="text-xl font-black text-white tracking-wide">Smart Control</h3>
+                <div className="flex flex-col items-center gap-1.5 pb-3">
+                  <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-amber-200 to-amber-500 uppercase tracking-widest">SMART CONTROL</h3>
+                  <div className="w-full h-[2px] bg-slate-700/80 rounded-full overflow-hidden">
+                    <motion.div
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                      className="w-full h-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+                    />
+                  </div>
                 </div>
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
