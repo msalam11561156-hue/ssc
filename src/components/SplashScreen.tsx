@@ -130,7 +130,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       </div>
 
       {/* Frame & Action Buttons Area */}
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-[45px] md:mt-[63px] flex flex-col items-center gap-8">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-[68px] md:mt-[95px] flex flex-col items-center gap-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
