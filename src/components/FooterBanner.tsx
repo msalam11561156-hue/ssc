@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Facebook } from 'lucide-react';
+import { Share2, Facebook, Star } from 'lucide-react';
 import { Language } from '../types';
 import { ShareModal } from './ShareModal';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -34,9 +34,9 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
 
   return (
     <>
-      <div className="w-full px-2 pt-1 pb-2 mt-auto bg-transparent flex items-center gap-2" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="w-full px-2 pt-1 pb-2 mt-auto bg-transparent flex items-center gap-2 overflow-x-auto" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {/* Marquee Banner */}
-        <div className="flex-1 overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-14 flex items-center relative" dir="ltr">
+        <div className="flex-1 min-w-[200px] overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-14 flex items-center relative" dir="ltr">
           <style>
             {`
               @keyframes scroll-ltr {
@@ -126,12 +126,24 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
             } catch {}
             setIsShareOpen(true);
           }}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-white border-[1.5px] border-slate-900 rounded-lg hover:bg-slate-100 transition-colors shadow-sm shrink-0 h-14 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-white border-[1.5px] border-slate-900 rounded-lg hover:bg-slate-100 transition-colors shadow-sm shrink-0 h-14 cursor-pointer"
           title={lang === 'ar' ? 'نسخ ومشاركة رابط التطبيق' : 'Copy and share app link'}
         >
           <span className="font-bold text-slate-800 text-xs md:text-sm">{lang === 'ar' ? 'مشاركة' : 'Share'}</span>
           <Share2 className="w-4 h-4 text-slate-800" />
         </button>
+
+        {/* App Rating Button */}
+        <a 
+          href="https://forms.gle/sDQTxpXb2wc5NErH6"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border-[1.5px] border-slate-900 rounded-lg transition-all shadow-sm shrink-0 h-14 group cursor-pointer"
+          title={lang === 'ar' ? 'تقييم التطبيق' : 'Rate App'}
+        >
+          <span className="font-bold text-white text-xs md:text-sm whitespace-nowrap">{lang === 'ar' ? 'تقييم التطبيق' : 'Rate App'}</span>
+          <Star className="w-4 h-4 fill-white text-white" />
+        </a>
       </div>
       
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} lang={lang} />

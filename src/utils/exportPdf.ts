@@ -9548,10 +9548,14 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   : 'نسبة الطلاب الراسبين',
                 value: fmtPct(subjectGradeFailCount),
               },
-              {
-                label: 'نسبة الطلاب من لهم دور ثان',
-                value: fmtPct(subjectGradeSecondRoundCount),
-              },
+              ...(!isFirstSemReport
+                ? [
+                    {
+                      label: 'نسبة الطلاب من لهم دور ثان',
+                      value: fmtPct(subjectGradeSecondRoundCount),
+                    },
+                  ]
+                : []),
             ];
 
         const { customCols: subjCustomCols, defaultSubjectsOverrides: subjOvrs } =
