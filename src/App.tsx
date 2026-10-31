@@ -1056,7 +1056,7 @@ export default function App() {
               }`}
             />
             
-            <div className="flex items-center relative z-10 flex-1 overflow-hidden">
+            <div className="flex items-center gap-2.5 relative z-10 flex-1 overflow-hidden">
               <div className="flex-1 overflow-hidden [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]" dir="ltr">
                 <div className="whitespace-nowrap animate-header-marquee ml-2">
                   <motion.h1
@@ -1101,8 +1101,13 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4"
+                className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80"
               >
+                {/* Brand Header inside Menu */}
+                <div className="flex flex-col items-center gap-1.5 pb-3 border-b border-slate-700/80">
+                  <h3 className="text-xl font-black text-white tracking-wide">Smart Control</h3>
+                  <span className="text-xs font-semibold text-amber-400">المنظومة الرقمية للكنترول المدرسي 2026 - 2027</span>
+                </div>
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
                   return (

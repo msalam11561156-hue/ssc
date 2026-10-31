@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../types';
 import { translations } from '../i18n';
-import innerBg from '../assets/images/control_illustration_1786475473814.jpg';
+import defaultIllustrationBg from '../assets/images/control_illustration_1786475473814.jpg';
+import defaultBrandBg from '../assets/images/splash_brand_bg.jpg';
+import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -29,9 +31,27 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [showDayExpiredModal, setShowDayExpiredModal] = useState(false);
   const [showAllExpiredModal, setShowAllExpiredModal] = useState(false);
   const [isOfficialUnlocked, setIsOfficialUnlocked] = useState(() => isPaidUnlocked());
+  const [bgImage1, setBgImage1] = useState(defaultIllustrationBg);
+  const [bgImage2, setBgImage2] = useState(defaultBrandBg);
+  const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
     setIsOfficialUnlocked(isPaidUnlocked());
+
+    // جلب وحفظ الصور على جهاز العميل لضمان التحميل الفوري وعدم فقدانها
+    getCachedSplashBackground('illustration').then((url) => {
+      if (url) setBgImage1(url);
+    });
+    getCachedSplashBackground('brand').then((url) => {
+      if (url) setBgImage2(url);
+    });
+
+    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة
+    const interval = setInterval(() => {
+      setActiveBgIndex((prev) => (prev === 0 ? 1 : 0));
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleOfficialClick = () => {
@@ -84,20 +104,34 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         
         <div className="relative z-10 w-full min-h-[60vh] flex flex-col items-center justify-center gap-12 py-12 md:py-16 overflow-hidden">
           
-          {/* Inner Background Image */}
+          {/* Background Image 1 (Illustration) */}
           <div 
-            className="absolute inset-0 z-0"
+            className={`absolute inset-0 z-0 ${activeBgIndex === 0 ? 'opacity-100' : 'opacity-0'}`}
             style={{
-              backgroundImage: `url(${innerBg})`,
+              backgroundImage: `url(${bgImage1})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat'
+              backgroundRepeat: 'no-repeat',
+              transition: 'opacity 1200ms ease-in-out'
+            }}
+          />
+
+          {/* Background Image 2 (Brand Shield on Velvet) - Centered and contained so shield is fully visible */}
+          <div 
+            className={`absolute inset-0 z-0 ${activeBgIndex === 1 ? 'opacity-100' : 'opacity-0'}`}
+            style={{
+              backgroundImage: `url(${bgImage2})`,
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundColor: '#1a0508',
+              transition: 'opacity 1200ms ease-in-out'
             }}
           />
           
-          {/* Dark Overlay to make text readable */}
-          <div className="absolute inset-0 z-0 bg-slate-900/10" />
-          
+          {/* Subtle Dark Overlay to preserve text contrast & depth */}
+          <div className="absolute inset-0 z-0 bg-slate-900/20 backdrop-blur-[0.5px]" />
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'appicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
+        includeAssets: ['favicon.ico', 'appicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png', 'assets/images/splash_brand_bg.jpg', 'assets/images/splash_control_illustration.jpg'],
         manifest: {
           id: '/',
           name: 'Smart Control',
@@ -44,7 +44,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg,jpeg,gif,webp}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg,jpeg,gif,webp,jfif}'],
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
           runtimeCaching: [
             {
