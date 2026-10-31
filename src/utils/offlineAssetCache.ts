@@ -59,14 +59,14 @@ export async function getCachedCertificateTemplate(design: 'classic' | 'royal'):
   }
 }
 
-export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control';
+export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'multicolor_logo' | 'end_of_excel';
 
 /**
  * جلب وحفظ خلفيات شاشة البداية الافتتاحية محلياً على جهاز العميل (IndexedDB)
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v4`;
+  const cacheKey = `offline_splash_bg_${type}_v6`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -82,14 +82,15 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
     console.warn('IDB read warning for splash background:', e);
   }
 
-  const targetUrl = 
-    type === 'blue_shield' 
-      ? splashBlueShieldUrl 
-      : type === 'illustration' 
-      ? splashIllustrationUrl 
-      : type === 'brand' 
-      ? splashBrandBgUrl 
-      : splashModernControlUrl;
+  let targetUrl = '';
+  switch (type) {
+    case 'blue_shield': targetUrl = splashBlueShieldUrl; break;
+    case 'illustration': targetUrl = splashIllustrationUrl; break;
+    case 'brand': targetUrl = splashBrandBgUrl; break;
+    case 'modern_control': targetUrl = splashModernControlUrl; break;
+    case 'multicolor_logo': targetUrl = '/assets/aistudio/0__10__ba3a5a75.jfif'; break;
+    case 'end_of_excel': targetUrl = '/assets/aistudio/e59e15bd-f488-468e-b130-bcb589180ef7_98eeab1a.jfif'; break;
+  }
 
   try {
     const dataUrl = await fetchToDataUrl(targetUrl);
@@ -114,12 +115,14 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedCertificateTemplate('classic'),
     ]);
 
-    // 2. حفظ صور الشاشة الافتتاحية الأربع في IndexedDB
+    // 2. حفظ صور الشاشة الافتتاحية الست في IndexedDB
     const splashPromise = Promise.allSettled([
       getCachedSplashBackground('blue_shield'),
       getCachedSplashBackground('illustration'),
       getCachedSplashBackground('brand'),
       getCachedSplashBackground('modern_control'),
+      getCachedSplashBackground('multicolor_logo'),
+      getCachedSplashBackground('end_of_excel'),
     ]);
 
     // 3. تخزين الأيقونات محلياً في ذاكرة التخزين الدائم للمتصفح

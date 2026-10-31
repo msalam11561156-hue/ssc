@@ -182,6 +182,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [illustrationImg, setIllustrationImg] = useState(defaultIllustrationBg);
   const [brandImg, setBrandImg] = useState(defaultBrandBg);
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
+  const [multiColorLogoImg, setMultiColorLogoImg] = useState('/assets/aistudio/0__10__ba3a5a75.jfif');
+  const [endOfExcelImg, setEndOfExcelImg] = useState('/assets/aistudio/e59e15bd-f488-468e-b130-bcb589180ef7_98eeab1a.jfif');
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
@@ -192,10 +194,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     getCachedSplashBackground('illustration').then((url) => { if (url) setIllustrationImg(url); });
     getCachedSplashBackground('brand').then((url) => { if (url) setBrandImg(url); });
     getCachedSplashBackground('modern_control').then((url) => { if (url) setModernControlImg(url); });
+    getCachedSplashBackground('multicolor_logo').then((url) => { if (url) setMultiColorLogoImg(url); });
+    getCachedSplashBackground('end_of_excel').then((url) => { if (url) setEndOfExcelImg(url); });
 
-    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الأربع
+    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الست
     const interval = setInterval(() => {
-      setActiveBgIndex((prev) => (prev + 1) % 4);
+      setActiveBgIndex((prev) => (prev + 1) % 6);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -353,6 +357,35 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 alt="Modern Smart Control Room"
                 className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
                 style={{ imageRendering: 'high-quality' }}
+              />
+            </div>
+
+            {/* 5. White Shield Logo Image (الصورة الخامسة - اللوجو بالخلفية البيضاء) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 4 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={multiColorLogoImg}
+                  alt="Smart Control White Shield Logo"
+                  className="w-full h-full object-fill pointer-events-none select-none"
+                />
+                <PrecisionLightOverlay />
+              </div>
+            </div>
+
+            {/* 6. End of Excel Era Image (الصورة السادسة - انتهاء عصر الإكسيل) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 5 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <img
+                src={endOfExcelImg}
+                alt="Smart Control End of Excel Era"
+                className="w-full h-full object-fill pointer-events-none select-none"
               />
             </div>
             
