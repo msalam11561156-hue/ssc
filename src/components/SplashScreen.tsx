@@ -9,7 +9,7 @@ import blueShieldBg from '../assets/images/blue_shield_bg.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
-import brandShield from '../assets/images/brand_shield.png';
+
 import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
 
 const PrecisionLightOverlay: React.FC = () => (
@@ -419,56 +419,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </div>
         )}
 
-        {/* Professional Branding Section */}
-        <div className="flex flex-col items-center gap-3 w-full">
-          {/* Professional Floating & Glowing Logo */}
-          <motion.div
-            animate={{ 
-              y: [0, -8, 0],
-              scale: [1, 1.05, 1],
-              rotateY: [0, 10, 0, -10, 0],
-              filter: [
-                "drop-shadow(0 0 5px rgba(251,191,36,0.2))", 
-                "drop-shadow(0 0 20px rgba(251,191,36,0.8))", 
-                "drop-shadow(0 0 5px rgba(251,191,36,0.2))"
-              ]
-            }}
-            transition={{ 
-              y: { repeat: Infinity, duration: 4, ease: "easeInOut" },
-              scale: { repeat: Infinity, duration: 4, ease: "easeInOut" },
-              rotateY: { repeat: Infinity, duration: 6, ease: "easeInOut" },
-              filter: { repeat: Infinity, duration: 3, ease: "easeInOut" }
-            }}
-            className="relative z-10"
-          >
-            <img 
-              src={brandShield} 
-              alt="Brand Shield Logo" 
-              className="w-24 h-24 md:w-28 md:h-28 object-contain select-none pointer-events-none" 
+        {/* Support Information */}
+        <div className="flex flex-col items-center gap-2 w-full mt-2">
+          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
+            Mahmoud Sallam : 01098594956 - 01131097055
+          </span>
+
+          {/* Animated Light Line */}
+          <div className="relative w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
+            <motion.div
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+              className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
             />
-            {/* Background Glow Effect */}
-            <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full -z-10 animate-pulse" />
-          </motion.div>
-
-          {/* Animated Glowing Title */}
-          <div className="flex flex-col items-center gap-2">
-            <h3 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-amber-200 to-amber-500 uppercase tracking-widest text-center">
-              SMART CONTROL
-            </h3>
-            
-            {/* Support Info Text with Shine Animation */}
-            <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
-              Mahmoud Sallam : 01098594956 - 01131097055
-            </span>
-
-            {/* Animated Light Line */}
-            <div className="relative w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full mt-1">
-              <motion.div
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
-              />
-            </div>
           </div>
         </div>
       </motion.div>
