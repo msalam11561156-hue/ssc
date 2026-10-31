@@ -66,7 +66,7 @@ export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_cont
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v3`;
+  const cacheKey = `offline_splash_bg_${type}_v4`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;

@@ -350,7 +350,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               <img
                 src={modernControlImg}
                 alt="Modern Smart Control Room"
-                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.10] saturate-[1.08] brightness-[1.03]"
+                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
                 style={{ imageRendering: 'high-quality' }}
               />
             </div>
@@ -377,7 +377,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             />
           </div>
           <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-sm md:text-base font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
-            Smart Control 2026 - 2027 - Mahmoud Sallam : 01098594956 - 01131097055
+            Smart Control - Mahmoud Sallam : 01098594956 - 01131097055
           </span>
         </div>
 

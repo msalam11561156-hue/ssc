@@ -1106,7 +1106,6 @@ export default function App() {
                 {/* Brand Header inside Menu */}
                 <div className="flex flex-col items-center gap-1.5 pb-3 border-b border-slate-700/80">
                   <h3 className="text-xl font-black text-white tracking-wide">Smart Control</h3>
-                  <span className="text-xs font-semibold text-amber-400">المنظومة الرقمية للكنترول المدرسي 2026 - 2027</span>
                 </div>
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
