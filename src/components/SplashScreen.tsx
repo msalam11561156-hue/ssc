@@ -4,7 +4,7 @@ import { Language } from '../types';
 import { translations } from '../i18n';
 import defaultIllustrationBg from '../assets/images/control_illustration_1786475473814.jpg';
 import defaultBrandBg from '../assets/images/splash_brand_bg.jpg';
-import redControlBg from '../assets/images/red_control_room.jfif';
+import modernControlBg from '../assets/images/smart_control_room_modern.jpg';
 import blueShieldBg from '../assets/images/blue_shield_bg.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
@@ -177,20 +177,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [showDayExpiredModal, setShowDayExpiredModal] = useState(false);
   const [showAllExpiredModal, setShowAllExpiredModal] = useState(false);
   const [isOfficialUnlocked, setIsOfficialUnlocked] = useState(() => isPaidUnlocked());
-  const [bgImage1, setBgImage1] = useState(defaultIllustrationBg);
-  const [bgImage2, setBgImage2] = useState(defaultBrandBg);
+  const [blueShieldImg, setBlueShieldImg] = useState(blueShieldBg);
+  const [illustrationImg, setIllustrationImg] = useState(defaultIllustrationBg);
+  const [brandImg, setBrandImg] = useState(defaultBrandBg);
+  const [modernControlImg, setModernControlImg] = useState(modernControlBg);
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
     setIsOfficialUnlocked(isPaidUnlocked());
 
-    // جلب وحفظ الصور على جهاز العميل لضمان التحميل الفوري وعدم فقدانها
-    getCachedSplashBackground('illustration').then((url) => {
-      if (url) setBgImage1(url);
-    });
-    getCachedSplashBackground('brand').then((url) => {
-      if (url) setBgImage2(url);
-    });
+    // جلب وحفظ الصور الأربع على جهاز العميل في IndexedDB لضمان السرعة الأقصى للتحميل وعدم الفقدان
+    getCachedSplashBackground('blue_shield').then((url) => { if (url) setBlueShieldImg(url); });
+    getCachedSplashBackground('illustration').then((url) => { if (url) setIllustrationImg(url); });
+    getCachedSplashBackground('brand').then((url) => { if (url) setBrandImg(url); });
+    getCachedSplashBackground('modern_control').then((url) => { if (url) setModernControlImg(url); });
 
     // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الأربع
     const interval = setInterval(() => {
@@ -304,7 +304,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
-                  src={blueShieldBg}
+                  src={blueShieldImg}
                   alt="Smart Control Blue Shield"
                   className="w-full h-full object-fill pointer-events-none select-none"
                 />
@@ -319,7 +319,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               }`}
             >
               <img
-                src={bgImage1}
+                src={illustrationImg}
                 alt="Smart Control Illustration"
                 className="w-full h-full object-fill pointer-events-none select-none"
               />
@@ -333,7 +333,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
-                  src={bgImage2}
+                  src={brandImg}
                   alt="Smart Control Logo"
                   className="w-full h-full object-fill pointer-events-none select-none"
                 />
@@ -341,16 +341,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               </div>
             </div>
 
-            {/* 4. Red Control Room Image (الصورة الرابعة - صورة غرفة الكنترول التقليدية مع علامة X الحمراء) */}
+            {/* 4. Modern Control Room Image (الصورة الرابعة - غرفة الكنترول الذكية الحديثة مع زيادة الوضوح والدقة) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
                 activeBgIndex === 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
               <img
-                src={redControlBg}
-                alt="Manual Control Room with Red X"
-                className="w-full h-full object-fill pointer-events-none select-none"
+                src={modernControlImg}
+                alt="Modern Smart Control Room"
+                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.10] saturate-[1.08] brightness-[1.03]"
+                style={{ imageRendering: 'high-quality' }}
               />
             </div>
             
