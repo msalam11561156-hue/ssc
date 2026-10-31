@@ -367,20 +367,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         transition={{ delay: 0.4, duration: 0.6 }}
         className="flex flex-col items-center gap-[10px] w-full"
       >
-        <div className="w-full max-w-sm flex flex-col items-center gap-2">
-          {/* Animated Light Line */}
-          <div className="relative w-full h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
-            <motion.div
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ repeat: Infinity, duration: 5, ease: 'linear' }}
-              className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent"
-            />
-          </div>
-          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-sm md:text-base font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
-            Smart Control - Mahmoud Sallam : 01098594956 - 01131097055
-          </span>
-        </div>
-
         {isOfficialUnlocked ? (
           <div className="flex items-center justify-center w-full px-4">
             <motion.button
@@ -431,6 +417,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             </button>
           </div>
         )}
+
+        <div className="w-full max-w-sm flex flex-col items-center gap-2">
+          {/* Animated Light Line */}
+          <div className="relative w-full h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
+            <motion.div
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ repeat: Infinity, duration: 5, ease: 'linear' }}
+              className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent"
+            />
+          </div>
+          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-sm md:text-base font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
+            Smart Control - Mahmoud Sallam : 01098594956 - 01131097055
+          </span>
+        </div>
       </motion.div>
       </div>
 
