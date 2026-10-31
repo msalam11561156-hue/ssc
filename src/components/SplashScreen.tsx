@@ -4,10 +4,156 @@ import { Language } from '../types';
 import { translations } from '../i18n';
 import defaultIllustrationBg from '../assets/images/control_illustration_1786475473814.jpg';
 import defaultBrandBg from '../assets/images/splash_brand_bg.jpg';
+import redControlBg from '../assets/images/red_control_room.jfif';
+import blueShieldBg from '../assets/images/blue_shield_bg.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
+
+const PrecisionLightOverlay: React.FC = () => (
+  <svg 
+    viewBox="0 0 1048 1024" 
+    className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+    preserveAspectRatio="none"
+  >
+    <defs>
+      <filter id="zigzagBrightGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="blur1" />
+        <feGaussianBlur stdDeviation="8" result="blur2" />
+        <feGaussianBlur stdDeviation="15" result="blur3" />
+        <feMerge>
+          <feMergeNode in="blur3" />
+          <feMergeNode in="blur2" />
+          <feMergeNode in="blur1" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      
+      <radialGradient id="zigzagSparkRadial" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+        <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.95" />
+        <stop offset="65%" stopColor="#fbbf24" stopOpacity="0.6" />
+        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+      </radialGradient>
+
+      <linearGradient id="zigzagTrailGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.1" />
+        <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.5" />
+        <stop offset="70%" stopColor="#fbbf24" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+      </linearGradient>
+    </defs>
+
+    {/* Luminous laser trail running behind the light */}
+    <path
+      d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+      fill="none"
+      stroke="url(#zigzagTrailGrad)"
+      strokeWidth="8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      filter="url(#zigzagBrightGlow)"
+      strokeDasharray="220 1200"
+    >
+      <animate
+        attributeName="stroke-dashoffset"
+        values="220; -805; -1025; -1025"
+        keyTimes="0; 0.82; 0.9; 1"
+        dur="2.8s"
+        repeatCount="indefinite"
+        calcMode="linear"
+      />
+      <animate
+        attributeName="opacity"
+        values="0; 0.95; 0.95; 0; 0"
+        keyTimes="0; 0.05; 0.82; 0.88; 1"
+        dur="2.8s"
+        repeatCount="indefinite"
+      />
+    </path>
+
+    {/* Hot white inner laser core */}
+    <path
+      d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+      fill="none"
+      stroke="#ffffff"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeDasharray="150 1200"
+    >
+      <animate
+        attributeName="stroke-dashoffset"
+        values="150; -875; -1025; -1025"
+        keyTimes="0; 0.82; 0.9; 1"
+        dur="2.8s"
+        repeatCount="indefinite"
+        calcMode="linear"
+      />
+      <animate
+        attributeName="opacity"
+        values="0; 1; 1; 0; 0"
+        keyTimes="0; 0.05; 0.82; 0.88; 1"
+        dur="2.8s"
+        repeatCount="indefinite"
+      />
+    </path>
+
+    {/* Moving Light Orb / Energy Spark traveling accurately over the broken line */}
+    <g>
+      <animateMotion
+        path="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
+        dur="2.8s"
+        repeatCount="indefinite"
+        keyPoints="0; 1; 1"
+        keyTimes="0; 0.82; 1"
+        calcMode="linear"
+      />
+      <animate
+        attributeName="opacity"
+        values="0; 1; 1; 1; 0; 0"
+        keyTimes="0; 0.04; 0.8; 0.84; 0.9; 1"
+        dur="2.8s"
+        repeatCount="indefinite"
+      />
+
+      {/* Outer soft aura */}
+      <circle r="32" fill="url(#zigzagSparkRadial)" />
+
+      {/* Intense glow aura */}
+      <circle r="15" fill="#fbbf24" filter="url(#zigzagBrightGlow)" opacity="0.95" />
+      <circle r="10" fill="#38bdf8" filter="url(#zigzagBrightGlow)" opacity="0.95" />
+
+      {/* Rotating 4-pointed diamond star flare */}
+      <polygon
+        points="0,-24 4,-6 24,0 4,6 0,24 -4,6 -24,0 -4,-6"
+        fill="#ffffff"
+        opacity="0.95"
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          from="0"
+          to="360"
+          dur="2.8s"
+          repeatCount="indefinite"
+        />
+      </polygon>
+
+      {/* Diamond sparkle diagonal flares */}
+      <polygon
+        points="0,-14 3,-3 14,0 3,3 0,14 -3,3 -14,0 -3,-3"
+        fill="#fef08a"
+        opacity="0.85"
+        transform="rotate(45)"
+      />
+
+      {/* Pure white radiant core */}
+      <circle r="5.5" fill="#ffffff" filter="url(#zigzagBrightGlow)" />
+    </g>
+  </svg>
+);
 
 interface SplashScreenProps {
   onNext: (isTrial?: boolean) => void;
@@ -46,9 +192,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       if (url) setBgImage2(url);
     });
 
-    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة
+    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الأربع
     const interval = setInterval(() => {
-      setActiveBgIndex((prev) => (prev === 0 ? 1 : 0));
+      setActiveBgIndex((prev) => (prev + 1) % 4);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -150,207 +296,62 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           />
         
           <div className="relative z-10 w-full min-h-[60vh] flex flex-col items-center justify-center overflow-hidden">
-            {/* Background Image 1 (Illustration) */}
+            {/* 1. Blue Shield Image (الصورة الأولى - الدرع الأزرق وشعار SMART CONTROL) */}
             <div 
-              className={`absolute inset-0 z-0 ${activeBgIndex === 0 ? 'opacity-100' : 'opacity-0'}`}
-              style={{
-                backgroundImage: `url(${bgImage1})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                transition: 'opacity 1200ms ease-in-out'
-              }}
-            />
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={blueShieldBg}
+                  alt="Smart Control Blue Shield"
+                  className="w-full h-full object-fill pointer-events-none select-none"
+                />
+                <PrecisionLightOverlay />
+              </div>
+            </div>
 
-            {/* Background Image 2 (Brand Shield on Velvet) with Precision Moving Light */}
+            {/* 2. Illustration Image (الصورة الثانية - التوضيحية لنظام الكنترول الذكي) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
                 activeBgIndex === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
-              style={{
-                backgroundColor: '#1a0508'
-              }}
+            >
+              <img
+                src={bgImage1}
+                alt="Smart Control Illustration"
+                className="w-full h-full object-fill pointer-events-none select-none"
+              />
+            </div>
+
+            {/* 3. Brand Shield Image (الصورة الثالثة - صورة الشعار الأرجوانية/المخملية) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 2 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={bgImage2}
                   alt="Smart Control Logo"
-                  className="w-full h-full object-contain pointer-events-none select-none"
+                  className="w-full h-full object-fill pointer-events-none select-none"
                 />
-
-                {/* Precision SVG Overlay aligned 1:1 with the object-contain image */}
-                <svg 
-                  viewBox="0 0 1048 1024" 
-                  className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <defs>
-                    <filter id="zigzagBrightGlow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="3" result="blur1" />
-                      <feGaussianBlur stdDeviation="8" result="blur2" />
-                      <feGaussianBlur stdDeviation="15" result="blur3" />
-                      <feMerge>
-                        <feMergeNode in="blur3" />
-                        <feMergeNode in="blur2" />
-                        <feMergeNode in="blur1" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                    
-                    <radialGradient id="zigzagSparkRadial" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                      <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.95" />
-                      <stop offset="65%" stopColor="#fbbf24" stopOpacity="0.6" />
-                      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
-                    </radialGradient>
-
-                    <linearGradient id="zigzagTrailGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.1" />
-                      <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.5" />
-                      <stop offset="70%" stopColor="#fbbf24" stopOpacity="0.9" />
-                      <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Luminous laser trail running behind the light */}
-                  <path
-                    d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
-                    fill="none"
-                    stroke="url(#zigzagTrailGrad)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    filter="url(#zigzagBrightGlow)"
-                    strokeDasharray="220 1200"
-                  >
-                    <animate
-                      attributeName="stroke-dashoffset"
-                      values="220; -805; -1025; -1025"
-                      keyTimes="0; 0.82; 0.9; 1"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                      calcMode="linear"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0; 0.95; 0.95; 0; 0"
-                      keyTimes="0; 0.05; 0.82; 0.88; 1"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                    />
-                  </path>
-
-                  {/* Hot white inner laser core */}
-                  <path
-                    d="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeDasharray="150 1200"
-                  >
-                    <animate
-                      attributeName="stroke-dashoffset"
-                      values="150; -875; -1025; -1025"
-                      keyTimes="0; 0.82; 0.9; 1"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                      calcMode="linear"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0; 1; 1; 0; 0"
-                      keyTimes="0; 0.05; 0.82; 0.88; 1"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                    />
-                  </path>
-
-                  {/* Moving Light Orb / Energy Spark traveling accurately over the broken line */}
-                  <g>
-                    <animateMotion
-                      path="M 206 638 L 402 432 L 452 502 L 567 370 L 633 456 L 896 194"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                      keyPoints="0; 1; 1"
-                      keyTimes="0; 0.82; 1"
-                      calcMode="linear"
-                    />
-                    <animate
-                      attributeName="opacity"
-                      values="0; 1; 1; 1; 0; 0"
-                      keyTimes="0; 0.04; 0.8; 0.84; 0.9; 1"
-                      dur="2.8s"
-                      repeatCount="indefinite"
-                    />
-
-                    {/* Outer soft aura */}
-                    <circle r="32" fill="url(#zigzagSparkRadial)" />
-
-                    {/* Intense glow aura */}
-                    <circle r="15" fill="#fbbf24" filter="url(#zigzagBrightGlow)" opacity="0.95" />
-                    <circle r="10" fill="#38bdf8" filter="url(#zigzagBrightGlow)" opacity="0.95" />
-
-                    {/* Rotating 4-pointed diamond star flare */}
-                    <polygon
-                      points="0,-24 4,-6 24,0 4,6 0,24 -4,6 -24,0 -4,-6"
-                      fill="#ffffff"
-                      opacity="0.95"
-                    >
-                      <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        from="0"
-                        to="360"
-                        dur="2.8s"
-                        repeatCount="indefinite"
-                      />
-                    </polygon>
-
-                    {/* Diamond sparkle diagonal flares */}
-                    <polygon
-                      points="0,-14 3,-3 14,0 3,3 0,14 -3,3 -14,0 -3,-3"
-                      fill="#fef08a"
-                      opacity="0.85"
-                      transform="rotate(45)"
-                    />
-
-                    {/* Pure white radiant core */}
-                    <circle r="5.5" fill="#ffffff" filter="url(#zigzagBrightGlow)" />
-                    <circle r="3" fill="#ffffff" />
-                  </g>
-
-                  {/* Top-Right Tip Flare / Sparkle upon arrival */}
-                  <g transform="translate(896, 194)">
-                    <circle r="0" fill="#ffffff" filter="url(#zigzagBrightGlow)">
-                      <animate
-                        attributeName="r"
-                        values="0; 0; 28; 0; 0"
-                        keyTimes="0; 0.8; 0.85; 0.92; 1"
-                        dur="2.8s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0; 0; 1; 0; 0"
-                        keyTimes="0; 0.8; 0.85; 0.92; 1"
-                        dur="2.8s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    <polygon points="0,-30 5,-6 30,0 5,6 0,30 -5,6 -30,0 -5,-6" fill="#ffffff" opacity="0">
-                      <animate
-                        attributeName="opacity"
-                        values="0; 0; 0.95; 0; 0"
-                        keyTimes="0; 0.8; 0.85; 0.92; 1"
-                        dur="2.8s"
-                        repeatCount="indefinite"
-                      />
-                    </polygon>
-                  </g>
-                </svg>
+                <PrecisionLightOverlay />
               </div>
+            </div>
+
+            {/* 4. Red Control Room Image (الصورة الرابعة - صورة غرفة الكنترول التقليدية مع علامة X الحمراء) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <img
+                src={redControlBg}
+                alt="Manual Control Room with Red X"
+                className="w-full h-full object-fill pointer-events-none select-none"
+              />
             </div>
             
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
