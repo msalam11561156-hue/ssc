@@ -13,7 +13,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'appicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png', 'assets/images/splash_brand_bg.jpg', 'assets/images/splash_control_illustration.jpg'],
         manifest: {
-          id: '/',
+          id: 'com.smartcontrol.app',
           name: 'Smart Control',
           short_name: 'Smart Control',
           description: 'نظام متكامل لإدارة شيتات الكنترول المدرسي، درجات الطلاب، والنسخ الاحتياطية.',
@@ -44,6 +44,8 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg,jpeg,gif,webp,jfif}'],
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
           runtimeCaching: [

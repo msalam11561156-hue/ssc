@@ -5,8 +5,18 @@ import './index.css';
 import {initButtonSoundEffect} from './utils/sound';
 import { registerSW } from 'virtual:pwa-register';
 import { preloadAndCacheOfflineAssets } from './utils/offlineAssetCache';
+import { checkAndPerformInPlaceUpgrade } from './utils/upgradeManager';
 
-registerSW({ immediate: true });
+// التحديث في المكان (In-Place Upgrade) التلقائي وتسجيل الخدمة
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
+});
+
+// فحص وحماية ترقية البيانات بدون أي فقدان
+checkAndPerformInPlaceUpgrade().catch(() => {});
 
 initButtonSoundEffect();
 preloadAndCacheOfflineAssets();
