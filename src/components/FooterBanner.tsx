@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Share2, Facebook, Star, Menu, X } from 'lucide-react';
 import { Language } from '../types';
 import { ShareModal } from './ShareModal';
@@ -76,13 +77,21 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
           className="relative shrink-0 order-last"
           onMouseLeave={() => setIsMenuOpen(false)}
         >
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center justify-center p-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-[1.5px] border-slate-900 rounded-lg transition-all shadow-md h-14 w-14 cursor-pointer group"
-            title={lang === 'ar' ? 'القائمة' : 'Menu'}
-          >
-            <Menu className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
-          </button>
+          {/* Animated border container for menu button */}
+          <div className="relative p-[2px] rounded-lg overflow-hidden">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
+              className="absolute inset-0 w-[200%] h-[200%] -left-1/2 -top-1/2 bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
+            />
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="relative flex items-center justify-center p-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-[1.5px] border-slate-900 rounded-lg transition-all shadow-md h-14 w-14 cursor-pointer group"
+              title={lang === 'ar' ? 'القائمة' : 'Menu'}
+            >
+              <Menu className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
 
           {/* Popup Dropdown Menu containing all 5 requested buttons */}
           {isMenuOpen && (
