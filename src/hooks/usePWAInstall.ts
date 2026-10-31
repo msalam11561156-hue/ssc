@@ -9,6 +9,7 @@ export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isUnsupported, setIsUnsupported] = useState(false); // New state
 
   useEffect(() => {
     // Detect standalone mode (already installed)
@@ -21,6 +22,10 @@ export function usePWAInstall() {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIOSDevice);
+
+    // Detect browsers without PWA install support (e.g., Firefox)
+    const isFirefox = /firefox/.test(userAgent);
+    setIsUnsupported(isFirefox);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -42,19 +47,29 @@ export function usePWAInstall() {
   }, []);
 
   const install = async () => {
-    if (!deferredPrompt) return false;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
+    // If browser supports install prompt
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        setDeferredPrompt(null);
+        return true;
+      }
+      return false;
+    }
+    
+    // Fallback for browsers that don't support beforeinstallprompt
+    if (isUnsupported) {
+      alert("للتثبيت على هذا المتصفح، يرجى استخدام ميزة 'إضافة إلى الشاشة الرئيسية' أو 'تثبيت التطبيق' من قائمة إعدادات المتصفح.");
       return true;
     }
+    
     return false;
   };
 
   return {
-    isInstallable: !!deferredPrompt,
+    isInstallable: !!deferredPrompt || isUnsupported, // Make button visible
     isInstalled,
     isIOS,
     install,
