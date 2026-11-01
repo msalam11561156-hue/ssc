@@ -8,7 +8,6 @@ import {
   verifyActivationPassword, 
   activatePaidVersion 
 } from '../utils/activationManager';
-import brandShield from '../assets/images/brand_shield.png';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -106,26 +105,8 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
           exit={{ opacity: 0, scale: 0.9, y: 15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-[360px] bg-gradient-to-br from-[#bae6fd] via-[#e0e7ff] to-[#bbf7d0] border-2 border-[#38bdf8] rounded-[28px] shadow-2xl p-6 md:p-7 flex flex-col items-center text-center mt-12"
+          className="relative w-full max-w-[360px] bg-gradient-to-br from-[#bae6fd] via-[#e0e7ff] to-[#bbf7d0] border-2 border-[#38bdf8] rounded-[28px] shadow-2xl p-6 md:p-7 flex flex-col items-center text-center"
         >
-          {/* Brand Shield Logo at Top */}
-          <motion.div
-            animate={{ 
-              y: [0, -5, 0],
-              filter: ["drop-shadow(0 0 5px rgba(251,191,36,0.2))", "drop-shadow(0 0 15px rgba(251,191,36,0.5))", "drop-shadow(0 0 5px rgba(251,191,36,0.2))"]
-            }}
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            className="absolute -top-14 left-1/2 -translate-x-1/2 z-20"
-          >
-            <div className="relative">
-              <img 
-                src={brandShield} 
-                alt="Brand Shield" 
-                className="w-24 h-24 object-contain select-none pointer-events-none drop-shadow-xl" 
-              />
-              <div className="absolute inset-0 bg-amber-400/20 blur-xl rounded-full -z-10 animate-pulse" />
-            </div>
-          </motion.div>
           {/* Close button (top-left in screenshot) */}
           <button
             type="button"
