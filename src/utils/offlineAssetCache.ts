@@ -66,7 +66,7 @@ export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_cont
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v6`;
+  const cacheKey = `offline_splash_bg_${type}_v9`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -88,7 +88,7 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
     case 'illustration': targetUrl = splashIllustrationUrl; break;
     case 'brand': targetUrl = splashBrandBgUrl; break;
     case 'modern_control': targetUrl = splashModernControlUrl; break;
-    case 'multicolor_logo': targetUrl = '/assets/aistudio/0__10__ba3a5a75.jfif'; break;
+    case 'multicolor_logo': targetUrl = '/assets/aistudio/65456.jfif'; break;
     case 'end_of_excel': targetUrl = '/assets/aistudio/e59e15bd-f488-468e-b130-bcb589180ef7_98eeab1a.jfif'; break;
   }
 

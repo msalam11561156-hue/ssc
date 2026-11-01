@@ -182,7 +182,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [illustrationImg, setIllustrationImg] = useState(defaultIllustrationBg);
   const [brandImg, setBrandImg] = useState(defaultBrandBg);
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
-  const [multiColorLogoImg, setMultiColorLogoImg] = useState('/assets/aistudio/0__10__ba3a5a75.jfif');
+  const [multiColorLogoImg, setMultiColorLogoImg] = useState('/assets/aistudio/65456.jfif');
   const [endOfExcelImg, setEndOfExcelImg] = useState('/assets/aistudio/e59e15bd-f488-468e-b130-bcb589180ef7_98eeab1a.jfif');
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
@@ -454,10 +454,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
         {/* Support Information */}
         <div className="flex flex-col items-center gap-2 w-full mt-2">
-          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
-            Mahmoud Sallam : 01098594956 - 01131097055
-          </span>
-
           {/* Animated Light Line */}
           <div className="relative w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
             <motion.div
@@ -466,6 +462,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-amber-400 to-transparent"
             />
           </div>
+
+          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
+            Mahmoud Sallam : 01098594956 - 01131097055
+          </span>
         </div>
       </motion.div>
       </div>
