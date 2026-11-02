@@ -328,7 +328,7 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
               <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
                 <div className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-amber-400/50 text-white text-xs md:text-sm font-black shadow-lg">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>نموذج توضيحي: بطاقة رقم الجلوس مع الامتياز الإعلاني</span>
+                  <span>نموذج توضيحي : بطاقة رقم الجلوس مع الامتياز الإعلاني</span>
                 </div>
 
                 <button
