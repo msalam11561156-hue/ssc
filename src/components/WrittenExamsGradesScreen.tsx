@@ -16,7 +16,6 @@ import { exportStudentsDataToPdf, PdfReportType, RowBgTheme, CustomControlSheetO
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { SeatNumbersModal } from './SeatNumbersModal';
 import { CustomControlSheetModal } from './CustomControlSheetModal';
-import { populateMissingSubjectGradesForStudents } from '../utils/defaultStudentsData';
 import { getStoredSubjectEn, saveStoredSubjectEn, capitalizeEachWord } from '../utils/subjectLanguage';
 import { SortButtonMenu } from './SortButtonMenu';
 import { sortStudents } from '../utils/studentSorting';
@@ -1248,38 +1247,6 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   useEffect(() => {
     setLocalData(data);
   }, [data]);
-
-  useEffect(() => {
-    if (isEditingData || !localData || localData.length === 0 || !customCols || customCols.length === 0) return;
-    const unseededCols = customCols.filter((col) => {
-      if (!col || !col.key) return false;
-      const ovr = defaultSubjectsOverrides?.[col.key];
-      const hasWritten = (ovr?.hasWrittenExam !== undefined ? ovr.hasWrittenExam : col.hasWrittenExam) !== false;
-      const hasAnyAssess = localData.some((st) => {
-        const v1 = st.assessments?.first?.[col.key] ?? st.assessments?.['الفصل الدراسي الأول']?.[col.key];
-        const v2 = st.assessments?.second?.[col.key] ?? st.assessments?.['الفصل الدراسي الثاني']?.[col.key];
-        return (v1 !== undefined && String(v1).trim() !== '') || (v2 !== undefined && String(v2).trim() !== '');
-      });
-      const hasAnyWritten = !hasWritten || localData.some((st) => {
-        const w1 = st.writtenExams?.first?.[col.key] ?? st.writtenExams?.['الفصل الدراسي الأول']?.[col.key];
-        const w2 = st.writtenExams?.second?.[col.key] ?? st.writtenExams?.['الفصل الدراسي الثاني']?.[col.key];
-        return (w1 !== undefined && String(w1).trim() !== '') || (w2 !== undefined && String(w2).trim() !== '');
-      });
-      return !hasAnyAssess || !hasAnyWritten;
-    });
-    if (unseededCols.length > 0) {
-      const { updated, changed } = populateMissingSubjectGradesForStudents(
-        localData,
-        stage,
-        unseededCols,
-        defaultSubjectsOverrides
-      );
-      if (changed) {
-        setLocalData(updated);
-        onChange(updated);
-      }
-    }
-  }, [customCols, stage, selectedGrade]);
 
   const handleGradeChange = (id: string, field: keyof AssessmentGrades, value: string) => {
     // Validate number between 0 and subjectMax, or allow absence marks based on language

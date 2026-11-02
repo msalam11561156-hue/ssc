@@ -990,6 +990,24 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         studentStatus: isKindergarten ? 'عادى' : undefined,
         enrollmentType: '',
         religion: '',
+        assessments: {
+          first: {},
+          second: {},
+          'الفصل الدراسي الأول': {},
+          'الفصل الدراسي الثاني': {},
+        },
+        writtenExams: {
+          first: {},
+          second: {},
+          'الفصل الدراسي الأول': {},
+          'الفصل الدراسي الثاني': {},
+        },
+        detailedAssessments: {
+          first: {},
+          second: {},
+          'الفصل الدراسي الأول': {},
+          'الفصل الدراسي الثاني': {},
+        },
       }));
       const combined = assignAutoSeatAndSecretNumbers([...data, ...newStudents], true);
       onChange(combined);

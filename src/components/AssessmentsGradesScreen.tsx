@@ -16,7 +16,6 @@ import { exportStudentsDataToPdf, PdfReportType, RowBgTheme, CustomControlSheetO
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { SeatNumbersModal } from './SeatNumbersModal';
 import { CustomControlSheetModal } from './CustomControlSheetModal';
-import { populateMissingSubjectGradesForStudents } from '../utils/defaultStudentsData';
 import { getStoredSubjectEn, saveStoredSubjectEn, capitalizeEachWord } from '../utils/subjectLanguage';
 import { distributeTotalToDetailedAssessment, isSubjectWithoutWrittenExam } from '../utils/detailedAssessmentsHelper';
 import { sortStudents } from '../utils/studentSorting';
@@ -1233,31 +1232,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
   useEffect(() => {
     setLocalData(data);
   }, [data]);
-
-  useEffect(() => {
-    if (isEditingData || !localData || localData.length === 0 || !customCols || customCols.length === 0) return;
-    const unseededCols = customCols.filter((col) => {
-      if (!col || !col.key) return false;
-      const hasAnyAssess = localData.some((st) => {
-        const v1 = st.assessments?.first?.[col.key] ?? st.assessments?.['الفصل الدراسي الأول']?.[col.key];
-        const v2 = st.assessments?.second?.[col.key] ?? st.assessments?.['الفصل الدراسي الثاني']?.[col.key];
-        return (v1 !== undefined && String(v1).trim() !== '') || (v2 !== undefined && String(v2).trim() !== '');
-      });
-      return !hasAnyAssess;
-    });
-    if (unseededCols.length > 0) {
-      const { updated, changed } = populateMissingSubjectGradesForStudents(
-        localData,
-        stage,
-        unseededCols,
-        defaultSubjectsOverrides
-      );
-      if (changed) {
-        setLocalData(updated);
-        onChange(updated);
-      }
-    }
-  }, [customCols, stage, selectedGrade]);
 
   const handleGradeChange = (id: string, field: keyof AssessmentGrades, value: string) => {
     let colMax = subjectMax;

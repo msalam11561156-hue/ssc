@@ -3650,6 +3650,7 @@ export async function exportStudentSemesterGradesCertificatePdf(
     let hasAnyRecordedScore = false;
     let allAddedAbsent = true;
     let failedSubjectsCount = 0;
+    const failedSubjectNames: string[] = [];
 
     for (const subj of addedSubjects) {
       const subjMax = isMiddleStage && isSecondSem
@@ -3790,13 +3791,16 @@ export async function exportStudentSemesterGradesCertificatePdf(
         const isReligion = subj.key === 'religion' || (subj.label && subj.label.includes('دين'));
         const minPass = isReligion ? 70 : 50;
 
+        const sName = (isEn ? getStoredSubjectEn(subj.key, subj.label) : subj.label) || subj.name || subj.key;
         if (subj.hasWrittenExam !== false) {
           if (subjPct < minPass || written2Pct < writtenPassMin) {
             failedSubjectsCount++;
+            if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
           }
         } else {
           if (subjPct < minPass) {
             failedSubjectsCount++;
+            if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
           }
         }
       } else {
@@ -3804,8 +3808,20 @@ export async function exportStudentSemesterGradesCertificatePdf(
           hasAnyRecordedScore = true;
           allAddedAbsent = false;
           totalAddedScore += (assess1 + written1);
+          const subjMax = subj.maxGrade || 100;
+          const isReligion = subj.key === 'religion' || (subj.label && subj.label.includes('دين'));
+          const minPass = isReligion ? 70 : 50;
+          const pct = subjMax > 0 ? ((assess1 + written1) / subjMax) * 100 : 0;
+          if (pct < minPass) {
+            failedSubjectsCount++;
+            const sName = (isEn ? getStoredSubjectEn(subj.key, subj.label) : subj.label) || subj.name || subj.key;
+            if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
+          }
         } else if (isAbsentAssess1 || isAbsentWritten1) {
           hasAnyRecordedScore = true;
+          failedSubjectsCount++;
+          const sName = (isEn ? getStoredSubjectEn(subj.key, subj.label) : subj.label) || subj.name || subj.key;
+          if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
         }
       }
     }
@@ -3843,6 +3859,36 @@ export async function exportStudentSemesterGradesCertificatePdf(
           const pct = subjMax > 0 ? (finalScore / subjMax) * 100 : 0;
           if (pct < minPass) {
             failedSubjectsCount++;
+            const sName = (isEn ? getStoredSubjectEn(subj.key, subj.label) : subj.label) || subj.name || subj.key;
+            if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
+          }
+        }
+      }
+    } else {
+      for (const subj of nonAddedSubjects) {
+        const item1 = studentData.detailedAssessments?.['first']?.[subj.key] || (studentData.detailedAssessments as any)?.['الفصل الدراسي الأول']?.[subj.key];
+        const w1Val = studentData.writtenExams?.['first']?.[subj.key] ?? (studentData.writtenExams as any)?.['الفصل الدراسي الأول']?.[subj.key] ?? '';
+        let s = 0;
+        let has = false;
+        const t = item1?.total ?? '';
+        if (t && t !== 'غ') {
+          const n = parseFloat(String(t).replace(',', '.'));
+          if (!isNaN(n)) { s += n; has = true; }
+        }
+        const w = String(w1Val ?? '').trim();
+        if (w && w !== 'غ') {
+          const n = parseFloat(w.replace(',', '.'));
+          if (!isNaN(n)) { s += n; has = true; }
+        }
+        if (has) {
+          const subjMax = subj.maxGrade || 100;
+          const isReligion = subj.key === 'religion' || (subj.label && subj.label.includes('دين'));
+          const minPass = isReligion ? 70 : 50;
+          const pct = subjMax > 0 ? (s / subjMax) * 100 : 0;
+          if (pct < minPass) {
+            failedSubjectsCount++;
+            const sName = (isEn ? getStoredSubjectEn(subj.key, subj.label) : subj.label) || subj.name || subj.key;
+            if (!failedSubjectNames.includes(sName)) failedSubjectNames.push(sName);
           }
         }
       }
@@ -3895,6 +3941,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
       pctDisplay,
       evalDisplay,
       resultDisplay,
+      failedSubjectsCount,
+      failedSubjectNames,
     };
   };
 
@@ -3934,6 +3982,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
       pctDisplay,
       evalDisplay,
       resultDisplay,
+      failedSubjectsCount,
+      failedSubjectNames,
     } = computeStudentSemesterScores(student, isFemale);
 
     const canvas = document.createElement('canvas');
@@ -5109,48 +5159,65 @@ export async function exportStudentSemesterGradesCertificatePdf(
       const sec2ActualMax = isSec2 ? getSecondary2ActualMax(subj) : subjMax;
       const secondaryActualMax = isSecondaryStage ? (isSec2 ? sec2ActualMax : (subj.actualMaxGrade || subjMax)) : subjMax;
       const effectiveActualMax = isMiddleStage ? middleActualMax : (isSecondaryStage ? secondaryActualMax : subjMax);
-
-      if (isAbsentSem1 && isAbsentSem2) {
-        actualGradeStr = 'غ';
-        pctStr = '0';
-        evalLabel = 'غائب';
-      } else if (hasSem1Total || hasSem2Total) {
-        // مجموع الفصلين للدرجة الفعلية
-        let combinedSum = numericTotalSem1 + numericTotalSem2;
-
-        // الدرجة الفعلية للطالب = (مجموع درجات الطالب * الدرجة الفعلية للمادة الدراسية) / 200
-        const actualMaxForFormula = isMiddleStage ? middleActualMax : (isSecondaryStage ? secondaryActualMax : subjMax);
-        const studentActualScore = Math.round(((combinedSum * actualMaxForFormula) / 200) * 10) / 10;
-        actualGradeStr = Number.isInteger(studentActualScore) ? String(studentActualScore) : studentActualScore.toFixed(1);
-
-        let pct = subjMax > 0 ? (combinedSum / subjMax) * 100 : 0;
-        if (isPrimaryStage) {
-          // فى المرحلة الابتدائية فى ملف شهادات الفصل الدراسي الثانى فى خلايا حقل النسبة المئوية اقسم القيمة / 2
-          pct = pct / 2;
-        } else if (isMiddleStage) {
-          // فى المرحلة الاعدادية منتظمين فى شهادات الفصل الدراسي الثانى فى حقل النسبة المئوية:
-          // اجعل قيمة خلايا الحقل = درجة الطالب الفعلية التى حصل عليها * 100 / الدرجة الفعلية للمادة الدراسية
-          pct = middleActualMax > 0 ? (studentActualScore * 100) / middleActualMax : 0;
-        } else if (isSecondaryStage) {
-          // فى المرحلة الثانوية فى شهادات الفصل الدراسي الثانى فى حقل النسبة المئوية:
-          // اجعل قيمة خلايا الحقل = درجة الطالب الفعلية التى حصل عليها * 100 / الدرجة الفعلية للمادة الدراسية
-          pct = secondaryActualMax > 0 ? (studentActualScore * 100) / secondaryActualMax : 0;
-        }
-        const rPct = Math.round(pct * 10) / 10;
-        pctStr = Number.isInteger(rPct) ? String(rPct) : rPct.toFixed(1);
-        evalLabel = getEvaluationLabel(pct);
-      }
-
-      // التحقق من مواد الاجتياز (مثل المواد غير التحريرية، التربية الدينية، التربية الرياضية)
+      const isReligion = subj.key === 'religion' || (subj.label && subj.label.includes('دين'));
       const isPassFail = subj.learningOutcomesType === 'pass_fail' || noWritten;
-      if (isPassFail && evalLabel !== '-' && evalLabel !== 'غائب' && evalLabel !== 'Abs') {
-        const rawActual = parseFloat(actualGradeStr.replace(',', '.'));
-        if (!isNaN(rawActual)) {
-          const passMax = effectiveActualMax;
-          const pct = passMax > 0 ? (rawActual / passMax) * 100 : 0;
-          evalLabel = pct >= (subj.key === 'religion' ? 70 : 50)
-            ? (isEn ? 'Pass' : 'اجتاز')
-            : (isEn ? 'Fail' : 'لم يجتز');
+
+      if (!isSecondSemNonKg) {
+        // في الفصل الدراسي الأول: يتم احتساب التقدير ونسبة المادة بناءً على مجموع درجات الفصل الأول فقط
+        if (isAbsentSem1) {
+          evalLabel = 'غائب';
+        } else if (hasSem1Total) {
+          const sem1Pct = subjMax > 0 ? (numericTotalSem1 / subjMax) * 100 : 0;
+          if (isPassFail) {
+            evalLabel = sem1Pct >= (isReligion ? 70 : 50)
+              ? (isEn ? 'Pass' : 'اجتاز')
+              : (isEn ? 'Fail' : 'لم يجتز');
+          } else {
+            evalLabel = getEvaluationLabel(sem1Pct);
+          }
+        }
+      } else {
+        // في الفصل الدراسي الثاني (المحصلة الفعلية للعام الدراسي كاملاً):
+        if (isAbsentSem1 && isAbsentSem2) {
+          actualGradeStr = 'غ';
+          pctStr = '0';
+          evalLabel = 'غائب';
+        } else if (hasSem1Total || hasSem2Total) {
+          // مجموع الفصلين للدرجة الفعلية
+          let combinedSum = numericTotalSem1 + numericTotalSem2;
+
+          // الدرجة الفعلية للطالب = (مجموع درجات الطالب * الدرجة الفعلية للمادة الدراسية) / 200
+          const actualMaxForFormula = isMiddleStage ? middleActualMax : (isSecondaryStage ? secondaryActualMax : subjMax);
+          const studentActualScore = Math.round(((combinedSum * actualMaxForFormula) / 200) * 10) / 10;
+          actualGradeStr = Number.isInteger(studentActualScore) ? String(studentActualScore) : studentActualScore.toFixed(1);
+
+          let pct = subjMax > 0 ? (combinedSum / subjMax) * 100 : 0;
+          if (isPrimaryStage) {
+            // فى المرحلة الابتدائية فى ملف شهادات الفصل الدراسي الثانى فى خلايا حقل النسبة المئوية اقسم القيمة / 2
+            pct = pct / 2;
+          } else if (isMiddleStage) {
+            // فى المرحلة الاعدادية منتظمين فى شهادات الفصل الدراسي الثانى فى حقل النسبة المئوية:
+            // اجعل قيمة خلايا الحقل = درجة الطالب الفعلية التى حصل عليها * 100 / الدرجة الفعلية للمادة الدراسية
+            pct = middleActualMax > 0 ? (studentActualScore * 100) / middleActualMax : 0;
+          } else if (isSecondaryStage) {
+            // فى المرحلة الثانوية فى شهادات الفصل الدراسي الثانى فى حقل النسبة المئوية:
+            // اجعل قيمة خلايا الحقل = درجة الطالب الفعلية التى حصل عليها * 100 / الدرجة الفعلية للمادة الدراسية
+            pct = secondaryActualMax > 0 ? (studentActualScore * 100) / secondaryActualMax : 0;
+          }
+          const rPct = Math.round(pct * 10) / 10;
+          pctStr = Number.isInteger(rPct) ? String(rPct) : rPct.toFixed(1);
+          evalLabel = getEvaluationLabel(pct);
+
+          if (isPassFail && evalLabel !== '-' && evalLabel !== 'غائب' && evalLabel !== 'Abs') {
+            const rawActual = parseFloat(actualGradeStr.replace(',', '.'));
+            if (!isNaN(rawActual)) {
+              const passMax = effectiveActualMax;
+              const pPct = passMax > 0 ? (rawActual / passMax) * 100 : 0;
+              evalLabel = pPct >= (isReligion ? 70 : 50)
+                ? (isEn ? 'Pass' : 'اجتاز')
+                : (isEn ? 'Fail' : 'لم يجتز');
+            }
+          }
         }
       }
 
@@ -5182,7 +5249,6 @@ export async function exportStudentSemesterGradesCertificatePdf(
 
       // احتساب الشروط للدائرة الحمراء وفق توجيهات المستخدم:
       // 1. فى الفصل الدراسي الاول: حقل المجموع المواد الاقل من 50 %
-      const isReligion = subj.key === 'religion' || (subj.label && subj.label.includes('دين'));
       const parsedTotalSem1 = parseNumOrZero(totalSem1Str);
       const isSem1TotalFail = (
         (parsedTotalSem1.hasVal && !parsedTotalSem1.isAbsent && subjMax > 0 && ((parsedTotalSem1.num / subjMax) * 100 < 50 || (isReligion && (parsedTotalSem1.num / subjMax) * 100 < 70))) ||
@@ -5605,26 +5671,22 @@ export async function exportStudentSemesterGradesCertificatePdf(
       });
     }
 
-    // Divider Line above attendance and Semester Legend for second semester
+    // Divider Line above attendance and Semester Legend / Remedial Program
     const tableBottomY = tableTopY + tableTotalH;
     let attendanceDividerY = tableBottomY + 16;
+    const hasFailedSubjects = Boolean(failedSubjectNames && failedSubjectNames.length > 0);
 
-    if (isSecondSem) {
-      // فى الشهادات باللغة العربية والانجليزية للفصل الدراسي الثانى فقط:
-      // كتابة توضيح الرموز بخط صغير تحت الجدول مباشرة فى أقصى اليسار
-      // تساوى المسافة تماماً بين النص والجدول في الأعلى والخط الفاصل في الأسفل
+    if (isSecondSem || hasFailedSubjects) {
+      const legendFontSize = 13.5;
+      const gap = 12;
+
+      ctx.save();
+      ctx.font = `bold ${legendFontSize}px "Cairo", sans-serif`;
       const semLegendText = isEn
         ? 'S.1 = First Semester     S.2 = Second Semester'
         : 'ف 1 = الفصل الدراسي الأول     ف 2 = الفصل الدراسي الثانى';
-
-      ctx.save();
-      ctx.direction = 'ltr';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#0f172a';
-      const legendFontSize = 13.5;
-      ctx.font = `bold ${legendFontSize}px "Cairo", sans-serif`;
-
       const metrics = ctx.measureText(semLegendText);
+
       const ascent = (metrics.actualBoundingBoxAscent && metrics.actualBoundingBoxAscent > 0)
         ? metrics.actualBoundingBoxAscent
         : Math.round(legendFontSize * 0.75);
@@ -5632,13 +5694,52 @@ export async function exportStudentSemesterGradesCertificatePdf(
         ? metrics.actualBoundingBoxDescent
         : Math.round(legendFontSize * 0.25);
 
-      // مسافة متساوية تماماً (12 بكسل) بين النص والجدول أعلاه، وبين النص والخط الفاصل أسفله
-      const gap = 12;
-      const semLegendX = marginX + 4;
       const baselineY = Math.round(tableBottomY + gap + ascent);
 
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillText(semLegendText, semLegendX, baselineY);
+      // رسم توضيح الرموز فى أقصى اليسار للفصل الدراسي الثانى فقط
+      if (isSecondSem) {
+        ctx.direction = 'ltr';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#0f172a';
+        ctx.textBaseline = 'alphabetic';
+        const semLegendX = marginX + 4;
+        ctx.fillText(semLegendText, semLegendX, baselineY);
+      }
+
+      // رسم نص البرنامج العلاجي فى أقصى اليمين بنفس حجم الخط عند رسوب الطالب فى مادة أو أكثر
+      if (hasFailedSubjects) {
+        ctx.direction = isEn ? 'ltr' : 'rtl';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#b91c1c';
+        let remFontSize = legendFontSize;
+        ctx.font = `bold ${remFontSize}px "Cairo", sans-serif`;
+
+        const remedialPrefix = isEn
+          ? 'Remedial Program - '
+          : (isFemale ? 'لها برنامج علاجى - ' : 'له برنامج علاجى - ');
+        const remedialText = `${remedialPrefix}${failedSubjectNames.join(' ، ')}`;
+
+        // حساب المساحة المتاحة بدقة لضمان عدم تداخل النصين مع وجود مسافة أمان فاصلة بينهما
+        const safeGap = 28;
+        const availableWidth = isSecondSem ? (contentW - metrics.width - safeGap) : (contentW - 12);
+        let remTextWidth = ctx.measureText(remedialText).width;
+
+        // في حال عدم كفاية السطر لمواد البرامج العلاجية، يتم تصغير حجم الخط تدريجياً ليلائم السطر كاملاً
+        if (remTextWidth > availableWidth && availableWidth > 50) {
+          const scale = availableWidth / remTextWidth;
+          remFontSize = Math.floor(legendFontSize * scale * 10) / 10;
+          ctx.font = `bold ${remFontSize}px "Cairo", sans-serif`;
+          while (ctx.measureText(remedialText).width > availableWidth && remFontSize > 4) {
+            remFontSize = Math.round((remFontSize - 0.2) * 10) / 10;
+            ctx.font = `bold ${remFontSize}px "Cairo", sans-serif`;
+          }
+        }
+
+        const remedialX = marginX + contentW - 4;
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(remedialText, remedialX, baselineY);
+      }
+
       ctx.restore();
 
       // الخط الفاصل اسفل النص: بعده عن أسفل النص يساوي تماماً gap (12 بكسل) مع احتساب نصف سمك الخط (1 بكسل)
