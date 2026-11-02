@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { X, Megaphone, Save, RotateCcw, Plus, Trash2, LayoutTemplate } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Megaphone, Save, RotateCcw, Plus, Trash2, LayoutTemplate, Eye } from 'lucide-react';
 import { getDeviceId } from '../utils/activationManager';
 import { PasswordModal } from './PasswordModal';
+import { getCachedAdPrivilegeExample } from '../utils/offlineAssetCache';
 
 interface AdvertisingPrivilegeModalProps {
   isOpen: boolean;
@@ -62,6 +63,14 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
 
   const [enabled, setEnabled] = useState(() => slots.length > 0 && slots.some(s => s.text.trim() !== ''));
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showExampleModal, setShowExampleModal] = useState(false);
+  const [exampleImage, setExampleImage] = useState<string>('/assets/images/ad_privilege_seat_number_example.jpg');
+
+  useEffect(() => {
+    getCachedAdPrivilegeExample().then((url) => {
+      if (url) setExampleImage(url);
+    });
+  }, []);
   const [randomId, setRandomId] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('sheet_control_ad_random_id');
@@ -263,16 +272,85 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
 
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={handleSaveAttempt} className="w-36 py-3 px-6 rounded-xl border-2 border-black bg-slate-950 hover:bg-black text-white font-black text-base shadow-md transition-all flex items-center justify-center gap-2">
-                <Save className="w-5 h-5" /> <span>حفظ</span>
+              <button 
+                type="button" 
+                onClick={handleSaveAttempt} 
+                className="w-28 md:w-32 py-3 px-3 rounded-xl border-2 border-black bg-slate-950 hover:bg-black text-white font-black text-sm md:text-base shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Save className="w-5 h-5 shrink-0" /> <span>حفظ</span>
               </button>
-              <button type="button" onClick={onClose} className="w-36 py-3 px-6 rounded-xl border-2 border-black bg-white/50 hover:bg-white/70 text-slate-950 font-bold text-base transition-colors flex items-center justify-center">
+
+              <button 
+                type="button" 
+                onClick={() => setShowExampleModal(true)} 
+                className="w-28 md:w-32 py-3 px-3 rounded-xl border-2 border-black bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-sm md:text-base shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-amber-500/30 hover:shadow-lg"
+                title="عرض نموذج توضيحي للامتياز الإعلاني في بطاقة رقم الجلوس"
+              >
+                <Eye className="w-5 h-5 shrink-0 text-slate-950" /> <span>مثال</span>
+              </button>
+
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="w-28 md:w-32 py-3 px-3 rounded-xl border-2 border-black bg-white/50 hover:bg-white/70 text-slate-950 font-bold text-sm md:text-base transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+              >
                 إلغاء
               </button>
             </div>
           </div>
         </motion.div>
       </div>
+
+      {/* نافذة عرض نموذج الامتياز الإعلاني - خلفيتها صورة المرفق */}
+      <AnimatePresence>
+        {showExampleModal && (
+          <div 
+            className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-5 md:p-8 bg-slate-950/85 backdrop-blur-md"
+            dir="rtl"
+            onClick={() => setShowExampleModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-5xl rounded-2xl md:rounded-3xl border-3 border-amber-400 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col"
+              style={{
+                backgroundImage: `url(${exampleImage})`,
+                backgroundSize: '100% 100%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                aspectRatio: '1550 / 760',
+              }}
+            >
+              {/* شريط تحكم علوي أنيق طافٍ فوق الخلفية */}
+              <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+                <div className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-amber-400/50 text-white text-xs md:text-sm font-black shadow-lg">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>نموذج توضيحي: بطاقة رقم الجلوس مع الامتياز الإعلاني</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowExampleModal(false)}
+                  className="pointer-events-auto w-9 h-9 flex items-center justify-center rounded-full bg-slate-950/85 hover:bg-black text-white hover:text-amber-300 transition-all border border-white/20 shadow-xl cursor-pointer active:scale-90"
+                  aria-label="إغلاق"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* شريط توجيهي طافٍ بالتذييل يبرز السطر الإعلاني أسفل البطاقة */}
+              <div className="absolute bottom-3 right-3 left-3 flex items-center justify-center pointer-events-none z-10">
+                <div className="pointer-events-auto px-4 py-1.5 rounded-xl bg-amber-500/95 text-slate-950 font-black text-[11px] md:text-xs shadow-xl border border-black/30 backdrop-blur-sm flex items-center gap-2">
+                  <span>مكان ظهور النص الإعلاني بالتذييل أسفل بطاقات أرقام الجلوس والشهادات واخطارات أولياء الأمور</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
 
       <PasswordModal

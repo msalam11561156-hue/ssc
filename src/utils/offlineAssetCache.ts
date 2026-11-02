@@ -5,6 +5,7 @@ import splashBlueShieldUrl from '../assets/images/blue_shield_bg.jfif';
 import splashIllustrationUrl from '../assets/images/control_illustration_1786475473814.jpg';
 import splashBrandBgUrl from '../assets/images/splash_brand_bg.jpg';
 import splashModernControlUrl from '../assets/images/smart_control_room_modern.jpg';
+import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 
 const memoryCache = new Map<string, string>();
 
@@ -102,6 +103,37 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
 }
 
 /**
+ * جلب وحفظ نموذج الامتياز الإعلاني (بطاقة رقم الجلوس) محلياً على جهاز العميل في IndexedDB
+ * لضمان العرض الفوري والعمل بدون اتصال بالإنترنت
+ */
+export async function getCachedAdPrivilegeExample(): Promise<string> {
+  const cacheKey = 'offline_ad_privilege_example_v1';
+
+  if (memoryCache.has(cacheKey)) {
+    return memoryCache.get(cacheKey)!;
+  }
+
+  try {
+    const idbData = await idbGet(cacheKey);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(cacheKey, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for ad privilege example:', e);
+  }
+
+  try {
+    const dataUrl = await fetchToDataUrl(adPrivilegeExampleUrl);
+    memoryCache.set(cacheKey, dataUrl);
+    idbSet(cacheKey, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return adPrivilegeExampleUrl;
+  }
+}
+
+/**
  * حفظ وتخزين جميع قوالب الشهادات، صور وخلفيات شاشة البداية، والأيقونات على جهاز العميل مسبقاً (Pre-cache)
  * يتم استدعاؤها فور تشغيل التطبيق لضمان الأداء الفائق وعدم فقدان أي ملف
  */
@@ -122,7 +154,10 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedSplashBackground('modern_control'),
     ]);
 
-    // 3. تخزين الأيقونات محلياً في ذاكرة التخزين الدائم للمتصفح
+    // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB
+    const adExamplePromise = getCachedAdPrivilegeExample().catch(() => {});
+
+    // 4. تخزين الأيقونات محلياً في ذاكرة التخزين الدائم للمتصفح
     if ('caches' in window) {
       caches.open('smart-control-offline-assets').then((cache) => {
         cache.addAll([
@@ -137,7 +172,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       }).catch(() => {});
     }
 
-    await Promise.allSettled([certsPromise, splashPromise]);
+    await Promise.allSettled([certsPromise, splashPromise, adExamplePromise]);
   } catch (e) {
     console.warn('Preload offline assets warning:', e);
   }
