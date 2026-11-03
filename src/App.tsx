@@ -28,6 +28,7 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
 import { FooterSettingsModal } from './components/FooterSettingsModal';
 import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
+import { MobileDeviceNotice } from './components/MobileDeviceNotice';
 import { createBackupPayload, saveBackupToFile, BackupPayload } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
@@ -1036,6 +1037,7 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
+      <MobileDeviceNotice />
       <div className="relative min-h-screen flex flex-col">
         {/* Header with Gradient */}
         {step !== 0 && (
