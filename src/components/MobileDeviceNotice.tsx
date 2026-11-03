@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Monitor, Laptop, Tablet, Smartphone, AlertCircle, X, CheckCircle2, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Monitor, Laptop, Tablet, Smartphone, AlertCircle, X, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface MobileDeviceNoticeProps {
   onDismiss?: () => void;
@@ -108,8 +108,7 @@ export const MobileDeviceNotice: React.FC<MobileDeviceNoticeProps> = ({ onDismis
                   <ShieldCheck className="w-5 h-5 text-slate-950" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-black tracking-wide text-amber-300">نظام الكنترول المدرسي الإلكتروني</span>
-                  <span className="text-[10px] text-slate-400">تنبيه ملاءمة الجهاز والشاشة</span>
+                  <span className="text-sm font-black tracking-wide text-amber-300">Smart Control</span>
                 </div>
               </div>
 
@@ -117,8 +116,8 @@ export const MobileDeviceNotice: React.FC<MobileDeviceNoticeProps> = ({ onDismis
                 type="button"
                 onClick={handleClose}
                 className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-slate-300 hover:text-white flex items-center justify-center transition border border-white/10"
-                title="تخطي الرسالة"
-                aria-label="إغلاق التنبيه"
+                title="إغلاق"
+                aria-label="إغلاق"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -128,13 +127,13 @@ export const MobileDeviceNotice: React.FC<MobileDeviceNoticeProps> = ({ onDismis
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-5 max-w-lg mx-auto w-full text-center">
               
               {/* Alert Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold mb-4 shadow-sm animate-pulse">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs sm:text-sm font-bold mb-5 shadow-sm">
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>إشعار تجربة الاستخدام المثالية</span>
+                <span>Smart Control</span>
               </div>
 
               {/* Devices Comparison Grid */}
-              <div className="w-full grid grid-cols-4 gap-2 mb-5">
+              <div className="w-full grid grid-cols-4 gap-2 mb-6">
                 {/* Desktop */}
                 <div className="bg-slate-800/80 border border-emerald-500/40 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-lg relative group">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-1.5 border border-emerald-500/30">
@@ -181,40 +180,10 @@ export const MobileDeviceNotice: React.FC<MobileDeviceNoticeProps> = ({ onDismis
               </div>
 
               {/* The EXACT Required Advisory Message Card */}
-              <div className="w-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border-2 border-amber-400/80 rounded-2xl p-4 sm:p-5 shadow-xl shadow-amber-500/10 mb-4 backdrop-blur-md">
+              <div className="w-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border-2 border-amber-400/80 rounded-2xl p-5 sm:p-6 shadow-xl shadow-amber-500/10 backdrop-blur-md">
                 <p className="text-base sm:text-lg font-black text-amber-200 leading-relaxed drop-shadow-sm">
                   ينصح بتشغيل التطبيق على جهاز الكمبيوتر او اللابتوب او التابلت للحصول على تجربة مستخدم أفضل
                 </p>
-              </div>
-
-              {/* Explanatory bullet points */}
-              <div className="w-full bg-slate-900/70 border border-slate-800 rounded-2xl p-3.5 sm:p-4 text-right space-y-2 mb-2 text-xs sm:text-sm text-slate-300">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                    ✓
-                  </div>
-                  <p className="leading-snug">
-                    <strong className="text-white">جداول رصد متعددة الأعمدة:</strong> يتضمن التطبيق جداول تقييمات، امتحانات تحريرية، وكشوفات رصد واسعة تحتاج لشاشة عريضة.
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                    ✓
-                  </div>
-                  <p className="leading-snug">
-                    <strong className="text-white">طباعة رسمية A4:</strong> شهادات الدرجات والتقديرات وبطاقات أرقام الجلوس مصممة بأبعاد الطباعة المعتمدة بوزارة التربية والتعليم.
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                    ✓
-                  </div>
-                  <p className="leading-snug">
-                    <strong className="text-white">سهولة ودقة الإدخال:</strong> إدخال وتعديل درجات عشرات الطلاب يتطلب مساحة رؤية مريحة وتفاعلاً سريعاً.
-                  </p>
-                </div>
               </div>
 
             </div>
@@ -224,9 +193,9 @@ export const MobileDeviceNotice: React.FC<MobileDeviceNoticeProps> = ({ onDismis
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-sm sm:text-base shadow-lg shadow-amber-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-amber-300"
+                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-base shadow-lg shadow-amber-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2 border border-amber-300"
               >
-                <span>فهمت ذلك، الدخول إلى التطبيق على الموبايل</span>
+                <span>حسنا</span>
                 <ArrowRight className="w-5 h-5 rotate-180" />
               </button>
 

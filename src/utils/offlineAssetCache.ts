@@ -5,6 +5,8 @@ import splashBlueShieldUrl from '../assets/images/blue_shield_bg.jfif';
 import splashIllustrationUrl from '../assets/images/control_illustration_1786475473814.jpg';
 import splashBrandBgUrl from '../assets/images/splash_brand_bg.jpg';
 import splashModernControlUrl from '../assets/images/smart_control_room_modern.jpg';
+import splashGoldShieldUrl from '../assets/images/smart_control_gold_shield.jfif';
+import splashCloudDashboardUrl from '../assets/images/smart_control_cloud_dashboard.jfif';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 
 const memoryCache = new Map<string, string>();
@@ -60,14 +62,14 @@ export async function getCachedCertificateTemplate(design: 'classic' | 'royal'):
   }
 }
 
-export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control';
+export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard';
 
 /**
  * جلب وحفظ خلفيات شاشة البداية الافتتاحية محلياً على جهاز العميل (IndexedDB)
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v10`;
+  const cacheKey = `offline_splash_bg_${type}_v11`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -90,7 +92,11 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
       ? splashIllustrationUrl 
       : type === 'brand' 
       ? splashBrandBgUrl 
-      : splashModernControlUrl;
+      : type === 'modern_control'
+      ? splashModernControlUrl
+      : type === 'gold_shield'
+      ? splashGoldShieldUrl
+      : splashCloudDashboardUrl;
 
   try {
     const dataUrl = await fetchToDataUrl(targetUrl);
@@ -146,12 +152,14 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedCertificateTemplate('classic'),
     ]);
 
-    // 2. حفظ صور الشاشة الافتتاحية الأربع في IndexedDB
+    // 2. حفظ صور الشاشة الافتتاحية الست في IndexedDB
     const splashPromise = Promise.allSettled([
       getCachedSplashBackground('blue_shield'),
       getCachedSplashBackground('illustration'),
       getCachedSplashBackground('brand'),
       getCachedSplashBackground('modern_control'),
+      getCachedSplashBackground('gold_shield'),
+      getCachedSplashBackground('cloud_dashboard'),
     ]);
 
     // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB

@@ -6,6 +6,8 @@ import defaultIllustrationBg from '../assets/images/control_illustration_1786475
 import defaultBrandBg from '../assets/images/splash_brand_bg.jpg';
 import modernControlBg from '../assets/images/smart_control_room_modern.jpg';
 import blueShieldBg from '../assets/images/blue_shield_bg.jfif';
+import goldShieldBg from '../assets/images/smart_control_gold_shield.jfif';
+import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
@@ -182,20 +184,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [illustrationImg, setIllustrationImg] = useState(defaultIllustrationBg);
   const [brandImg, setBrandImg] = useState(defaultBrandBg);
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
+  const [goldShieldImg, setGoldShieldImg] = useState(goldShieldBg);
+  const [cloudDashboardImg, setCloudDashboardImg] = useState(cloudDashboardBg);
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
     setIsOfficialUnlocked(isPaidUnlocked());
 
-    // جلب وحفظ الصور الأربع على جهاز العميل في IndexedDB لضمان السرعة الأقصى للتحميل وعدم الفقدان
+    // جلب وحفظ الصور الست على جهاز العميل في IndexedDB لضمان السرعة الأقصى للتحميل وعدم الفقدان
     getCachedSplashBackground('blue_shield').then((url) => { if (url) setBlueShieldImg(url); });
     getCachedSplashBackground('illustration').then((url) => { if (url) setIllustrationImg(url); });
     getCachedSplashBackground('brand').then((url) => { if (url) setBrandImg(url); });
     getCachedSplashBackground('modern_control').then((url) => { if (url) setModernControlImg(url); });
+    getCachedSplashBackground('gold_shield').then((url) => { if (url) setGoldShieldImg(url); });
+    getCachedSplashBackground('cloud_dashboard').then((url) => { if (url) setCloudDashboardImg(url); });
 
-    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الأربع
+    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الست
     const interval = setInterval(() => {
-      setActiveBgIndex((prev) => (prev + 1) % 4);
+      setActiveBgIndex((prev) => (prev + 1) % 6);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -230,9 +236,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center overflow-hidden">
       {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
-      <div className="w-full z-20">
+      <div className="w-full z-20 shrink-0">
         <motion.div 
           animate={{ 
             backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
@@ -243,14 +249,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             ]
           }}
           transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-          className="w-full bg-[length:200%_auto] py-[3px] shadow-2xl relative overflow-hidden border-b-2 border-black"
+          className="w-full bg-[length:200%_auto] py-[2px] sm:py-[3px] shadow-2xl relative overflow-hidden border-b-2 border-black"
           style={{ backgroundImage: 'linear-gradient(to right, #ffffff, #06b6d4, #3b82f6, #06b6d4, #ffffff)' }}
         >
           {/* Ticker Background (Blue -> Green -> Yellow) */}
           <motion.div 
              animate={{ backgroundColor: ['rgba(30,64,175,0.95)', 'rgba(21,128,61,0.95)', 'rgba(161,98,7,0.95)', 'rgba(30,64,175,0.95)'] }}
              transition={{ repeat: Infinity, duration: 15, ease: 'easeInOut' }}
-             className="w-full py-3 md:py-3.5 px-4 flex items-center overflow-hidden [container-type:inline-size]"
+             className="w-full py-2 sm:py-2.5 md:py-3.5 px-3 sm:px-4 flex items-center overflow-hidden [container-type:inline-size]"
              dir="ltr"
           >
             {/* Ticker Animation */}
@@ -261,7 +267,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               <motion.h1 
                 animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
                 transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
-                className="text-base md:text-xl font-extrabold text-transparent bg-clip-text flex items-center"
+                className="text-sm sm:text-base md:text-xl font-extrabold text-transparent bg-clip-text flex items-center"
                 style={{ 
                   backgroundImage: 'linear-gradient(to right, #2dd4bf, #ffffff, #a855f7, #fbbf24, #2dd4bf)',
                   backgroundSize: '200% auto',
@@ -276,14 +282,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         </motion.div>
       </div>
 
-      {/* Frame & Action Buttons Area */}
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-[68px] md:mt-[95px] flex flex-col items-center gap-8">
+      {/* Frame & Action Buttons Area - Centered and flexibly sized to fit any screen */}
+      <div className="w-full max-w-5xl mx-auto px-2 sm:px-6 md:px-8 flex-1 min-h-0 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4 my-auto overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, x: -100, scale: 0.9 }}
           transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-          className="w-full relative p-[8px] rounded-[3rem] overflow-hidden shadow-2xl"
+          className="w-full max-w-xs sm:max-w-lg md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/10] sm:aspect-[16/9] max-h-[38vh] sm:max-h-[44vh] md:max-h-[48vh] lg:max-h-[50vh] relative p-[4px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
         >
           <motion.div
             animate={{ rotate: 360 }}
@@ -291,12 +297,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
           />
           
-          <div className="relative rounded-[2.5rem] overflow-hidden border-[3px] border-black w-full h-full flex flex-col">
+          <div className="relative rounded-[1.2rem] sm:rounded-[1.8rem] md:rounded-[2.2rem] overflow-hidden border-[2px] sm:border-[3px] border-black w-full h-full flex flex-col">
           <div 
             className="absolute inset-0 z-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"
           />
         
-          <div className="relative z-10 w-full min-h-[60vh] flex flex-col items-center justify-center overflow-hidden">
+          <div className="relative z-10 w-full h-full flex flex-col items-center justify-center overflow-hidden">
             {/* 1. Blue Shield Image (الصورة الأولى - الدرع الأزرق وشعار SMART CONTROL) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
@@ -356,19 +362,49 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               />
             </div>
 
+            {/* 5. Gold Shield Image (الصورة الخامسة - الدرع الذهبي وشعار SMART CONTROL Examination Management) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 4 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={goldShieldImg}
+                  alt="Smart Control Gold Shield Examination Management"
+                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.08] brightness-[1.02]"
+                  style={{ imageRendering: 'high-quality' }}
+                />
+                <PrecisionLightOverlay />
+              </div>
+            </div>
 
-            
+            {/* 6. Cloud Dashboard Image (الصورة السادسة - التحول الرقمي من إكسيل إلى الكنترول السحابي الذكي) */}
+            <div 
+              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 5 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <img
+                src={cloudDashboardImg}
+                alt="Smart Control Cloud Dashboard vs Excel"
+                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.08] saturate-[1.05] brightness-[1.02]"
+                style={{ imageRendering: 'high-quality' }}
+              />
+            </div>
+
+
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
-            <div className="absolute inset-0 z-0 bg-slate-900/20 backdrop-blur-[0.5px]" />
+            <div className="absolute inset-0 z-0 bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
         </div>
       </motion.div>
 
       <motion.div
-        initial={{ y: 20, opacity: 0 }}
+        initial={{ y: 15, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.6 }}
-        className="flex flex-col items-center gap-[10px] w-full"
+        className="flex flex-col items-center gap-1.5 sm:gap-2.5 w-full shrink-0"
       >
         {isOfficialUnlocked ? (
           <div className="flex items-center justify-center w-full px-4">
@@ -377,32 +413,32 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               whileTap={{ scale: 0.95 }}
               type="button"
               onClick={() => onNext(false)}
-              className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] via-[#6366f1] to-[#3b82f6] hover:from-[#9333ea] hover:via-[#4f46e5] hover:to-[#2563eb] text-white shadow-[0_10px_25px_-5px_rgba(168,85,247,0.6)] border-2 border-black group transition-all cursor-pointer relative overflow-hidden"
+              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] via-[#6366f1] to-[#3b82f6] hover:from-[#9333ea] hover:via-[#4f46e5] hover:to-[#2563eb] text-white shadow-[0_10px_25px_-5px_rgba(168,85,247,0.6)] border-2 border-black group transition-all cursor-pointer relative overflow-hidden"
               title={lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application'}
               aria-label={lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application'}
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full" />
               {lang === 'ar' ? (
-                <ArrowLeft className="w-8 h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:-translate-x-1 drop-shadow-md" />
+                <ArrowLeft className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:-translate-x-1 drop-shadow-md" />
               ) : (
-                <ArrowRight className="w-8 h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:translate-x-1 drop-shadow-md" />
+                <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:translate-x-1 drop-shadow-md" />
               )}
             </motion.button>
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 w-full max-w-lg px-4">
+          <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-4">
             <button
               type="button"
               onClick={handleTrialClick}
-              className={`flex-1 w-full flex items-center justify-center ${
+              className={`flex-1 flex items-center justify-center ${
                 isTrialExpired || isDayExpired
                   ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 opacity-90'
                   : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-600 text-white shadow-[0_8px_20px_-6px_rgba(16,185,129,0.55)]'
-              } font-black min-h-[62px] py-4 px-6 rounded-2xl transition-all active:scale-[0.98] border-2 border-black group overflow-hidden relative cursor-pointer`}
+              } font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] border-2 border-black group overflow-hidden relative cursor-pointer`}
             >
               <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10 text-lg flex items-center justify-center gap-2">
-                <Clock className="w-5 h-5 text-amber-300 shrink-0" />
+              <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
                 <span>النسخة التجريبية</span>
               </span>
             </button>
@@ -410,11 +446,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             <button
               type="button"
               onClick={handleOfficialClick}
-              className="flex-1 w-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white font-black min-h-[62px] py-4 px-6 rounded-2xl transition-all active:scale-[0.98] shadow-[0_8px_20px_-6px_rgba(168,85,247,0.6)] border-2 border-black group overflow-hidden relative cursor-pointer"
+              className="flex-1 flex items-center justify-center bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] shadow-[0_8px_20px_-6px_rgba(168,85,247,0.6)] border-2 border-black group overflow-hidden relative cursor-pointer"
             >
               <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10 text-lg flex items-center justify-center gap-2">
-                <Crown className="w-5 h-5 text-amber-300 shrink-0" />
+              <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
                 <span>النسخة الرسمية</span>
               </span>
             </button>
@@ -422,9 +458,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         )}
 
         {/* Support Information */}
-        <div className="flex flex-col items-center gap-2 w-full mt-2">
+        <div className="flex flex-col items-center gap-1 sm:gap-1.5 w-full mt-0.5 sm:mt-1">
           {/* Animated Light Line */}
-          <div className="relative w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
+          <div className="relative w-36 sm:w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
@@ -432,7 +468,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             />
           </div>
 
-          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
+          <span className="bg-gradient-to-r from-white via-slate-400 to-white bg-[length:200%_auto] text-transparent bg-clip-text animate-shine text-[11px] sm:text-xs md:text-sm font-bold tracking-wider drop-shadow-md text-center whitespace-nowrap">
             Mahmoud Sallam : 01098594956 - 01131097055
           </span>
         </div>

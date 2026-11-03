@@ -1038,7 +1038,7 @@ export default function App() {
     <div className={`min-h-screen text-slate-900 font-sans ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
       <MobileDeviceNotice />
-      <div className="relative min-h-screen flex flex-col">
+      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
           <header className="w-full h-16 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
@@ -1336,7 +1336,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col items-center z-10 w-full ${step === 0 ? 'justify-start p-0 pb-[19px] pt-0' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
+        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
           {step === 10 && (
             <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
               <ColorThemeBar

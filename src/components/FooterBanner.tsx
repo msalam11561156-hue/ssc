@@ -31,9 +31,9 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
 
   return (
     <>
-      <div className="w-full px-2 pt-1 pb-2 mt-auto bg-transparent flex items-center justify-between gap-2 relative" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="w-full px-2 py-1 sm:pb-2 mt-auto bg-transparent flex items-center justify-between gap-1.5 sm:gap-2 relative shrink-0 z-20" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {/* Marquee Banner */}
-        <div className="flex-1 min-w-[180px] overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-14 flex items-center relative" dir="ltr">
+        <div className="flex-1 min-w-[140px] overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-11 sm:h-12 md:h-14 flex items-center relative" dir="ltr">
           <style>
             {`
               @keyframes scroll-ltr {
@@ -65,7 +65,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
               }
             `}
           </style>
-          <div className={`${scrollAnimation} whitespace-nowrap text-white font-bold text-base px-4 drop-shadow-md`}>
+          <div className={`${scrollAnimation} whitespace-nowrap text-white font-bold text-xs sm:text-sm md:text-base px-3 sm:px-4 drop-shadow-md`}>
             {bannerText}
           </div>
         </div>
@@ -86,10 +86,10 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
             />
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="relative flex items-center justify-center p-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-[1.5px] border-slate-900 rounded-lg transition-all shadow-md h-14 w-14 cursor-pointer group"
+              className="relative flex items-center justify-center p-2 sm:p-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-[1.5px] border-slate-900 rounded-lg transition-all shadow-md h-11 w-11 sm:h-12 sm:w-12 md:h-14 md:w-14 cursor-pointer group"
               title={lang === 'ar' ? 'القائمة' : 'Menu'}
             >
-              <Menu className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
