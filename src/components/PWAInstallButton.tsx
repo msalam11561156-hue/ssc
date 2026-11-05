@@ -2,6 +2,7 @@ import React from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { Download } from 'lucide-react';
 import { Language } from '../types';
+import { useIsMobilePhone } from '../utils/deviceHelper';
 
 interface PWAInstallButtonProps {
   lang?: Language;
@@ -10,9 +11,17 @@ interface PWAInstallButtonProps {
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar', className = '' }) => {
   const { isInstallable, isInstalled, install } = usePWAInstall();
+  const isMobile = useIsMobilePhone();
 
   // If already running as an installed standalone PWA, hide the button
   if (isInstalled) {
+    return null;
+  }
+
+  const buttonText = lang === 'ar' ? 'تثبيت التطبيق ليعمل بدون انترنت' : 'Install App (Works Offline)';
+
+  // On mobile phone devices, hide the install button
+  if (isMobile) {
     return null;
   }
 
@@ -21,8 +30,6 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
       await install();
     }
   };
-
-  const buttonText = lang === 'ar' ? 'تثبيت التطبيق ليعمل بدون انترنت' : 'Install App (Works Offline)';
 
   return (
     <button

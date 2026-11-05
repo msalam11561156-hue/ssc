@@ -99,6 +99,16 @@
   will-change: transform;
 }
 
+@keyframes mobile-alert-marquee-ltr {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100cqw); }
+}
+
+.animate-mobile-alert-marquee {
+  animation: mobile-alert-marquee-ltr 25s linear infinite;
+  will-change: transform;
+}
+
 @keyframes pulse-slow {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.85; transform: scale(1.05); }

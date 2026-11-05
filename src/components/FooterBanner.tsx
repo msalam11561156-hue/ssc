@@ -153,7 +153,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
                     setIsMenuOpen(false);
                     try {
                       if (typeof window !== 'undefined' && navigator.clipboard?.writeText) {
-                        await navigator.clipboard.writeText(window.location.href);
+                        await navigator.clipboard.writeText('https://ssc2026-2027.vercel.app/');
                       }
                     } catch {}
                     setIsShareOpen(true);

@@ -12,6 +12,7 @@ interface ShareModalProps {
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, lang }) => {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const copyTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     if (!text) return false;
@@ -39,17 +40,20 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, lang })
     }
   };
 
+  const TARGET_SHARE_URL = 'https://ssc2026-2027.vercel.app/';
+
   useEffect(() => {
     if (isOpen) {
-      const url = typeof window !== 'undefined' ? window.location.href : '';
-      setCurrentUrl(url);
+      setCurrentUrl(TARGET_SHARE_URL);
       setIsCopied(false);
-      if (url) {
-        copyToClipboard(url);
-      }
+      copyToClipboard(TARGET_SHARE_URL);
     } else {
       setIsCopied(false);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     }
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -57,8 +61,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, lang })
   const appTitle = lang === 'ar' 
     ? 'شيت كنترول جميع المدارس المصرية - المنظومة الرقمية الشاملة' 
     : 'Sheet Control Egypt';
-  const encodedUrl = encodeURIComponent(currentUrl);
-  const encodedShareText = encodeURIComponent(`${appTitle}\n${currentUrl}`);
+  const encodedUrl = encodeURIComponent(TARGET_SHARE_URL);
+  const encodedShareText = encodeURIComponent(`${appTitle}\n${TARGET_SHARE_URL}`);
 
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedShareText}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
@@ -67,12 +71,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, lang })
   const tiktokUrl = 'https://www.tiktok.com/';
 
   const handlePlatformClick = () => {
-    copyToClipboard(currentUrl);
+    copyToClipboard(TARGET_SHARE_URL);
   };
 
   const handleManualCopy = async () => {
-    await copyToClipboard(currentUrl);
+    await copyToClipboard(TARGET_SHARE_URL);
     setIsCopied(true);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => {
+      setIsCopied(false);
+    }, 5000);
   };
 
   return (

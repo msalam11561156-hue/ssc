@@ -11,6 +11,7 @@ import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfi
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
+import { useIsMobilePhone } from '../utils/deviceHelper';
 
 import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -207,7 +208,23 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const isMobile = useIsMobilePhone();
+  const [mobileBlockedToast, setMobileBlockedToast] = useState<string | null>(null);
+
+  const triggerMobileBlock = () => {
+    setMobileBlockedToast(
+      lang === 'ar'
+        ? 'عفواً، التطبيق يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت.'
+        : 'The application works only on PC, Laptop & Tablet.'
+    );
+    setTimeout(() => setMobileBlockedToast(null), 5000);
+  };
+
   const handleOfficialClick = () => {
+    if (isMobile) {
+      triggerMobileBlock();
+      return;
+    }
     if (isPaidUnlocked()) {
       setIsOfficialUnlocked(true);
       onNext(false);
@@ -217,6 +234,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   };
 
   const handleTrialClick = () => {
+    if (isMobile) {
+      triggerMobileBlock();
+      return;
+    }
     if (isOfficialUnlocked) return;
     if (isTrialExpired) {
       setShowAllExpiredModal(true);
@@ -237,6 +258,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center overflow-hidden">
+      {/* Floating Advisory Toast when mobile user attempts to enter */}
+      <AnimatePresence>
+        {mobileBlockedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-14 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-[92%] px-4 py-3 rounded-2xl bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2"
+            dir="rtl"
+          >
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>{mobileBlockedToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
       <div className="w-full z-20 shrink-0">
         <motion.div 
@@ -283,13 +320,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       </div>
 
       {/* Frame & Action Buttons Area - Centered and flexibly sized to fit any screen */}
-      <div className="w-full max-w-5xl mx-auto px-2 sm:px-6 md:px-8 flex-1 min-h-0 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4 my-auto overflow-hidden">
+      <div className="w-full max-w-5xl mx-auto px-2 sm:px-6 md:px-8 flex-1 min-h-0 flex flex-col items-center justify-center gap-1.5 sm:gap-3 md:gap-4 my-auto overflow-y-auto sm:overflow-hidden py-1 sm:py-2">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, x: -100, scale: 0.9 }}
           transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-          className="w-full max-w-sm sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/13] sm:aspect-[16/11.7] max-h-[50vh] sm:max-h-[57vh] md:max-h-[62vh] lg:max-h-[65vh] relative p-[4px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
+          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/12] sm:aspect-[16/11.7] max-h-[30vh] sm:max-h-[46vh] md:max-h-[58vh] lg:max-h-[65vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
         >
           <motion.div
             animate={{ rotate: 360 }}
@@ -407,14 +444,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         className="flex flex-col items-center gap-1.5 sm:gap-2.5 w-full shrink-0"
       >
         {isOfficialUnlocked ? (
-          <div className="flex items-center justify-center w-full px-4">
+          <div className="flex flex-col items-center justify-center w-full px-4 gap-1.5">
             <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isMobile ? 1 : 1.08 }}
+              whileTap={{ scale: isMobile ? 1 : 0.95 }}
               type="button"
-              onClick={() => onNext(false)}
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] via-[#6366f1] to-[#3b82f6] hover:from-[#9333ea] hover:via-[#4f46e5] hover:to-[#2563eb] text-white shadow-[0_10px_25px_-5px_rgba(168,85,247,0.6)] border-2 border-black group transition-all cursor-pointer relative overflow-hidden"
-              title={lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application'}
+              onClick={() => {
+                if (isMobile) {
+                  triggerMobileBlock();
+                  return;
+                }
+                onNext(false);
+              }}
+              className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] via-[#6366f1] to-[#3b82f6] text-white shadow-[0_10px_25px_-5px_rgba(168,85,247,0.6)] border-2 border-black group transition-all relative overflow-hidden ${
+                isMobile ? 'opacity-60 cursor-not-allowed' : 'hover:from-[#9333ea] hover:via-[#4f46e5] hover:to-[#2563eb] cursor-pointer'
+              }`}
+              title={isMobile ? (lang === 'ar' ? 'يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت' : 'Works only on PC, Laptop & Tablet') : (lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application')}
               aria-label={lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application'}
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full" />
@@ -424,41 +469,88 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:translate-x-1 drop-shadow-md" />
               )}
             </motion.button>
+            {isMobile && (
+              <div 
+                className="w-full max-w-sm sm:max-w-md mx-auto mt-14 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
+                dir="ltr"
+              >
+                <div className="w-full overflow-hidden relative flex items-center [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+                  <div
+                    className="inline-flex items-center gap-2 whitespace-nowrap animate-mobile-alert-marquee py-0.5"
+                    dir="rtl"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span className="text-xs sm:text-sm font-black text-amber-200 tracking-wide leading-snug drop-shadow-sm whitespace-nowrap">
+                      يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-4">
-            <button
-              type="button"
-              onClick={handleTrialClick}
-              className={`flex-1 flex items-center justify-center ${
-                isTrialExpired || isDayExpired
-                  ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 opacity-90'
-                  : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-600 text-white shadow-[0_8px_20px_-6px_rgba(16,185,129,0.55)]'
-              } font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] border-2 border-black group overflow-hidden relative cursor-pointer`}
-            >
-              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
-                <span>النسخة التجريبية</span>
-              </span>
-            </button>
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-4">
+              <button
+                type="button"
+                onClick={handleTrialClick}
+                className={`flex-1 flex items-center justify-center ${
+                  isMobile
+                    ? 'bg-slate-800 text-slate-400 opacity-60 cursor-not-allowed border-slate-700'
+                    : isTrialExpired || isDayExpired
+                    ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 opacity-90 cursor-pointer'
+                    : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-600 text-white shadow-[0_8px_20px_-6px_rgba(160,185,129,0.55)] cursor-pointer'
+                } font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] border-2 border-black group overflow-hidden relative`}
+                title={isMobile ? (lang === 'ar' ? 'يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت' : 'Works only on PC, Laptop & Tablet') : undefined}
+              >
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <Clock className={`w-4 h-4 sm:w-5 sm:h-5 ${isMobile ? 'text-slate-500' : 'text-amber-300'} shrink-0`} />
+                  <span>النسخة التجريبية</span>
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleOfficialClick}
-              className="flex-1 flex items-center justify-center bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] shadow-[0_8px_20px_-6px_rgba(168,85,247,0.6)] border-2 border-black group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
-                <span>النسخة الرسمية</span>
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={handleOfficialClick}
+                className={`flex-1 flex items-center justify-center ${
+                  isMobile
+                    ? 'bg-slate-800 text-slate-400 opacity-60 cursor-not-allowed border-slate-700'
+                    : 'bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white shadow-[0_8px_20px_-6px_rgba(168,85,247,0.6)] cursor-pointer'
+                } font-black min-h-[42px] sm:min-h-[50px] md:min-h-[58px] py-2 sm:py-3 md:py-3.5 px-2.5 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all active:scale-[0.98] border-2 border-black group overflow-hidden relative`}
+                title={isMobile ? (lang === 'ar' ? 'يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت' : 'Works only on PC, Laptop & Tablet') : undefined}
+              >
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative z-10 text-xs sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <Crown className={`w-4 h-4 sm:w-5 sm:h-5 ${isMobile ? 'text-slate-500' : 'text-amber-300'} shrink-0`} />
+                  <span>النسخة الرسمية</span>
+                </span>
+              </button>
+            </div>
+            {isMobile && (
+              <div 
+                className="w-full max-w-sm sm:max-w-md mx-auto mt-14 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
+                dir="ltr"
+              >
+                <div className="w-full overflow-hidden relative flex items-center [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
+                  <div
+                    className="inline-flex items-center gap-2 whitespace-nowrap animate-mobile-alert-marquee py-0.5"
+                    dir="rtl"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span className="text-xs sm:text-sm font-black text-amber-200 tracking-wide leading-snug drop-shadow-sm whitespace-nowrap">
+                      يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Support Information */}
+        {/* Support Information & Developer Signature */}
         <div className="flex flex-col items-center gap-1 sm:gap-1.5 w-full mt-0.5 sm:mt-1">
+
           {/* Animated Light Line */}
           <div className="relative w-36 sm:w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
             <motion.div

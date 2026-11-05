@@ -28,11 +28,11 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
 import { FooterSettingsModal } from './components/FooterSettingsModal';
 import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
-import { MobileDeviceNotice } from './components/MobileDeviceNotice';
 import { createBackupPayload, saveBackupToFile, BackupPayload } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
 import { idbSet, idbGet } from './utils/idbStorage';
+import { isMobilePhoneDevice } from './utils/deviceHelper';
 
 const MathStatsIcon = ({ className = "w-6 h-6 md:w-8 md:h-8" }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -229,6 +229,9 @@ export default function App() {
   const [trialInfo, setTrialInfo] = useState<TrialInfo>(initialTrial);
 
   const [step, setStep] = useState<number>(() => {
+    if (isMobilePhoneDevice()) {
+      return 0;
+    }
     const isTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
     const hasStartedTrial = localStorage.getItem('sheet_control_trial_has_started') === 'true';
     
@@ -388,7 +391,25 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    const handleDeviceCheck = () => {
+      if (isMobilePhoneDevice()) {
+        setStep(0);
+      }
+    };
+    window.addEventListener('resize', handleDeviceCheck);
+    window.addEventListener('orientationchange', handleDeviceCheck);
+    return () => {
+      window.removeEventListener('resize', handleDeviceCheck);
+      window.removeEventListener('orientationchange', handleDeviceCheck);
+    };
+  }, []);
+
   const handleStartApp = (isTrial?: boolean) => {
+    if (isMobilePhoneDevice()) {
+      setStep(0);
+      return;
+    }
     if (isTrial) {
       const current = getTrialInfo();
       if (current.isExpired || current.isDayExpired) {
@@ -503,7 +524,7 @@ export default function App() {
     setTimeout(() => setBackupToast(null), 4000);
   };
 
-  
+
   const [schoolData, setSchoolData] = useState<SchoolData>(() => {
     const isTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
     return isTrial ? loadTrialSchoolData() : loadOfficialSchoolData();
@@ -1037,7 +1058,6 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <MobileDeviceNotice />
       <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
