@@ -209,20 +209,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   }, []);
 
   const isMobile = useIsMobilePhone();
-  const [mobileBlockedToast, setMobileBlockedToast] = useState<string | null>(null);
-
-  const triggerMobileBlock = () => {
-    setMobileBlockedToast(
-      lang === 'ar'
-        ? 'عفواً، التطبيق يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت.'
-        : 'The application works only on PC, Laptop & Tablet.'
-    );
-    setTimeout(() => setMobileBlockedToast(null), 5000);
-  };
 
   const handleOfficialClick = () => {
     if (isMobile) {
-      triggerMobileBlock();
       return;
     }
     if (isPaidUnlocked()) {
@@ -235,7 +224,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   const handleTrialClick = () => {
     if (isMobile) {
-      triggerMobileBlock();
       return;
     }
     if (isOfficialUnlocked) return;
@@ -258,21 +246,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center overflow-hidden">
-      {/* Floating Advisory Toast when mobile user attempts to enter */}
-      <AnimatePresence>
-        {mobileBlockedToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-14 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-[92%] px-4 py-3 rounded-2xl bg-amber-950/95 border-2 border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md text-center flex items-center justify-center gap-2"
-            dir="rtl"
-          >
-            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
-            <span>{mobileBlockedToast}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
       <div className="w-full z-20 shrink-0">
@@ -326,7 +299,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, x: -100, scale: 0.9 }}
           transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/8] sm:aspect-[16/11.7] max-h-[45vh] sm:max-h-[46vh] md:max-h-[58vh] lg:max-h-[65vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
+          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11.7] max-h-[90vh] sm:max-h-[46vh] md:max-h-[58vh] lg:max-h-[65vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
         >
           <motion.div
             animate={{ rotate: 360 }}
@@ -451,7 +424,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               type="button"
               onClick={() => {
                 if (isMobile) {
-                  triggerMobileBlock();
                   return;
                 }
                 onNext(false);
@@ -471,7 +443,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             </motion.button>
             {isMobile && (
               <div 
-                className="w-full max-w-sm sm:max-w-md mx-auto mt-14 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
+                className="w-full max-w-sm sm:max-w-md mx-auto mt-3 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
                 dir="ltr"
               >
                 <div className="w-full overflow-hidden relative flex items-center [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
@@ -529,7 +501,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             </div>
             {isMobile && (
               <div 
-                className="w-full max-w-sm sm:max-w-md mx-auto mt-14 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
+                className="w-full max-w-sm sm:max-w-md mx-auto mt-3 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
                 dir="ltr"
               >
                 <div className="w-full overflow-hidden relative flex items-center [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
@@ -552,7 +524,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         <div className="flex flex-col items-center gap-1 sm:gap-1.5 w-full mt-0.5 sm:mt-1">
 
           {/* Animated Light Line */}
-          <div className="relative w-36 sm:w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full">
+          <div className="relative w-36 sm:w-48 md:w-64 h-[2px] bg-slate-900/20 overflow-hidden rounded-full hidden sm:block">
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ repeat: Infinity, duration: 6, ease: 'linear' }}
