@@ -447,11 +447,9 @@ export default function App() {
       setControlDataByStage(loadOfficialControlData());
       setStudentsDataByStage(loadOfficialStudentsData());
 
-      const lastOfficial = localStorage.getItem('sheet_control_last_official_step');
-      const targetStep = lastOfficial ? parseInt(lastOfficial, 10) : 1;
-      const validStep = targetStep > 0 ? targetStep : 1;
-      setStep(validStep);
-      localStorage.setItem('sheet_control_step', validStep.toString());
+      setStep(1);
+      localStorage.setItem('sheet_control_step', '1');
+      localStorage.setItem('sheet_control_last_official_step', '1');
     }
   };
 
