@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Printer, Award } from 'lucide-react';
 import { PdfReportType } from '../utils/exportPdf';
 import { ActionMenuButton } from './ActionMenuButton';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface SeatNumbersModalProps {
   isOpen: boolean;
@@ -126,7 +127,7 @@ export const SeatNumbersModal: React.FC<SeatNumbersModalProps> = ({
                     onSelectModel(isEnglish ? m.englishReportType : m.reportType);
                   }}
                   icon={<Printer className="w-4 h-4 shrink-0" />}
-                  text={isEnglish ? `${m.labelEn} - ${m.label}` : m.label}
+                  text={formatNumberDigits(isEnglish ? `${m.labelEn} - ${m.label}` : m.label)}
                   bgGradient={m.bgGradient}
                   className="!h-[50px] !text-[17px] shadow-md hover:brightness-105 active:scale-[0.99] transition-all"
                 />

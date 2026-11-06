@@ -12,6 +12,7 @@ import {
 import { getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { StudentData } from '../types';
 import brandShield from '../assets/images/brand_shield.png';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface GradingSettingsModalProps {
   isOpen: boolean;
@@ -750,12 +751,12 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                           <div className="bg-white/90 border-2 border-emerald-700 rounded-2xl p-3.5 mb-2 shadow-sm text-center flex flex-col items-center justify-center gap-1">
                             <div className="text-xs sm:text-sm font-black text-emerald-950 flex items-center justify-center gap-1.5 whitespace-nowrap">
                               <span>عدد الطلاب المستحقين لدرجات الرأفة وفقا للإعدادات السابقة =</span>
-                              <span className="text-base sm:text-lg font-black text-emerald-700" dir="ltr">
-                                {eligibleStudentsCount}
+                              <span className="text-base sm:text-lg font-black text-emerald-700 font-mono" dir="ltr">
+                                {formatNumberDigits(eligibleStudentsCount)}
                               </span>
                             </div>
                             <div className="text-xs font-bold text-slate-600">
-                              {`${stageLabel} - ${gradeLabel || 'الصف'} - الفصل الدراسي الثانى`}
+                              {formatNumberDigits(`${stageLabel} - ${gradeLabel || 'الصف'} - الفصل الدراسي الثانى`)}
                             </div>
                           </div>
                         );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sliders, Printer, X, Check } from 'lucide-react';
 import { CustomControlSheetOptions } from '../utils/exportPdf';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface CustomControlSheetModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
                 إعدادات شيت كنترول مخصص
               </h3>
               <p className="text-xs text-sky-200 font-medium">
-                مطابق لحقول شيت كنترول الفصل الدراسي الثانى {selectedGrade ? `• ${selectedGrade}` : ''}
+                مطابق لحقول شيت كنترول الفصل الدراسي الثانى {selectedGrade ? `• ${formatNumberDigits(selectedGrade)}` : ''}
               </p>
             </div>
           </div>

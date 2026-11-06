@@ -12,6 +12,7 @@ import {
   renderTopTenCertificateToCanvas, 
   exportTopTenCertificatesPdf 
 } from '../utils/topTenCertificatesHelper';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface TopTenCertificatesModalProps {
   isOpen: boolean;
@@ -303,12 +304,12 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
                   <div className="flex items-center gap-4">
                     {currentStudent.totalScore !== undefined && currentStudent.totalScore !== null && (
                       <span className="font-semibold text-emerald-400">
-                        المجموع الكلي : <strong className="text-white font-mono">{currentStudent.totalScore}</strong>
+                        المجموع الكلي : <strong className="text-white font-mono">{formatNumberDigits(currentStudent.totalScore)}</strong>
                       </span>
                     )}
                     {currentStudent.percentage && (
                       <span className="font-semibold text-cyan-400">
-                        النسبة : <strong className="text-white font-mono">{currentStudent.percentage}</strong>
+                        النسبة : <strong className="text-white font-mono">{formatNumberDigits(currentStudent.percentage)}</strong>
                       </span>
                     )}
                   </div>
@@ -337,7 +338,7 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
               </div>
 
               <span className="text-xs text-slate-400 font-medium">
-                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{rankedStudents.length === 0 ? 'لا يوجد' : rankedStudents.length}</strong>
+                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{rankedStudents.length === 0 ? 'لا يوجد' : formatNumberDigits(rankedStudents.length)}</strong>
               </span>
             </div>
           </div>
@@ -372,7 +373,7 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
               >
                 <Download className="w-5 h-5 text-slate-950" />
                 <span>
-                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : rankedStudents.length === 0 ? 'تحميل جميع الشهادات ( لا يوجد ) - PDF' : `تحميل جميع الشهادات ( ${rankedStudents.length} طلاب ) - PDF`}
+                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : rankedStudents.length === 0 ? 'تحميل جميع الشهادات ( لا يوجد ) - PDF' : `تحميل جميع الشهادات ( ${formatNumberDigits(rankedStudents.length)} طلاب ) - PDF`}
                 </span>
               </button>
             </div>

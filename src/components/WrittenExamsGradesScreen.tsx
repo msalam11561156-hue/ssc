@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades } from '../types';
+import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
 import { GradingSettingsModal } from './GradingSettingsModal';
 import { AdvancedStatsModal } from './AdvancedStatsModal';
@@ -68,6 +69,13 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   isTrialMode = false,
 }) => {
   const t = translations[lang];
+  const [numberLang, setNumberLang] = useState<NumberLang>(() => {
+    return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sheet_control_number_lang', numberLang);
+  }, [numberLang]);
   const sortBy = externalSortBy || [];
   const [localData, setLocalData] = useState<StudentData[]>(data);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1586,6 +1594,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     await exportStudentsDataToPdf({
       title,
       reportType,
+      numberLang,
       systemType,
       isHomeschool,
       customControlSheetOptions,
@@ -2590,15 +2599,15 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
 
         {/* Search & Action Row */}
         <div className="flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
+          <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
             <button
               onClick={onBack}
               title={lang === 'ar' ? 'عودة' : 'Back'}
-              className="shrink-0 border-2 border-slate-900 text-white rounded-lg p-2 sm:px-3 sm:py-2 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm"
+              className="shrink-0 border-2 border-slate-900 text-white rounded-lg p-2 sm:px-3 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm self-stretch"
             >
               {lang === 'ar' ? <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
-            <div className="relative flex-1 min-w-0 group/search">
+            <div className="relative flex-1 min-w-0 group/search flex items-center">
               <div className="absolute inset-y-0 right-2.5 sm:right-3 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
               </div>
@@ -2607,7 +2616,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 placeholder={t.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full min-w-0 bg-white border-2 border-slate-900 rounded-lg pr-8 sm:pr-10 pl-8 sm:pl-10 py-1.5 sm:py-2.5 text-xs sm:text-sm md:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium truncate"
+                className="w-full h-full min-w-0 bg-white border-2 border-slate-900 rounded-lg pr-8 sm:pr-10 pl-8 sm:pl-10 py-1.5 sm:py-2.5 text-xs sm:text-sm md:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium truncate"
               />
               <button
                 type="button"
@@ -2623,6 +2632,16 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
+              className={`px-2.5 sm:px-3 border-2 border-slate-900 rounded-lg text-xs sm:text-sm font-black flex items-center justify-center gap-1 transition-colors shrink-0 shadow-sm whitespace-nowrap self-stretch ${
+                numberLang === 'ar' ? 'bg-amber-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+              }`}
+              title="تغيير لغة الأرقام من عربي إلى إنجليزي والعكس"
+            >
+              <span>{numberLang === 'ar' ? 'الأرقام باللغة الإنجليزية' : 'الأرقام باللغة العربية'}</span>
+            </button>
           </div>
        
           <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
@@ -3321,7 +3340,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               <span className="whitespace-nowrap select-none">{col.label}</span>
                               {col.key === 'total' && isSecondSemester && (
                                 <span className="text-[11px] font-bold text-slate-800 whitespace-nowrap mt-1 tracking-tight">
-                                  مجموع درجات الفصلين الدراسيين ÷ 2
+                                  {formatNumberDigits('مجموع درجات الفصلين الدراسيين ÷ 2', numberLang)}
                                 </span>
                               )}
                               {col.key === 'total' && !isSecondSemester && !isKindergarten && (
@@ -3362,7 +3381,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-slate-900 pointer-events-none z-10" />
                               <div className="absolute inset-0 grid grid-cols-2">
                                 <div className="w-full h-full flex items-center justify-center px-1 py-2">
-                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{writtenMaxGrade}</span>
+                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{formatNumberDigits(writtenMaxGrade, numberLang)}</span>
                                 </div>
                                 <div 
                                   className="w-full h-full flex items-center justify-center px-1 py-2 bg-slate-300/30 select-none cursor-default"
@@ -3384,7 +3403,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   }}
                                   onMouseLeave={() => setHoveredActualGradeTooltip(null)}
                                 >
-                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{actualMaxGrade}</span>
+                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{formatNumberDigits(actualMaxGrade, numberLang)}</span>
                                 </div>
                               </div>
                             </th>
@@ -3401,7 +3420,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className="p-0 border-2 border-slate-900 bg-transparent text-center h-[50px] relative"
                             >
                                 <div className="w-full h-full flex items-center justify-center px-1 py-2">
-                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{isSec2Modern ? 400 : (isMiddleHomeschool ? 500 : (col.max ?? ((isSecondary2Scientific || isSecondary2Literary) ? 600 : 500)))}</span>
+                                  <span className="text-2xl font-black inline-block mt-1 text-blue-700" dir="ltr">{formatNumberDigits(isSec2Modern ? 400 : (isMiddleHomeschool ? 500 : (col.max ?? ((isSecondary2Scientific || isSecondary2Literary) ? 600 : 500))), numberLang)}</span>
                                 </div>
                             </th>
                           );
@@ -3413,7 +3432,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             className="py-2 px-2 border-2 border-slate-900 bg-transparent text-center h-[50px]"
                           >
                             {col.max !== undefined && (
-                              <span className="text-2xl font-black inline-block mt-1 text-blue-700">{col.key === "total" ? (isSec2Modern ? 400 : (isMiddleHomeschool && !(col as any).isReadonly ? 100 : col.max)) : (isSec2Modern && isFirstSemester ? ((col as any).maxWrittenGrade ?? col.max) : (isMiddleHomeschool && !(col as any).isReadonly ? 100 : col.max))}</span>
+                              <span className="text-2xl font-black inline-block mt-1 text-blue-700">{formatNumberDigits(col.key === "total" ? (isSec2Modern ? 400 : (isMiddleHomeschool && !(col as any).isReadonly ? 100 : col.max)) : (isSec2Modern && isFirstSemester ? ((col as any).maxWrittenGrade ?? col.max) : (isMiddleHomeschool && !(col as any).isReadonly ? 100 : col.max)), numberLang)}</span>
                             )}
                           </th>
                         );
@@ -3453,7 +3472,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               <div className="absolute inset-0 bg-red-500/10 shadow-[inset_0_0_20px_rgba(239,68,68,0.7)] animate-pulse pointer-events-none z-0"></div>
                             )}
                             <div className="separator-line"></div>
-                            <span className="relative z-10 text-lg">{index + 1}</span>
+                             <span className="relative z-10 text-lg">{formatNumberDigits(index + 1, numberLang)}</span>
                           </td>
                           {showName && (
                             <td 
@@ -3473,7 +3492,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               <input
                                 type="text"
                                 readOnly
-                                value={extractStudentSeatNumber(student, semester)}
+                                value={formatNumberDigits(extractStudentSeatNumber(student, semester), numberLang)}
                                 className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
                                 dir="ltr"
                                 title="حقل مجمد للقراءة فقط"
@@ -3489,7 +3508,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               <input
                                 type="text"
                                 readOnly
-                                value={extractStudentSecretNumber(student, semester)}
+                                value={formatNumberDigits(extractStudentSecretNumber(student, semester), numberLang)}
                                 className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
                                 dir="ltr"
                                 title="حقل مجمد للقراءة فقط"
@@ -3578,7 +3597,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-slate-900 pointer-events-none z-10" />
                                 <div className="absolute inset-0 grid grid-cols-2">
                                   <div className="w-full h-full flex items-center justify-center px-1 text-2xl font-black drop-shadow-sm text-slate-900" dir="ltr">
-                                    {totalVal}
+                                    {formatNumberDigits(totalVal, numberLang)}
                                   </div>
                                   <div 
                                     className="w-full h-full flex items-center justify-center px-1 text-2xl font-black drop-shadow-sm text-black bg-[linear-gradient(110deg,rgba(0,0,0,0.25)_20%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.25)_80%)] bg-[length:200%_100%] animate-shine select-none cursor-default"
@@ -3601,7 +3620,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                     }}
                                     onMouseLeave={() => setHoveredActualGradeTooltip(null)}
                                   >
-                                    {actualTotalVal}
+                                    {formatNumberDigits(actualTotalVal, numberLang)}
                                   </div>
                                 </div>
                               </td>
@@ -3614,7 +3633,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className="p-0 border-2 border-slate-900 bg-[linear-gradient(45deg,#c0c0c0,rgba(192,192,192,0.5),#c0c0c0)] bg-[length:200%_200%] animate-shine"
                             >
                               <div className={`w-full h-full flex items-center justify-center py-3 text-2xl font-black drop-shadow-sm ${isTotalFail ? 'text-red-600' : 'text-slate-900'}`}>
-                                {totalVal}
+                                {formatNumberDigits(totalVal, numberLang)}
                               </div>
                             </td>
                           );
@@ -3632,7 +3651,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className={`p-0 border-2 border-slate-900 font-black text-center text-xl bg-transparent ${isBelowLevel ? 'text-red-600' : 'text-slate-900'}`}
                             >
                               <div className="w-full h-full flex items-center justify-center py-3 whitespace-nowrap px-1 select-none" dir="ltr">
-                                {pctVal}
+                                {formatNumberDigits(pctVal, numberLang)}
                               </div>
                             </td>
                           );
@@ -3699,7 +3718,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 className={`w-full h-full flex items-center justify-center py-2 px-2 text-center select-none font-black ${isTied ? 'text-blue-900 text-lg' : 'text-slate-900 text-xl'}`}
                                 dir="rtl"
                               >
-                                {rank}
+                                {formatNumberDigits(rank, numberLang)}
                               </div>
                             </td>
                           );
@@ -3722,7 +3741,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 className={`w-full h-full flex items-center justify-center py-2 px-2 text-center select-none font-black ${displayText === '-' ? 'text-2xl text-slate-600' : (numericCount > 0 ? 'text-lg text-red-700' : 'text-lg text-slate-600')}`}
                                 dir="rtl"
                               >
-                                {displayText}
+                                {formatNumberDigits(displayText, numberLang)}
                               </div>
                             </td>
                           );
@@ -3816,7 +3835,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 className={`w-full h-full flex items-center justify-center py-2 px-2 text-center select-none font-black ${displayText === '-' ? 'text-2xl text-slate-600' : (numericCount > 0 ? 'text-lg text-red-700' : 'text-lg text-slate-600')}`}
                                 dir="rtl"
                               >
-                                {displayText}
+                                {formatNumberDigits(displayText, numberLang)}
                               </div>
                             </td>
                           );
@@ -3994,8 +4013,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   <input
                                     id={`grade-cell-${index}-${col.key}`}
                                     type="text"
-                                    value={cellDisplayValue}
-                                    onChange={(e) => handleGradeChange(student.id, col.key as keyof AssessmentGrades, e.target.value)}
+                                    value={formatNumberDigits(cellDisplayValue, numberLang)}
+                                    onChange={(e) => handleGradeChange(student.id, col.key as keyof AssessmentGrades, formatNumberDigits(e.target.value, 'en'))}
                                     onKeyDown={(e) => handleKeyDown(e, index, col.key)}
                                     onFocus={(e) => {
                                       e.target.select();
@@ -4030,7 +4049,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   }}
                                   onMouseLeave={() => setHoveredActualGradeTooltip(null)}
                                 >
-                                  {actualSubjectGrade}
+                                  {formatNumberDigits(actualSubjectGrade, numberLang)}
                                 </div>
                               </div>
                             </td>
@@ -4048,8 +4067,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             <input
                               id={`grade-cell-${index}-${col.key}`}
                               type="text"
-                              value={cellDisplayValue}
-                              onChange={(e) => handleGradeChange(student.id, col.key as keyof AssessmentGrades, e.target.value)}
+                              value={formatNumberDigits(cellDisplayValue, numberLang)}
+                              onChange={(e) => handleGradeChange(student.id, col.key as keyof AssessmentGrades, formatNumberDigits(e.target.value, 'en'))}
                               onKeyDown={(e) => handleKeyDown(e, index, col.key)}
                               onFocus={(e) => {
                                 e.target.select();

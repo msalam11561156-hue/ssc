@@ -6,6 +6,7 @@ import {
   BarChart3, X, Users, AlertTriangle, TrendingUp, Award, BookOpen, 
   CheckCircle, FileText, PieChart, ShieldAlert, Layers
 } from 'lucide-react';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface AdvancedStatsModalProps {
   isOpen: boolean;
@@ -139,7 +140,7 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
         <div className="flex bg-slate-100 border-b border-slate-200 px-6 pt-3 gap-2 overflow-x-auto">
           {[
             { id: 'overview', label: 'المؤشرات العامة والأداء', icon: Layers },
-            { id: 'risk', label: `الطلاب المعرضون للخطر الأكاديمي (${atRiskStudents.length})`, icon: ShieldAlert },
+            { id: 'risk', label: `الطلاب المعرضون للخطر الأكاديمي (${formatNumberDigits(atRiskStudents.length)})`, icon: ShieldAlert },
             { id: 'bellcurve', label: 'منحنى التوزيع الطبيعي (Bell Curve)', icon: TrendingUp },
             { id: 'subjects', label: 'تحليل صعوبة المواد ونواتج التعلم', icon: BookOpen },
             { id: 'ministerial', label: 'الإحصاء الوزاري الرسمي المعتمد', icon: FileText },
@@ -174,8 +175,8 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-500">إجمالي الطلاب المقيدين</p>
-                    <h3 className="text-3xl font-black text-slate-900 mt-1">{totalStudents}</h3>
-                    <p className="text-xs text-emerald-600 font-semibold mt-1">حاضرون: {presentStudents} | غائبون: {absentStudents}</p>
+                    <h3 className="text-3xl font-black text-slate-900 mt-1">{formatNumberDigits(totalStudents)}</h3>
+                    <p className="text-xs text-emerald-600 font-semibold mt-1">حاضرون: {formatNumberDigits(presentStudents)} | غائبون: {formatNumberDigits(absentStudents)}</p>
                   </div>
                   <div className="p-4 bg-teal-50 text-teal-700 rounded-2xl border border-teal-200">
                     <Users className="w-7 h-7" />
@@ -185,8 +186,8 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-500">معدل التفوق والتميز (85%+)</p>
-                    <h3 className="text-3xl font-black text-emerald-600 mt-1">{excellentStudents.length}</h3>
-                    <p className="text-xs text-slate-500 font-semibold mt-1">نسبة: {totalStudents > 0 ? ((excellentStudents.length / totalStudents) * 100).toFixed(1) : 0}%</p>
+                    <h3 className="text-3xl font-black text-emerald-600 mt-1">{formatNumberDigits(excellentStudents.length)}</h3>
+                    <p className="text-xs text-slate-500 font-semibold mt-1">نسبة: {formatNumberDigits(totalStudents > 0 ? ((excellentStudents.length / totalStudents) * 100).toFixed(1) : 0)}%</p>
                   </div>
                   <div className="p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-200">
                     <Award className="w-7 h-7" />
@@ -196,7 +197,7 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-500">الطلاب المنتظمون في الأداء</p>
-                    <h3 className="text-3xl font-black text-indigo-600 mt-1">{goodStudents.length + passStudents.length}</h3>
+                    <h3 className="text-3xl font-black text-indigo-600 mt-1">{formatNumberDigits(goodStudents.length + passStudents.length)}</h3>
                     <p className="text-xs text-indigo-600 font-semibold mt-1">مستوى جيد ومقبول</p>
                   </div>
                   <div className="p-4 bg-indigo-50 text-indigo-700 rounded-2xl border border-indigo-200">
@@ -207,7 +208,7 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-500">الطلاب المعرضون للخطر (تدخل مبكر)</p>
-                    <h3 className="text-3xl font-black text-rose-600 mt-1">{atRiskStudents.length}</h3>
+                    <h3 className="text-3xl font-black text-rose-600 mt-1">{formatNumberDigits(atRiskStudents.length)}</h3>
                     <p className="text-xs text-rose-600 font-semibold mt-1">تحتاج خطة علاجية فورية</p>
                   </div>
                   <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl border border-rose-200">
@@ -224,19 +225,19 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                     التحليل التربوي الاستباقي للتوجيه المدرسي
                   </h3>
                   <span className="px-3 py-1 bg-teal-800/80 text-teal-200 rounded-full text-xs font-bold border border-teal-600/60 shadow-sm">
-                    نسبة النجاح العامة بالصف: {generalPassRate.toFixed(1)}%
+                    نسبة النجاح العامة بالصف: {formatNumberDigits(generalPassRate.toFixed(1))}%
                   </span>
                 </div>
                 <p className="text-slate-200 text-sm leading-relaxed">
                   {totalStudents === 0
                     ? "لا توجد بيانات طلابية كافية لإجراء التحليل التربوي الاستباقي."
                     : generalPassRate >= 90
-                    ? `مؤشر أداء متميز جداً (نسبة النجاح العامة ${generalPassRate.toFixed(1)}%): تُظهر النمذجة التحليلية للدرجات أن مستوى التحصيل الدراسي في الصف ممتاز للغاية، مما يعكس فاعلية المنظومة التعليمية ومتابعة المعلمين الحثيثة. يبلغ عدد الطلاب المتفوقين في فئة التميز (${excellentStudents.length} طالب/طالبة). التوجيه التربوي المقترح: استثمار هذا التفوق عبر تكريم المتميزين وإلحاقهم ببرامج الإثراء العلمي، مع الحفاظ على خطط المتابعة الفردية لضمان استدامة التفوق.`
+                    ? `مؤشر أداء متميز جداً (نسبة النجاح العامة ${formatNumberDigits(generalPassRate.toFixed(1))}%): تُظهر النمذجة التحليلية للدرجات أن مستوى التحصيل الدراسي في الصف ممتاز للغاية، مما يعكس فاعلية المنظومة التعليمية ومتابعة المعلمين الحثيثة. يبلغ عدد الطلاب المتفوقين في فئة التميز (${formatNumberDigits(excellentStudents.length)} طالب/طالبة). التوجيه التربوي المقترح: استثمار هذا التفوق عبر تكريم المتميزين وإلحاقهم ببرامج الإثراء العلمي، مع الحفاظ على خطط المتابعة الفردية لضمان استدامة التفوق.`
                     : generalPassRate >= 75
-                    ? `مؤشر أداء جيد ومستقر (نسبة النجاح العامة ${generalPassRate.toFixed(1)}%): يتبين من تحليل النتائج أن التحصيل الدراسي في الصف مستقر وفي نطاق مستويات الجودة المقبولة، مع تركز الأداء في فئات التقديرات الجيدة والمقبولة وجود (${excellentStudents.length}) طالباً متميزاً. التوجيه التربوي المقترح: تفعيل مجموعات الدعم والتقوية المدرسية الموجهة لدعم الطلاب المعرضين للخطر الأكاديمي (${atRiskStudents.length} طالب) والمتعثرين (${failStudents.length} طالب) للارتقاء بمستواهم نحو فئات التفوق.`
+                    ? `مؤشر أداء جيد ومستقر (نسبة النجاح العامة ${formatNumberDigits(generalPassRate.toFixed(1))}%): يتبين من تحليل النتائج أن التحصيل الدراسي في الصف مستقر وفي نطاق مستويات الجودة المقبولة، مع تركز الأداء في فئات التقديرات الجيدة والمقبولة وجود (${formatNumberDigits(excellentStudents.length)}) طالباً متميزاً. التوجيه التربوي المقترح: تفعيل مجموعات الدعم والتقوية المدرسية الموجهة لدعم الطلاب المعرضين للخطر الأكاديمي (${formatNumberDigits(atRiskStudents.length)} طالب) والمتعثرين (${formatNumberDigits(failStudents.length)} طالب) للارتقاء بمستواهم نحو فئات التفوق.`
                     : generalPassRate >= 50
-                    ? `مؤشر أداء يحتاج لتدخل علاجي وعناية مكثفة (نسبة النجاح العامة ${generalPassRate.toFixed(1)}%): تُشير مؤشرات التحصيل إلى وجود نسبة ملحوظة من المتعثرين والطلاب المعرضين للخطر الأكاديمي (${atRiskStudents.length} طالب)، مما يؤثر على التوازن العام للنتائج. التوجيه التربوي المقترح: عقد اجتماع عاجل للجنة التوجيه والإرشاد المدرسي، وإعداد خطة علاجية فردية وجماعية مكثفة، وتفعيل التواصل الفعال مع أولياء الأمور لتجاوز الفجوات المهارية قبل امتحانات نهاية الفصل.`
-                    : `تحذير تربوي حرج (نسبة النجاح العامة ${generalPassRate.toFixed(1)}%): سجلت نتائج الصف نسبة نجاح تقل عن الحد الأدنى المقبول تربوئياً، مع وجود نسبة عالية من التعثر والقصور في نواتج التعلم الأساسية لعدد (${atRiskStudents.length}) طالباً. التوجيه التربوي المقترح: رفع تقرير عاجل للتوجيه الفني والإدارة التعليمية، وتركيز الجهود المدرسية بالكامل على برامج الدعم العلاجي المكثف، وإعادة تدريس المفاهيم الحرجة في المواد الأساسية بصورة فورية.`}
+                    ? `مؤشر أداء يحتاج لتدخل علاجي وعناية مكثفة (نسبة النجاح العامة ${formatNumberDigits(generalPassRate.toFixed(1))}%): تُشير مؤشرات التحصيل إلى وجود نسبة ملحوظة من المتعثرين والطلاب المعرضين للخطر الأكاديمي (${formatNumberDigits(atRiskStudents.length)} طالب)، مما يؤثر على التوازن العام للنتائج. التوجيه التربوي المقترح: عقد اجتماع عاجل للجنة التوجيه والإرشاد المدرسي، وإعداد خطة علاجية فردية وجماعية مكثفة، وتفعيل التواصل الفعال مع أولياء الأمور لتجاوز الفجوات المهارية قبل امتحانات نهاية الفصل.`
+                    : `تحذير تربوي حرج (نسبة النجاح العامة ${formatNumberDigits(generalPassRate.toFixed(1))}%): سجلت نتائج الصف نسبة نجاح تقل عن الحد الأدنى المقبول تربوئياً، مع وجود نسبة عالية من التعثر والقصور في نواتج التعلم الأساسية لعدد (${formatNumberDigits(atRiskStudents.length)}) طالباً. التوجيه التربوي المقترح: رفع تقرير عاجل للتوجيه الفني والإدارة التعليمية، وتركيز الجهود المدرسية بالكامل على برامج الدعم العلاجي المكثف، وإعادة تدريس المفاهيم الحرجة في المواد الأساسية بصورة فورية.`}
                 </p>
               </div>
             </div>
@@ -274,11 +275,11 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                     <tbody className="divide-y divide-slate-100 text-sm text-slate-800">
                       {atRiskStudents.map(({ student, avg, failedSubjectsCount }, idx) => (
                         <tr key={student.id || idx} className="hover:bg-rose-50/40 transition-colors">
-                          <td className="p-4 font-bold text-slate-600">{student.seatNumber || '-'}</td>
+                          <td className="p-4 font-bold text-slate-600">{formatNumberDigits(student.seatNumber) || '-'}</td>
                           <td className="p-4 font-black text-slate-900">{student.name}</td>
                           <td className="p-4">{student.gender || 'ذكر'}</td>
-                          <td className="p-4 font-bold text-rose-600">{avg.toFixed(1)}%</td>
-                          <td className="p-4 font-bold">{failedSubjectsCount} مواد</td>
+                          <td className="p-4 font-bold text-rose-600">{formatNumberDigits(avg.toFixed(1))}%</td>
+                          <td className="p-4 font-bold">{formatNumberDigits(failedSubjectsCount)} مواد</td>
                           <td className="p-4">
                             <span className="inline-block px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold border border-rose-300">
                               مطلوب خطة علاجية ومقابلة ولي الأمر
@@ -304,18 +305,18 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
 
                 <div className="space-y-3 pt-2">
                   {[
-                    { label: 'ممتاز (90% - 100%)', count: brackets.excellent, color: 'bg-emerald-500' },
-                    { label: 'جيد جداً (80% - <90%)', count: brackets.veryGood, color: 'bg-teal-500' },
-                    { label: 'جيد (70% - <80%)', count: brackets.good, color: 'bg-cyan-500' },
-                    { label: 'مقبول / ناجح (50% - <70%)', count: brackets.pass, color: 'bg-amber-500' },
-                    { label: 'دون المستوى / راسب (<50%)', count: brackets.fail, color: 'bg-rose-500' },
+                    { label: formatNumberDigits('ممتاز (90% - 100%)'), count: brackets.excellent, color: 'bg-emerald-500' },
+                    { label: formatNumberDigits('جيد جداً (80% - <90%)'), count: brackets.veryGood, color: 'bg-teal-500' },
+                    { label: formatNumberDigits('جيد (70% - <80%)'), count: brackets.good, color: 'bg-cyan-500' },
+                    { label: formatNumberDigits('مقبول / ناجح (50% - <70%)'), count: brackets.pass, color: 'bg-amber-500' },
+                    { label: formatNumberDigits('دون المستوى / راسب (<50%)'), count: brackets.fail, color: 'bg-rose-500' },
                   ].map((bracket, idx) => {
                     const percentage = totalStudents > 0 ? (bracket.count / totalStudents) * 100 : 0;
                     return (
                       <div key={idx} className="space-y-1">
                         <div className="flex justify-between text-sm font-bold">
                           <span className="text-slate-700">{bracket.label}</span>
-                          <span className="text-slate-900">{bracket.count} طالب ({percentage.toFixed(1)}%)</span>
+                          <span className="text-slate-900">{formatNumberDigits(bracket.count)} طالب ({formatNumberDigits(percentage.toFixed(1))})%</span>
                         </div>
                         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                           <div 
@@ -342,10 +343,10 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
 
                 <div className="space-y-4">
                   {[
-                    { name: 'اللغة العربية', avg: 78.4, difficulty: 'متوسطة', passRate: '94%' },
-                    { name: 'اللغة الإنجليزية', avg: 74.2, difficulty: 'متوسطة', passRate: '90%' },
-                    { name: 'الرياضيات', avg: 68.5, difficulty: 'عالية الصعوبة', passRate: '85%' },
-                    { name: 'الدراسات الاجتماعية / العلوم', avg: 81.0, difficulty: 'سهلة نسبياً', passRate: '96%' },
+                    { name: 'اللغة العربية', avg: formatNumberDigits('78.4'), difficulty: 'متوسطة', passRate: formatNumberDigits('94%') },
+                    { name: 'اللغة الإنجليزية', avg: formatNumberDigits('74.2'), difficulty: 'متوسطة', passRate: formatNumberDigits('90%') },
+                    { name: 'الرياضيات', avg: formatNumberDigits('68.5'), difficulty: 'عالية الصعوبة', passRate: formatNumberDigits('85%') },
+                    { name: 'الدراسات الاجتماعية / العلوم', avg: formatNumberDigits('81.0'), difficulty: 'سهلة نسبياً', passRate: formatNumberDigits('96%') },
                   ].map((sub, idx) => (
                     <div key={idx} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
                       <div>
@@ -412,11 +413,11 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                         return (
                           <tr key={idx} className="hover:bg-slate-50">
                             <td className="p-3 border border-slate-300 font-bold">{item.name}</td>
-                            <td className="p-3 border border-slate-300 text-center">{presentStudents}</td>
-                            <td className="p-3 border border-slate-300 text-center">{presentStudents}</td>
-                            <td className="p-3 border border-slate-300 text-center font-bold text-emerald-700">{item.pass}</td>
-                            <td className="p-3 border border-slate-300 text-center font-bold text-rose-600">{item.fail}</td>
-                            <td className="p-3 border border-slate-300 text-center font-black text-teal-800">{pct}%</td>
+                            <td className="p-3 border border-slate-300 text-center">{formatNumberDigits(presentStudents)}</td>
+                            <td className="p-3 border border-slate-300 text-center">{formatNumberDigits(presentStudents)}</td>
+                            <td className="p-3 border border-slate-300 text-center font-bold text-emerald-700">{formatNumberDigits(item.pass)}</td>
+                            <td className="p-3 border border-slate-300 text-center font-bold text-rose-600">{formatNumberDigits(item.fail)}</td>
+                            <td className="p-3 border border-slate-300 text-center font-black text-teal-800">{formatNumberDigits(pct)}%</td>
                           </tr>
                         );
                       })}
@@ -435,11 +436,11 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-slate-700">بنين</span>
-                    <span className="font-black text-slate-900">{maleCount} طالب</span>
+                    <span className="font-black text-slate-900">{formatNumberDigits(maleCount)} طالب</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-slate-700">بنات</span>
-                    <span className="font-black text-slate-900">{femaleCount} طالبة</span>
+                    <span className="font-black text-slate-900">{formatNumberDigits(femaleCount)} طالبة</span>
                   </div>
                 </div>
               </div>
@@ -449,15 +450,15 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-slate-700">انتظام (تلي)</span>
-                    <span className="font-black text-emerald-700">{regularCount} طالب</span>
+                    <span className="font-black text-emerald-700">{formatNumberDigits(regularCount)} طالب</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-slate-700">منازل</span>
-                    <span className="font-black text-amber-700">{homeschoolCount} طالب</span>
+                    <span className="font-black text-amber-700">{formatNumberDigits(homeschoolCount)} طالب</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-slate-700">خدمات</span>
-                    <span className="font-black text-indigo-700">{servicesCount} طالب</span>
+                    <span className="font-black text-indigo-700">{formatNumberDigits(servicesCount)} طالب</span>
                   </div>
                 </div>
               </div>

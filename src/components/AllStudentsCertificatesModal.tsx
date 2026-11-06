@@ -12,6 +12,7 @@ import {
   renderTopTenCertificateToCanvas, 
   exportTopTenCertificatesPdf 
 } from '../utils/topTenCertificatesHelper';
+import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface AllStudentsCertificatesModalProps {
   isOpen: boolean;
@@ -308,12 +309,12 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
                   <div className="flex items-center gap-4">
                     {currentStudent.totalScore !== undefined && currentStudent.totalScore !== null && (
                       <span className="font-semibold text-emerald-400">
-                        المجموع الكلي : <strong className="text-white font-mono">{currentStudent.totalScore}</strong>
+                        المجموع الكلي : <strong className="text-white font-mono">{formatNumberDigits(currentStudent.totalScore)}</strong>
                       </span>
                     )}
                     {currentStudent.percentage && (
                       <span className="font-semibold text-cyan-400">
-                        النسبة : <strong className="text-white font-mono">{currentStudent.percentage}</strong>
+                        النسبة : <strong className="text-white font-mono">{formatNumberDigits(currentStudent.percentage)}</strong>
                       </span>
                     )}
                   </div>
@@ -342,7 +343,7 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
               </div>
 
               <span className="text-xs text-slate-400 font-medium">
-                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{allRankedStudents.length === 0 ? 'لا يوجد' : allRankedStudents.length}</strong>
+                إجمالي الشهادات المتاحة : <strong className="text-yellow-400 font-bold">{allRankedStudents.length === 0 ? 'لا يوجد' : formatNumberDigits(allRankedStudents.length)}</strong>
               </span>
             </div>
           </div>
@@ -377,7 +378,7 @@ export const AllStudentsCertificatesModal: React.FC<AllStudentsCertificatesModal
               >
                 <Download className="w-5 h-5 text-slate-950" />
                 <span>
-                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : allRankedStudents.length === 0 ? 'تحميل جميع الشهادات ( لا يوجد ) - PDF' : `تحميل جميع الشهادات ( ${allRankedStudents.length} طلاب ) - PDF`}
+                  {isExportingAll ? 'جاري إنشاء وتحميل الشهادات...' : allRankedStudents.length === 0 ? 'تحميل جميع الشهادات ( لا يوجد ) - PDF' : `تحميل جميع الشهادات ( ${formatNumberDigits(allRankedStudents.length)} طلاب ) - PDF`}
                 </span>
               </button>
             </div>

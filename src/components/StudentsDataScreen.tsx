@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { translations, applyEntityTerms } from '../i18n';
 import { Language, StudentData } from '../types';
+import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, FileSpreadsheet, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -73,6 +74,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   isTrialMode = false,
 }) => {
   const t = translations[lang];
+  const [numberLang, setNumberLang] = useState<NumberLang>(() => {
+    return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sheet_control_number_lang', numberLang);
+  }, [numberLang]);
   const isKindergarten = stage === 'kindergarten';
   const isFirstSemester = semester === 'first';
   const isHomeschool = systemType === 'homeschool' || Boolean(title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')));
@@ -440,6 +448,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     await exportStudentsDataToPdf({
       title,
       reportType,
+      numberLang,
       systemType,
       isHomeschool,
       customControlSheetOptions,
@@ -1562,15 +1571,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
         {/* Search & Sort Row */}
         <div className="flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
+          <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
             <button
               onClick={onBack}
               title={lang === 'ar' ? 'عودة' : 'Back'}
-              className="shrink-0 border-2 border-slate-900 text-white rounded-lg p-2 sm:px-3 sm:py-2 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm"
+              className="shrink-0 border-2 border-slate-900 text-white rounded-lg p-2 sm:px-3 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm self-stretch"
             >
               {lang === 'ar' ? <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /> : <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
-            <div className="relative flex-1 min-w-0 group/search">
+            <div className="relative flex-1 min-w-0 group/search flex items-center">
               <div className="absolute inset-y-0 right-2.5 sm:right-3 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
               </div>
@@ -1579,7 +1588,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 placeholder={isKindergarten ? 'بحث باسم التلميذ أو بالرقم القومى' : t.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full min-w-0 bg-white border-2 border-slate-900 rounded-lg pr-8 sm:pr-10 pl-8 sm:pl-10 py-1.5 sm:py-2.5 text-xs sm:text-sm md:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium truncate"
+                className="w-full h-full min-w-0 bg-white border-2 border-slate-900 rounded-lg pr-8 sm:pr-10 pl-8 sm:pl-10 py-1.5 sm:py-2.5 text-xs sm:text-sm md:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium truncate"
               />
               <button
                 type="button"
@@ -1595,6 +1604,16 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
+              className={`px-2.5 sm:px-3 border-2 border-slate-900 rounded-lg text-xs sm:text-sm font-black flex items-center justify-center gap-1 transition-colors shrink-0 shadow-sm whitespace-nowrap self-stretch ${
+                numberLang === 'ar' ? 'bg-amber-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+              }`}
+              title="تغيير لغة الأرقام من عربي إلى إنجليزي والعكس"
+            >
+              <span>{numberLang === 'ar' ? 'الأرقام باللغة الإنجليزية' : 'الأرقام باللغة العربية'}</span>
+            </button>
           </div>
        
           <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
@@ -3112,7 +3131,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       <div className="absolute inset-0 bg-red-500/10 shadow-[inset_0_0_20px_rgba(239,68,68,0.7)] animate-pulse pointer-events-none z-0"></div>
                     )}
                     <div className="separator-line"></div>
-                    <span className="relative z-10 text-lg">{idx + 1}</span>
+                    <span className="relative z-10 text-lg">{formatNumberDigits(idx + 1, numberLang)}</span>
                   </td>
                   <td className={`p-0 border-2 border-slate-900 sticky start-[64px] z-[29] bg-inherit relative overflow-visible sticky-cell-border sticky-col shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)] focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-30 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[380px] max-w-[380px] w-[380px]' : 'min-w-[400px] max-w-[400px] w-[400px]'}`}>
                     <div className="separator-line"></div>
@@ -3160,9 +3179,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       id={`cell-${idx}-1`}
                       type="text" 
                       maxLength={14}
-                      value={student.nationalId}
+                      value={formatNumberDigits(student.nationalId, numberLang)}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
+                        const val = formatNumberDigits(e.target.value, 'en').replace(/\D/g, '');
                         handleChange(student.id, 'nationalId', val);
                       }}
                       onKeyDown={(e) => handleKeyDown(e, idx, 1)}
@@ -3234,9 +3253,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           if (!isFirstGrade && key === 1) {
                              val = student.gender === 'female' ? ((t as any).status_1_transferred_F || 'منقولة') : ((t as any).status_1_transferred_M || 'منقول');
                           } else if (!isFirstGrade && key === 3) {
-                            val = student.gender === 'female' ? ((t as any).status_3_transferred_F || 'منقولة - دمج') : ((t as any).status_3_transferred_M || 'منقول - دمج');
+                             val = student.gender === 'female' ? ((t as any).status_3_transferred_F || 'منقولة - دمج') : ((t as any).status_3_transferred_M || 'منقول - دمج');
                           } else {
-                            val = student.gender === 'female' ? (t as any)[`status_${key}_F`] : (t as any)[`status_${key}_M`];
+                             val = student.gender === 'female' ? (t as any)[`status_${key}_F`] : (t as any)[`status_${key}_M`];
                           }
                           return <option key={key} value={val} className="text-center" style={{ textAlign: 'center' }}>{val}</option>;
                         })}
@@ -3313,8 +3332,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         <input
                           id={`cell-${idx}-6`}
                           type="text"
-                          value={student.seatNumbers?.[semester] || (semester === 'first' ? student.seatNumber : '') || ''}
-                          onChange={(e) => handleSemesterFieldChange(student.id, 'seatNumbers', e.target.value)}
+                          value={formatNumberDigits(student.seatNumbers?.[semester] || (semester === 'first' ? student.seatNumber : '') || '', numberLang)}
+                          onChange={(e) => handleSemesterFieldChange(student.id, 'seatNumbers', formatNumberDigits(e.target.value, 'en'))}
                           onKeyDown={(e) => handleKeyDown(e, idx, 6)}
                           onFocus={(e) => {
                             e.target.select();
@@ -3329,8 +3348,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         <input
                           id={`cell-${idx}-7`}
                           type="text"
-                          value={student.secretNumbers?.[semester] || (semester === 'first' ? student.secretNumber : '') || ''}
-                          onChange={(e) => handleSemesterFieldChange(student.id, 'secretNumbers', e.target.value)}
+                          value={formatNumberDigits(student.secretNumbers?.[semester] || (semester === 'first' ? student.secretNumber : '') || '', numberLang)}
+                          onChange={(e) => handleSemesterFieldChange(student.id, 'secretNumbers', formatNumberDigits(e.target.value, 'en'))}
                           onKeyDown={(e) => handleKeyDown(e, idx, 7)}
                           onFocus={(e) => {
                             e.target.select();
@@ -3348,8 +3367,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       <input
                         id={`cell-${idx}-${showExamFields ? 8 : 6}`}
                         type="text"
-                        value={student.committeeNumbers?.[semester] || student.committeeNumber || ''}
-                        onChange={(e) => handleSemesterFieldChange(student.id, 'committeeNumbers', e.target.value)}
+                        value={formatNumberDigits(student.committeeNumbers?.[semester] || student.committeeNumber || '', numberLang)}
+                        onChange={(e) => handleSemesterFieldChange(student.id, 'committeeNumbers', formatNumberDigits(e.target.value, 'en'))}
                         onKeyDown={(e) => handleKeyDown(e, idx, showExamFields ? 8 : 6)}
                         onFocus={(e) => {
                           e.target.select();
@@ -3698,7 +3717,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </h3>
                   <p className="text-white/90 font-bold text-xs sm:text-sm leading-relaxed">
                     <span style={(stage === 'secondary' || (title && title.includes('المرحلة الثانوية'))) ? { fontSize: '85%' } : undefined} className="inline-block">
-                      {modalSubtitle}
+                      {formatNumberDigits(modalSubtitle, numberLang)}
                     </span>
                   </p>
                 </div>
@@ -3831,7 +3850,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                             ? 'bg-[linear-gradient(135deg,#059669,#14b8a6,#0d9488)]'
                             : 'bg-[linear-gradient(135deg,#0284c7,#06b6d4,#0369a1)]'
                         }`}>
-                          {committeesCount}
+                          {formatNumberDigits(committeesCount, numberLang)}
                         </div>
                       </div>
                     );

@@ -4,6 +4,7 @@ import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal, fo
 import { getStoredSubjectEn } from './subjectLanguage';
 import { sortStudents, SortCriterion } from './studentSorting';
 import { getActiveFooterTagline } from './adFilter';
+import { formatNumberDigits, NumberLang } from './numberLangHelper';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 const ministryLogoUrl = '';
 
@@ -286,6 +287,7 @@ export function getReportRowBgColors(
 export interface ExportStudentsPdfOptions {
   title: string;
   reportType?: PdfReportType;
+  numberLang?: NumberLang;
   isEnglish?: boolean;
   isHomeschool?: boolean;
   systemType?: string;
@@ -474,6 +476,22 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
+let activePdfNumberLang: NumberLang | undefined = undefined;
+
+export function setActivePdfNumberLang(lang?: NumberLang) {
+  activePdfNumberLang = lang;
+  if (typeof window !== 'undefined') {
+    (window as any)._activePdfNumberLang = lang;
+  }
+}
+
+function formatPdfText(text: string | number | null | undefined): string {
+  if (text === null || text === undefined || text === '') return '';
+  const str = String(text);
+  const lang = activePdfNumberLang || (typeof window !== 'undefined' ? (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar' : 'ar');
+  return formatNumberDigits(str, lang);
+}
+
 function drawCenteredText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -481,6 +499,7 @@ function drawCenteredText(
   centerY: number,
   maxWidth?: number
 ) {
+  text = formatPdfText(text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const m = ctx.measureText(text);
@@ -3252,6 +3271,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   const {
     title,
     reportType = 'students_data',
+    numberLang,
     customControlSheetOptions: propCustomOptions,
     rowTheme: propRowTheme,
     administration: propAdmin,
@@ -3269,6 +3289,13 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     normalizeStatusForGrade,
     labels,
   } = options;
+
+  activePdfNumberLang = numberLang || (typeof window !== 'undefined' ? (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar' : 'ar');
+
+  const fmtNum = (v: any) => {
+    const s = typeof v === 'number' ? formatToOneDecimal(v) : String(v ?? '');
+    return activePdfNumberLang ? formatNumberDigits(s, activePdfNumberLang) : s;
+  };
 
   const isCustomControlSheet = reportType === 'custom_control_sheet';
   const semester = isCustomControlSheet ? 'second' : propSemester;
