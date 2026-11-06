@@ -62,6 +62,7 @@ export const BackupReminderModal: React.FC<BackupReminderModalProps> = ({
               </div>
             </div>
             <div>
+              <div className="text-[10px] font-black text-blue-100 uppercase tracking-widest leading-none mb-0.5">SMART CONTROL</div>
               <h3 className="font-black text-lg">إشعار حفظ النسخة الاحتياطية</h3>
             </div>
           </div>

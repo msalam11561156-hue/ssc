@@ -27,6 +27,18 @@ export function formatNumberDigits(value: string | number | null | undefined, nu
   }
 }
 
+export function parseNumberDigits(value: string | number | null | undefined): string {
+  if (value === undefined || value === null || value === '') return '';
+  const str = String(value);
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+  return str.replace(/[٠-٩]/g, (d) => {
+    const idx = arabicDigits.indexOf(d);
+    return idx !== -1 ? englishDigits[idx] : d;
+  }).replace(/,/g, '.');
+}
+
 // Global Canvas fillText patch so all exported files, certificates, charts, and report sheets automatically apply numberLang
 if (typeof window !== 'undefined') {
   const proto = CanvasRenderingContext2D.prototype as any;

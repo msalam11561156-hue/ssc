@@ -25,6 +25,7 @@ import {
   Award,
   Trophy
 } from 'lucide-react';
+import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
@@ -42,6 +43,7 @@ import {
   distributeTotalToDetailedAssessment,
   isSubjectWithoutWrittenExam
 } from '../utils/detailedAssessmentsHelper';
+import { parseNumberDigits } from '../utils/numberLangHelper';
 import { exportKgStudentEvaluationsReportPdf } from '../utils/exportPdf';
 import { SortButtonMenu } from './SortButtonMenu';
 import { sortStudents } from '../utils/studentSorting';
@@ -231,6 +233,13 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   const isSecondary2Modern = Boolean(isSecondary2 && isModernSec);
   const [localData, setLocalData] = useState<StudentData[]>(data || []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [numberLang, setNumberLang] = useState<NumberLang>(() => {
+    return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sheet_control_number_lang', numberLang);
+  }, [numberLang]);
   const [showSeatNumber, setShowSeatNumber] = useState(true);
   const [showSecretNumber, setShowSecretNumber] = useState(false);
   const [showThemeSelectorModal, setShowThemeSelectorModal] = useState(false);
@@ -1520,16 +1529,16 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         </div>
 
         {/* Search & Tool Bar */}
-        <div className="flex flex-wrap items-center justify-between bg-white border-2 border-slate-900 rounded-xl p-2.5 sm:p-3 shadow-sm gap-2 w-full relative z-30">
+        <div className="flex flex-wrap items-center justify-between bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 w-full relative z-30">
           {/* Back & Subject Dropdown & Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-[260px] flex-wrap md:flex-nowrap">
+          <div className="flex items-stretch gap-2 flex-1 min-w-[260px] flex-wrap md:flex-nowrap">
             <button
               onClick={() => {
                 handleSelectSubject(selectedSubjectKey);
                 onBack();
               }}
               title={lang === 'ar' ? 'عودة' : 'Back'}
-              className="h-11 shrink-0 border-2 border-slate-900 text-white rounded-lg px-3 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm font-bold gap-1 text-sm"
+              className="h-11 shrink-0 border-2 border-slate-900 text-white rounded-lg px-3 flex items-center justify-center transition-opacity hover:opacity-80 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-[length:200%_auto] animate-shine shadow-sm font-bold gap-1 text-sm self-stretch"
             >
               <ArrowRight className="w-5 h-5" />
               <span className="hidden sm:inline">السابق</span>
@@ -1539,31 +1548,43 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             <button
               type="button"
               onClick={() => setIsSubjectDropdownOpen(true)}
-              className="h-11 px-4 sm:px-5 rounded-lg border-2 border-slate-900 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-sm transition-all active:scale-95 whitespace-nowrap"
+              className="h-11 px-4 sm:px-5 rounded-lg border-2 border-slate-900 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-sm transition-all active:scale-95 whitespace-nowrap self-stretch"
               title="إختر المادة الدراسية للرصد والتحرير"
             >
               <span>إختر المادة الدراسية</span>
             </button>
 
             {/* مربع البحث */}
-            <div className="relative w-[200px] sm:w-[240px] md:w-[270px]">
-              <Search className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="بحث بالاسم أو رقم الجلوس"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-3 pr-10 py-2 border-2 border-slate-300 focus:border-teal-600 rounded-lg text-slate-800 font-bold focus:outline-none text-xs sm:text-sm transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
-                >
-                  مسح
-                </button>
-              )}
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 group/search flex items-center min-w-[180px]">
+                <Search className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="بحث بالاسم أو رقم الجلوس"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full h-11 pl-3 pr-10 py-2 border-2 border-slate-300 focus:border-teal-600 rounded-lg text-slate-800 font-bold focus:outline-none text-xs sm:text-sm transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                  >
+                    مسح
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
+                className={`px-2.5 sm:px-3 h-11 border-2 border-slate-900 rounded-lg text-xs sm:text-sm font-black flex items-center justify-center gap-1 transition-colors shrink-0 shadow-sm whitespace-nowrap self-stretch ${
+                  numberLang === 'ar' ? 'bg-amber-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+                }`}
+                title="تغيير لغة الأرقام من عربي إلى إنجليزي والعكس"
+              >
+                <span>{numberLang === 'ar' ? 'الأرقام باللغة الإنجليزية' : 'الأرقام باللغة العربية'}</span>
+              </button>
             </div>
           </div>
 
@@ -1805,36 +1826,36 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 <tr className="bg-slate-100 text-slate-900 text-lg sm:text-[18px] font-black whitespace-nowrap border-b-2 border-slate-900 shadow-sm">
                   {isSecondary2Modern ? (
                     <>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">15</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">15</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">10</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(15, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(15, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(10, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
                     </>
                   ) : isPESubject ? (
                     <>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">50</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">10</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(50, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(10, numberLang)}</th>
                     </>
                   ) : isNoWrittenExceptPe ? (
                     <>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">60</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">20</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(60, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center text-lg sm:text-[18px]">{formatNumberDigits(20, numberLang)}</th>
                     </>
                   ) : (
                     <>
                       {!isMiddleOrSecondary && (
-                        <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">5</th>
+                        <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(5, numberLang)}</th>
                       )}
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{isSecondary ? '15' : (isMiddle ? '10' : '5')}</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{isSecondary ? '15' : (isMiddle ? '20' : '10')}</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{isMiddleOrSecondary ? '10' : '5'}</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">15</th>
-                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">15</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(isSecondary ? 15 : (isMiddle ? 10 : 5), numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(isSecondary ? 15 : (isMiddle ? 20 : 10), numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(isMiddleOrSecondary ? 10 : 5, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(15, numberLang)}</th>
+                      <th className="py-2.5 px-2 border-2 border-slate-900 text-slate-950 font-black text-center">{formatNumberDigits(15, numberLang)}</th>
                     </>
                   )}
                 </tr>
@@ -1866,7 +1887,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         {/* Serial Number */}
                         <td className="p-2 border-2 border-slate-900 sticky start-0 z-30 bg-inherit font-black text-lg text-center relative overflow-visible sticky-cell-border">
                           <div className="separator-line"></div>
-                          <span className="relative z-10">{rowIndex + 1}</span>
+                          <span className="relative z-10">{formatNumberDigits(rowIndex + 1, numberLang)}</span>
                         </td>
 
                         {/* Student Name */}
@@ -1890,7 +1911,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                             <input
                               type="text"
                               readOnly
-                              value={seatNum}
+                              value={formatNumberDigits(seatNum, numberLang)}
                               className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
                               dir="ltr"
                               title="حقل مجمد للقراءة فقط"
@@ -1908,7 +1929,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                             <input
                               type="text"
                               readOnly
-                              value={secretNum}
+                              value={formatNumberDigits(secretNum, numberLang)}
                               className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
                               dir="ltr"
                               title="حقل مجمد للقراءة فقط"
@@ -1924,14 +1945,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-0`}
                                 type="text"
-                                value={getFieldValue(student, 'weeklyAssessment')}
-                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'weeklyAssessment'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 0)}
                                 onPaste={e => handlePaste(e, rowIndex, 'weeklyAssessment')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="التقييم الأسبوعي (الدرجة العظمى 20)"
+                                title={formatNumberDigits("التقييم الأسبوعي (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -1940,14 +1961,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-1`}
                                 type="text"
-                                value={getFieldValue(student, 'researchProject')}
-                                onChange={e => handleFieldChange(student.id, 'researchProject', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'researchProject'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'researchProject', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 1)}
                                 onPaste={e => handlePaste(e, rowIndex, 'researchProject')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="المشروع البحثي (الدرجة العظمى 15)"
+                                title={formatNumberDigits("المشروع البحثي (الدرجة العظمى 15)", numberLang)}
                               />
                             </td>
 
@@ -1956,14 +1977,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-2`}
                                 type="text"
-                                value={getFieldValue(student, 'homework')}
-                                onChange={e => handleFieldChange(student.id, 'homework', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'homework'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'homework', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 2)}
                                 onPaste={e => handlePaste(e, rowIndex, 'homework')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الحصة والواجبات (الدرجة العظمى 15)"
+                                title={formatNumberDigits("الحصة والواجبات (الدرجة العظمى 15)", numberLang)}
                               />
                             </td>
 
@@ -1972,14 +1993,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-3`}
                                 type="text"
-                                value={getFieldValue(student, 'behavior')}
-                                onChange={e => handleFieldChange(student.id, 'behavior', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'behavior'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'behavior', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 3)}
                                 onPaste={e => handlePaste(e, rowIndex, 'behavior')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="السلوك والمواظبة (الدرجة العظمى 10)"
+                                title={formatNumberDigits("السلوك والمواظبة (الدرجة العظمى 10)", numberLang)}
                               />
                             </td>
 
@@ -1988,14 +2009,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-4`}
                                 type="text"
-                                value={getFieldValue(student, 'firstMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'firstMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 4)}
                                 onPaste={e => handlePaste(e, rowIndex, 'firstMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الاختبار الأول (الدرجة العظمى 20)"
+                                title={formatNumberDigits("الاختبار الأول (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2004,14 +2025,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-5`}
                                 type="text"
-                                value={getFieldValue(student, 'secondMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'secondMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 5)}
                                 onPaste={e => handlePaste(e, rowIndex, 'secondMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الاختبار الثاني (الدرجة العظمى 20)"
+                                title={formatNumberDigits("الاختبار الثاني (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2022,10 +2043,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 readOnly
                                 disabled
                                 tabIndex={-1}
-                                value={totalVal}
+                                value={formatNumberDigits(totalVal, numberLang)}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-lg sm:text-xl font-black text-slate-950 cursor-default select-none focus:outline-none"
                                 dir="ltr"
-                                title="المجموع التلقائي من 100 (محسوب آلياً ومجمّد للعرض والتزامن الفوري)"
+                                title={formatNumberDigits("المجموع التلقائي من 100 (محسوب آلياً ومجمّد للعرض والتزامن الفوري)", numberLang)}
                               />
                             </td>
                           </>
@@ -2036,14 +2057,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-0`}
                                 type="text"
-                                value={getFieldValue(student, 'physicalSkillDomain')}
-                                onChange={e => handleFieldChange(student.id, 'physicalSkillDomain', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'physicalSkillDomain'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'physicalSkillDomain', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 0)}
                                 onPaste={e => handlePaste(e, rowIndex, 'physicalSkillDomain')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="المجال البدنى والمهارى (الدرجة العظمى 50)"
+                                title={formatNumberDigits("المجال البدنى والمهارى (الدرجة العظمى 50)", numberLang)}
                               />
                             </td>
 
@@ -2052,14 +2073,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-1`}
                                 type="text"
-                                value={getFieldValue(student, 'cognitiveDomain')}
-                                onChange={e => handleFieldChange(student.id, 'cognitiveDomain', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'cognitiveDomain'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'cognitiveDomain', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 1)}
                                 onPaste={e => handlePaste(e, rowIndex, 'cognitiveDomain')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="المجال المعرفى (الدرجة العظمى 20)"
+                                title={formatNumberDigits("المجال المعرفى (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2068,14 +2089,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-2`}
                                 type="text"
-                                value={getFieldValue(student, 'affectiveBehavioralDomain')}
-                                onChange={e => handleFieldChange(student.id, 'affectiveBehavioralDomain', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'affectiveBehavioralDomain'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'affectiveBehavioralDomain', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 2)}
                                 onPaste={e => handlePaste(e, rowIndex, 'affectiveBehavioralDomain')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="المجال الوجدانى والسلوكى (الدرجة العظمى 20)"
+                                title={formatNumberDigits("المجال الوجدانى والسلوكى (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2084,14 +2105,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-3`}
                                 type="text"
-                                value={getFieldValue(student, 'sportsUniformAttendance')}
-                                onChange={e => handleFieldChange(student.id, 'sportsUniformAttendance', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'sportsUniformAttendance'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'sportsUniformAttendance', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 3)}
                                 onPaste={e => handlePaste(e, rowIndex, 'sportsUniformAttendance')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الزى الرياضى والمواظبة (الدرجة العظمى 10) - تدخل ضمن معادلة احتساب نسبة حضور الطالب في الشهادات"
+                                title={formatNumberDigits("الزى الرياضى والمواظبة (الدرجة العظمى 10) - تدخل ضمن معادلة احتساب نسبة حضور الطالب في الشهادات", numberLang)}
                               />
                             </td>
 
@@ -2102,10 +2123,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 readOnly
                                 disabled
                                 tabIndex={-1}
-                                value={totalVal}
+                                value={formatNumberDigits(totalVal, numberLang)}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-lg sm:text-xl font-black text-slate-950 cursor-default select-none focus:outline-none"
                                 dir="ltr"
-                                title="المجموع التلقائي من 100 (محسوب آلياً ومجمّد للعرض والتزامن الفوري)"
+                                title={formatNumberDigits("المجموع التلقائي من 100 (محسوب آلياً ومجمّد للعرض والتزامن الفوري)", numberLang)}
                               />
                             </td>
                           </>
@@ -2116,14 +2137,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-0`}
                                 type="text"
-                                value={getFieldValue(student, 'practicalPerformance')}
-                                onChange={e => handleFieldChange(student.id, 'practicalPerformance', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'practicalPerformance'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'practicalPerformance', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 0)}
                                 onPaste={e => handlePaste(e, rowIndex, 'practicalPerformance')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الأداء العملى والمهارى (الدرجة العظمى 60)"
+                                title={formatNumberDigits("الأداء العملى والمهارى (الدرجة العظمى 60)", numberLang)}
                               />
                             </td>
 
@@ -2132,14 +2153,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-1`}
                                 type="text"
-                                value={getFieldValue(student, 'classActivities')}
-                                onChange={e => handleFieldChange(student.id, 'classActivities', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'classActivities'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'classActivities', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 1)}
                                 onPaste={e => handlePaste(e, rowIndex, 'classActivities')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الأنشطة الصفية (الدرجة العظمى 20)"
+                                title={formatNumberDigits("الأنشطة الصفية (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2148,14 +2169,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-2`}
                                 type="text"
-                                value={getFieldValue(student, 'behavior')}
-                                onChange={e => handleFieldChange(student.id, 'behavior', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'behavior'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'behavior', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 2)}
                                 onPaste={e => handlePaste(e, rowIndex, 'behavior')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="السلوك والمواظبة (الدرجة العظمى 20)"
+                                title={formatNumberDigits("السلوك والمواظبة (الدرجة العظمى 20)", numberLang)}
                               />
                             </td>
 
@@ -2166,10 +2187,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 readOnly
                                 disabled
                                 tabIndex={-1}
-                                value={totalVal}
+                                value={formatNumberDigits(totalVal, numberLang)}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-lg sm:text-xl font-black text-slate-950 cursor-default select-none focus:outline-none"
                                 dir="ltr"
-                                title="المجموع التلقائي من 100 (حقل غير مفعّل ومحسوب آلياً)"
+                                title={formatNumberDigits("المجموع التلقائي من 100 (حقل غير مفعّل ومحسوب آلياً)", numberLang)}
                               />
                             </td>
                           </>
@@ -2180,8 +2201,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-0`}
                                 type="text"
-                                value={getFieldValue(student, 'homework')}
-                                onChange={e => handleFieldChange(student.id, 'homework', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'homework'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'homework', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 0)}
                                 onPaste={e => handlePaste(e, rowIndex, 'homework')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2196,8 +2217,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-1`}
                                 type="text"
-                                value={getFieldValue(student, 'weeklyAssessment')}
-                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'weeklyAssessment'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 1)}
                                 onPaste={e => handlePaste(e, rowIndex, 'weeklyAssessment')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2212,14 +2233,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-2`}
                                 type="text"
-                                value={getFieldValue(student, 'behavior')}
-                                onChange={e => handleFieldChange(student.id, 'behavior', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'behavior'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'behavior', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 2)}
                                 onPaste={e => handlePaste(e, rowIndex, 'behavior')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="السلوك والمواظبة (الدرجة العظمى 10)"
+                                title={formatNumberDigits("السلوك والمواظبة (الدرجة العظمى 10)", numberLang)}
                               />
                             </td>
 
@@ -2228,14 +2249,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-3`}
                                 type="text"
-                                value={getFieldValue(student, 'firstMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'firstMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 3)}
                                 onPaste={e => handlePaste(e, rowIndex, 'firstMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الاختبار الأول (الدرجة العظمى 15)"
+                                title={formatNumberDigits("الاختبار الأول (الدرجة العظمى 15)", numberLang)}
                               />
                             </td>
 
@@ -2244,14 +2265,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-4`}
                                 type="text"
-                                value={getFieldValue(student, 'secondMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'secondMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 4)}
                                 onPaste={e => handlePaste(e, rowIndex, 'secondMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-base sm:text-lg font-bold focus:outline-none focus:bg-white/80"
                                 dir="ltr"
-                                title="الاختبار الثاني (الدرجة العظمى 15)"
+                                title={formatNumberDigits("الاختبار الثاني (الدرجة العظمى 15)", numberLang)}
                               />
                             </td>
 
@@ -2262,10 +2283,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 readOnly
                                 disabled
                                 tabIndex={-1}
-                                value={totalVal}
+                                value={formatNumberDigits(totalVal, numberLang)}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-lg sm:text-xl font-black text-slate-950 cursor-default select-none focus:outline-none"
                                 dir="ltr"
-                                title="المجموع التلقائي من 70 (حقل غير مفعّل ومحسوب آلياً)"
+                                title={formatNumberDigits("المجموع التلقائي من 70 (حقل غير مفعّل ومحسوب آلياً)", numberLang)}
                               />
                             </td>
                           </>
@@ -2276,8 +2297,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-0`}
                                 type="text"
-                                value={getFieldValue(student, 'classNotebook')}
-                                onChange={e => handleFieldChange(student.id, 'classNotebook', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'classNotebook'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'classNotebook', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 0)}
                                 onPaste={e => handlePaste(e, rowIndex, 'classNotebook')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2291,8 +2312,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-1`}
                                 type="text"
-                                value={getFieldValue(student, 'homework')}
-                                onChange={e => handleFieldChange(student.id, 'homework', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'homework'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'homework', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 1)}
                                 onPaste={e => handlePaste(e, rowIndex, 'homework')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2306,8 +2327,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-2`}
                                 type="text"
-                                value={getFieldValue(student, 'weeklyAssessment')}
-                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'weeklyAssessment'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'weeklyAssessment', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 2)}
                                 onPaste={e => handlePaste(e, rowIndex, 'weeklyAssessment')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2321,8 +2342,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-3`}
                                 type="text"
-                                value={getFieldValue(student, 'behavior')}
-                                onChange={e => handleFieldChange(student.id, 'behavior', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'behavior'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'behavior', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 3)}
                                 onPaste={e => handlePaste(e, rowIndex, 'behavior')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2336,8 +2357,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-4`}
                                 type="text"
-                                value={getFieldValue(student, 'firstMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'firstMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'firstMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 4)}
                                 onPaste={e => handlePaste(e, rowIndex, 'firstMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2351,8 +2372,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               <input
                                 id={`detailed-cell-${rowIndex}-5`}
                                 type="text"
-                                value={getFieldValue(student, 'secondMonthlyExam')}
-                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', e.target.value)}
+                                value={formatNumberDigits(getFieldValue(student, 'secondMonthlyExam'), numberLang)}
+                                onChange={e => handleFieldChange(student.id, 'secondMonthlyExam', formatNumberDigits(e.target.value, 'en'))}
                                 onKeyDown={e => handleKeyDown(e, rowIndex, 5)}
                                 onPaste={e => handlePaste(e, rowIndex, 'secondMonthlyExam')}
                                 onFocus={e => { e.target.select(); centerActiveCellInView(e.target); }}
@@ -2368,10 +2389,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 readOnly
                                 disabled
                                 tabIndex={-1}
-                                value={totalVal}
+                                value={formatNumberDigits(totalVal, numberLang)}
                                 className="w-full h-full bg-transparent border-none py-2 text-center text-lg sm:text-xl font-black text-slate-950 cursor-default select-none focus:outline-none"
                                 dir="ltr"
-                                title="المجموع التلقائي من 40 (حقل غير مفعّل ومحسوب آلياً)"
+                                title={formatNumberDigits("المجموع التلقائي من 40 (حقل غير مفعّل ومحسوب آلياً)", numberLang)}
                               />
                             </td>
                           </>
