@@ -49,6 +49,7 @@ import { SortButtonMenu } from './SortButtonMenu';
 import { sortStudents } from '../utils/studentSorting';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked, getDeviceId } from '../utils/activationManager';
+import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 
 interface SubjectInfo {
   key: string;
@@ -232,7 +233,30 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   }
   const isSecondary2Modern = Boolean(isSecondary2 && isModernSec);
   const [localData, setLocalData] = useState<StudentData[]>(data || []);
+
+  const availableClasses = React.useMemo(() => {
+    const gradeNum = (() => {
+      if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
+      if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
+      if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
+      if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
+      if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
+      if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
+      return '1';
+    })();
+    const defaults = Array.from({ length: 16 }, (_, i) => `${gradeNum} / ${i + 1}`);
+    const inData = Array.from(new Set(data.map(s => s.studentClass).filter(Boolean))) as string[];
+    return Array.from(new Set([...defaults, ...inData])).sort((a, b) => {
+      const getNum = (s: string) => {
+        const parts = s.split('/');
+        if (parts.length < 2) return 0;
+        return parseInt(parts[1].trim()) || 0;
+      };
+      return getNum(a) - getNum(b);
+    });
+  }, [selectedGrade, data]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<FilterState>({});
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
     return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
   });
@@ -997,8 +1021,27 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         return nameMatch || idMatch || seatMatch;
       });
     }
+
+    // Apply Filters
+    if (Object.values(filters).some(v => v !== undefined)) {
+      list = list.filter(s => {
+        if (filters.gender && s.gender !== filters.gender) return false;
+        if (filters.religion) {
+          const isMuslim = s.religion === 'muslim' || (s.religion || '').includes('ل');
+          const isChristian = s.religion === 'christian' || (s.religion || '').includes('ح');
+          if (filters.religion === 'muslim' && !isMuslim) return false;
+          if (filters.religion === 'christian' && !isChristian) return false;
+        }
+        if (filters.studentClass && s.studentClass !== filters.studentClass) return false;
+        if (filters.enrollmentStatus && s.enrollmentStatus !== filters.enrollmentStatus) return false;
+        if (filters.enrollmentType && s.enrollmentType !== filters.enrollmentType) return false;
+        if (filters.committeeNumber && s.committeeNumber !== filters.committeeNumber) return false;
+        return true;
+      });
+    }
+
     return sortStudents(list, sortBy, semester, lang);
-  }, [localData, searchQuery, semester, sortBy, lang]);
+  }, [localData, searchQuery, semester, sortBy, lang, filters]);
 
   // Keyboard navigation across cells
   const fieldKeys: (keyof DetailedAssessmentItem)[] = useMemo(() => {
@@ -1132,6 +1175,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         centerActiveCellInView(nextElem);
       }
     }
+  };
+
+  const handleClassChange = (studentId: string, newClass: string) => {
+    const updated = localData.map(s => s.id === studentId ? { ...s, studentClass: newClass } : s);
+    setLocalData(updated);
+    onChange(updated);
   };
 
   // Paste handling for multiple rows
@@ -1575,6 +1624,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                   </button>
                 )}
               </div>
+              <FilterButtonMenu
+                filters={filters}
+                onFilterChange={setFilters}
+                lang={lang}
+                data={data}
+                numberLang={numberLang}
+                className="shrink-0"
+              />
               <button
                 type="button"
                 onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
@@ -1712,6 +1769,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                       <div className="separator-line"></div>
                     </th>
                   )}
+                  <th 
+                    rowSpan={3} 
+                    style={{ insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px') }}
+                    className="py-[16px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[46] min-w-[120px] max-w-[120px] w-[120px] text-lg font-bold relative overflow-visible sticky-cell-border text-center align-middle"
+                  >
+                    الفصل
+                    <div className="separator-line"></div>
+                  </th>
                   {/* Spanning Header: اسم المادة الدراسية بلون مميز وواضح بدون خط */}
                   <th 
                     colSpan={isSecondary2Modern ? 7 : (isPESubject ? 5 : (isNoWrittenExceptPe ? 4 : (isMiddleOrSecondary ? 6 : 7)))} 
@@ -1866,10 +1931,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 {filteredData.length === 0 ? (
                   <tr>
                     <td 
-                      colSpan={(showSeatNumber ? 1 : 0) + (showSecretNumber ? 1 : 0) + 2 + (isSecondary2Modern ? 7 : (isPESubject ? 5 : (isNoWrittenExceptPe ? 4 : (isMiddleOrSecondary ? 6 : 7))))} 
+                      colSpan={(showSeatNumber ? 1 : 0) + (showSecretNumber ? 1 : 0) + 3 + (isSecondary2Modern ? 7 : (isPESubject ? 5 : (isNoWrittenExceptPe ? 4 : (isMiddleOrSecondary ? 6 : 7))))} 
                       className="p-8 text-center text-slate-500 font-bold text-lg"
                     >
-                      {isKindergarten ? 'لا توجد بيانات تلاميذ مطابقة للبحث' : 'لا توجد بيانات طلاب مطابقة للبحث'}
+                      {(Object.values(filters).some(v => v && v !== 'all') || Boolean(searchQuery))
+                        ? 'لا يوجد طلاب حسب التصفية المحددة'
+                        : (isKindergarten ? 'لا يوجد تلاميذ مضافين بعد' : 'لا يوجد طلاب مضافين بعد')}
                     </td>
                   </tr>
                 ) : (
@@ -1936,6 +2003,24 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                             />
                           </td>
                         )}
+
+                        <td 
+                          style={{ insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px') }}
+                          className="p-0 border-2 border-slate-900 text-center sticky z-[26] bg-inherit min-w-[120px] max-w-[120px] w-[120px] relative overflow-visible sticky-cell-border"
+                        >
+                          <div className="separator-line"></div>
+                          <select 
+                            value={student.studentClass || ''}
+                            onChange={(e) => handleClassChange(student.id, e.target.value)}
+                            className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none cursor-pointer font-bold text-lg"
+                            style={{ textAlignLast: 'center' }}
+                          >
+                            <option value=""></option>
+                            {availableClasses.map(cls => (
+                              <option key={cls} value={cls}>{formatNumberDigits(cls, numberLang)}</option>
+                            ))}
+                          </select>
+                        </td>
 
                         {/* الصف الثاني الثانوي - بكالوريا - النظام الحديث (لكل المواد) */}
                         {isSecondary2Modern ? (

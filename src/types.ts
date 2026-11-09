@@ -89,6 +89,7 @@ export interface StudentData {
   assessments?: Record<string, AssessmentGrades>;
   writtenExams?: Record<string, AssessmentGrades>;
   detailedAssessments?: Record<string, Record<string, DetailedAssessmentItem>>;
+  studentClass?: string;
 }
 
 export type Language = 'ar';

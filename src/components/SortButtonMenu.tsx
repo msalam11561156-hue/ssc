@@ -36,6 +36,7 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
       { id: 'religion', label: t.sortReligion },
       { id: 'seatNumber', label: (t as any).seatNumber || 'رقم الجلوس' },
       { id: 'secretNumber', label: (t as any).secretNumber || 'الرقم السري' },
+      { id: 'studentClass', label: (t as any).sortClass || 'الفصل' },
       { id: 'total', label: (t as any).totalSort || 'المجموع' }
     ].find(o => o.id === id);
     return opt ? opt.label : id;
@@ -122,7 +123,8 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
                     ...(showExamFields ? [
                       { id: 'seatNumber', label: (t as any).seatNumber || 'رقم الجلوس', color: 'from-cyan-500 to-blue-500', active: 'from-cyan-400 via-blue-500 to-cyan-600', shadow: 'shadow-cyan-500/30' },
                       { id: 'secretNumber', label: (t as any).secretNumber || 'الرقم السري', color: 'from-sky-500 to-indigo-500', active: 'from-sky-400 via-indigo-500 to-sky-600', shadow: 'shadow-sky-500/30' }
-                    ] : [])
+                    ] : []),
+                    { id: 'studentClass', label: (t as any).sortClass || 'الفصل', color: 'from-orange-500 to-amber-500', active: 'from-orange-400 via-amber-500 to-orange-600', shadow: 'shadow-orange-500/30' }
                   ].map(opt => {
                     const existingSort = sortBy.find(s => s.id === opt.id || (opt.id === 'alphabetical' && s.id === 'name') || (opt.id === 'name' && s.id === 'alphabetical'));
                     const isSelected = (opt.id === 'default' && sortBy.length === 0) || !!existingSort;

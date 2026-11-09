@@ -26,6 +26,7 @@ import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
 import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked, getDeviceId } from '../utils/activationManager';
+import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 
 interface WrittenExamsGradesScreenProps {
   data: StudentData[];
@@ -79,7 +80,31 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   const sortBy = externalSortBy || [];
   const [localData, setLocalData] = useState<StudentData[]>(data);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<FilterState>({});
   const [isEditingData, setIsEditingData] = useState(false);
+
+  const availableClasses = React.useMemo(() => {
+    const gradeNum = (() => {
+      if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
+      if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
+      if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
+      if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
+      if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
+      if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
+      return '1';
+    })();
+    const defaults = Array.from({ length: 16 }, (_, i) => `${gradeNum} / ${i + 1}`);
+    const inData = Array.from(new Set(data.map(s => s.studentClass).filter(Boolean))) as string[];
+    return Array.from(new Set([...defaults, ...inData])).sort((a, b) => {
+      const getNum = (s: string) => {
+        const parts = s.split('/');
+        if (parts.length < 2) return 0;
+        return parseInt(parts[1].trim()) || 0;
+      };
+      return getNum(a) - getNum(b);
+    });
+  }, [selectedGrade, data]);
+
   const frozenIdsRef = React.useRef<string[]>([]);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [showSeatNumbersPasswordModal, setShowSeatNumbersPasswordModal] = useState(false);
@@ -1540,10 +1565,24 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   let filteredData = sortStudents(
     localData.filter(student => {
       const searchLower = searchTerm.toLowerCase();
-      return (
-        (student.name && student.name.toLowerCase().includes(searchLower)) ||
-        (student.nationalId && student.nationalId.includes(searchLower))
-      );
+      const matchesSearch = (student.name && student.name.toLowerCase().includes(searchLower)) ||
+                           (student.nationalId && student.nationalId.includes(searchLower));
+      
+      if (!matchesSearch) return false;
+
+      if (filters.gender && student.gender !== filters.gender) return false;
+      if (filters.religion) {
+        const isMuslim = student.religion === 'muslim' || (student.religion || '').includes('ل');
+        const isChristian = student.religion === 'christian' || (student.religion || '').includes('ح');
+        if (filters.religion === 'muslim' && !isMuslim) return false;
+        if (filters.religion === 'christian' && !isChristian) return false;
+      }
+      if (filters.studentClass && student.studentClass !== filters.studentClass) return false;
+      if (filters.enrollmentStatus && student.enrollmentStatus !== filters.enrollmentStatus) return false;
+      if (filters.enrollmentType && student.enrollmentType !== filters.enrollmentType) return false;
+      if (filters.committeeNumber && student.committeeNumber !== filters.committeeNumber) return false;
+
+      return true;
     }),
     sortBy,
     semester,
@@ -1584,6 +1623,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     }
 
     return isFirst ? (isFemale ? 'مستجدة' : 'مستجد') : (isFemale ? 'منقولة' : 'منقول');
+  };
+
+  const handleClassChange = (studentId: string, newClass: string) => {
+    const updated = localData.map(s => s.id === studentId ? { ...s, studentClass: newClass } : s);
+    setLocalData(updated);
+    onChange(updated);
   };
 
   const executePrintOption = async (
@@ -2632,6 +2677,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
               </button>
             </div>
+            <FilterButtonMenu
+              filters={filters}
+              onFilterChange={setFilters}
+              lang={lang}
+              data={data}
+              numberLang={numberLang}
+              className="shrink-0"
+            />
             <button
               type="button"
               onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
@@ -3284,6 +3337,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
               const nameOffset = 64;
               const seatOffset = 64 + (showName ? 400 : 0);
               const secretOffset = seatOffset + (showSeatNumber ? 150 : 0);
+              const classOffset = secretOffset + (showSecretNumber ? 150 : 0);
 
               return (
                 <table className="w-full text-center text-slate-900 border-collapse min-w-[1500px]">
@@ -3300,7 +3354,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                         <th 
                           rowSpan={2} 
                           style={{ insetInlineStart: `${nameOffset}px` }}
-                          className={`py-[18px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[49] min-w-[400px] max-w-[400px] w-[400px] text-lg font-bold relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'name' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.15)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.15)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.15)]' : ''}`}
+                          className={`py-[18px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[49] min-w-[400px] max-w-[400px] w-[400px] text-lg font-bold relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'name' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.15)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.15)]' : ''}`}
                         >
                             {t.studentName}
                             <div className="separator-line"></div>
@@ -3326,6 +3380,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           <div className="separator-line"></div>
                         </th>
                       )}
+                      <th 
+                        rowSpan={2} 
+                        style={{ insetInlineStart: `${classOffset}px` }}
+                        className="py-[18px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[46] text-lg font-bold min-w-[120px] max-w-[120px] w-[120px] relative overflow-visible sticky-cell-border sticky-col"
+                      >
+                        الفصل
+                        <div className="separator-line"></div>
+                      </th>
                       {cols.map((col, idx) => {
                         const colWidth = getSubjectColWidth(col);
                         const isSpan2 = col.key === 'percentage' || col.key === 'evaluation' || col.key === 'procedure' || col.key === 'finalResult' || col.key === 'studentRank' || col.key === 'notes' || col.key === 'notesCount' || col.key === 'failedSubjects' || col.key === 'failedCount';
@@ -3499,22 +3561,39 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               />
                             </td>
                           )}
-                          {showSecretNumber && (
+                            {showSecretNumber && (
+                              <td 
+                                style={{ insetInlineStart: `${secretOffset}px` }}
+                                className={`p-0 border-2 border-slate-900 sticky z-[27] bg-inherit min-w-[150px] max-w-[150px] w-[150px] relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'secret' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)]' : ''}`}
+                              >
+                                <div className="separator-line"></div>
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={formatNumberDigits(extractStudentSecretNumber(student, semester), numberLang)}
+                                  className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
+                                  dir="ltr"
+                                  title="حقل مجمد للقراءة فقط"
+                                />
+                              </td>
+                            )}
                             <td 
-                              style={{ insetInlineStart: `${secretOffset}px` }}
-                              className={`p-0 border-2 border-slate-900 sticky z-[27] bg-inherit min-w-[150px] max-w-[150px] w-[150px] relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'secret' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)]' : ''}`}
+                              style={{ insetInlineStart: `${classOffset}px` }}
+                              className="p-0 border-2 border-slate-900 text-center sticky z-[26] bg-inherit min-w-[120px] max-w-[120px] w-[120px] relative overflow-visible sticky-cell-border sticky-col"
                             >
                               <div className="separator-line"></div>
-                              <input
-                                type="text"
-                                readOnly
-                                value={formatNumberDigits(extractStudentSecretNumber(student, semester), numberLang)}
-                                className="w-full h-full bg-transparent border-none px-1 py-3 text-center text-xl text-slate-800 focus:outline-none cursor-default font-bold select-all"
-                                dir="ltr"
-                                title="حقل مجمد للقراءة فقط"
-                              />
+                              <select 
+                                value={student.studentClass || ''}
+                                onChange={(e) => handleClassChange(student.id, e.target.value)}
+                                className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none cursor-pointer font-bold text-lg"
+                                style={{ textAlignLast: 'center' }}
+                              >
+                                <option value=""></option>
+                                {availableClasses.map(cls => (
+                                  <option key={cls} value={cls}>{formatNumberDigits(cls, numberLang)}</option>
+                                ))}
+                              </select>
                             </td>
-                          )}
                       {cols.map(col => {
                         const colWidth = getSubjectColWidth(col);
                         const evalData = getEvaluationData(student);
@@ -4085,8 +4164,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 })}
                 {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan={cols.length + 1 + (showName ? 1 : 0) + (showSeatNumber ? 1 : 0) + (showSecretNumber ? 1 : 0)} className="py-12 text-center text-slate-500 font-bold border-2 border-slate-900">
-                      {searchTerm ? 'لا يوجد' : (t as any).noStudentsMsg}
+                    <td colSpan={cols.length + 2 + (showName ? 1 : 0) + (showSeatNumber ? 1 : 0) + (showSecretNumber ? 1 : 0)} className="py-12 text-center text-slate-500 font-bold text-base border-2 border-slate-900">
+                      {(Object.values(filters).some(v => v && v !== 'all') || Boolean(searchTerm))
+                        ? 'لا يوجد طلاب حسب التصفية المحددة'
+                        : (t as any).noStudentsMsg}
                     </td>
                   </tr>
                 )}

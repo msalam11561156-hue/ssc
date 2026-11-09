@@ -68,6 +68,11 @@ export function sortStudents(
         const valB = (b.secretNumbers?.[targetSem] || (targetSem === 'first' ? b.secretNumber : '') || b.secretNumber || '').toString();
         const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
         if (cmp !== 0) return cmp * modifier;
+      } else if (criteria.id === 'studentClass' || criteria.id === 'class') {
+        const valA = (a.studentClass || '').toString();
+        const valB = (b.studentClass || '').toString();
+        const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
+        if (cmp !== 0) return cmp * modifier;
       }
     }
     return 0;

@@ -18,6 +18,7 @@ import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
 import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked, getDeviceId } from '../utils/activationManager';
+import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 
 interface StudentsDataScreenProps {
   lang: Language;
@@ -95,6 +96,28 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     return trimmed === 'الصف الأول' || trimmed.includes('الأول') || trimmed === '1st Grade';
   })();
 
+  const availableClasses = React.useMemo(() => {
+    const gradeNum = (() => {
+      if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
+      if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
+      if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
+      if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
+      if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
+      if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
+      return '1';
+    })();
+    const defaults = Array.from({ length: 16 }, (_, i) => `${gradeNum} / ${i + 1}`);
+    const inData = Array.from(new Set(data.map(s => s.studentClass).filter(Boolean))) as string[];
+    return Array.from(new Set([...defaults, ...inData])).sort((a, b) => {
+      const getNum = (s: string) => {
+        const parts = s.split('/');
+        if (parts.length < 2) return 0;
+        return parseInt(parts[1].trim()) || 0;
+      };
+      return getNum(a) - getNum(b);
+    });
+  }, [selectedGrade, data]);
+
   const normalizeStatusForGrade = (status: string, isFirst: boolean, gender?: string): string => {
     if (!status) return '';
     const clean = status.trim();
@@ -116,7 +139,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     // Default to new / transferred
     return isFirst ? (isFemale ? 'مستجدة' : 'مستجد') : (isFemale ? 'منقولة' : 'منقول');
   };
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<FilterState>({});
   const [isEditingData, setIsEditingData] = useState(false);
   const frozenIdsRef = React.useRef<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -853,6 +878,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
           if (cmp !== 0) return cmp * modifier;
         }
+        if (criteria.id === 'studentClass' || criteria.id === 'class') {
+          const valA = (a.studentClass || '').toString();
+          const valB = (b.studentClass || '').toString();
+          const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
+          if (cmp !== 0) return cmp * modifier;
+        }
       }
       return 0;
     });
@@ -987,6 +1018,24 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     return updated;
   };
 
+  const gradeNumForClass = React.useMemo(() => {
+    if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
+    if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
+    if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
+    if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
+    if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
+    if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
+    return '1';
+  }, [selectedGrade]);
+
+  const [selectedClass, setSelectedClass] = useState<string>(() => `${gradeNumForClass} / 1`);
+  const [selectedClassForNid, setSelectedClassForNid] = useState<string>(() => `${gradeNumForClass} / 1`);
+
+  useEffect(() => {
+    setSelectedClass(`${gradeNumForClass} / 1`);
+    setSelectedClassForNid(`${gradeNumForClass} / 1`);
+  }, [gradeNumForClass]);
+
   const handleModalAdd = () => {
     const lines = modalText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     if (lines.length > 0) {
@@ -999,6 +1048,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         studentStatus: isKindergarten ? 'عادى' : undefined,
         enrollmentType: '',
         religion: '',
+        studentClass: selectedClass,
         assessments: {
           first: {},
           second: {},
@@ -1039,21 +1089,53 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   }, [data, semester, showExamFields, isEditingData, seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2]);
 
   const handleNationalIdModalAdd = () => {
-    const lines = nationalIdModalText.split('\n').map(line => line.replace(/\D/g, '').substring(0, 14)).filter(line => line.length > 0);
+    const lines = nationalIdModalText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map(line => line.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString()).replace(/\D/g, '').substring(0, 14))
+      .filter(line => line.length > 0);
     if (lines.length > 0) {
       const updatedData = [...data];
-      lines.forEach((nid, index) => {
-        if (index < updatedData.length) {
-          updatedData[index] = { ...updatedData[index], nationalId: nid };
-          if (nid.length === 14) {
-            const digit13 = parseInt(nid.charAt(12), 10);
-            const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
-            updatedData[index].gender = newGender;
-            updatedData[index].enrollmentStatus = convertStatus(updatedData[index].enrollmentStatus, newGender);
-            updatedData[index].religion = convertReligion(updatedData[index].religion, newGender);
-          }
+      const targetIndices: number[] = [];
+      updatedData.forEach((s, idx) => {
+        if (s.studentClass === selectedClassForNid) {
+          targetIndices.push(idx);
         }
       });
+
+      if (targetIndices.length > 0) {
+        lines.forEach((nid, i) => {
+          if (i < targetIndices.length) {
+            const targetIdx = targetIndices[i];
+            updatedData[targetIdx] = { ...updatedData[targetIdx], nationalId: nid };
+            if (nid.length === 14) {
+              const digit13 = parseInt(nid.charAt(12), 10);
+              const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
+              updatedData[targetIdx].gender = newGender;
+              updatedData[targetIdx].enrollmentStatus = convertStatus(updatedData[targetIdx].enrollmentStatus, newGender);
+              updatedData[targetIdx].religion = convertReligion(updatedData[targetIdx].religion, newGender);
+            }
+          }
+        });
+      } else {
+        lines.forEach((nid, index) => {
+          if (index < updatedData.length) {
+            updatedData[index] = {
+              ...updatedData[index],
+              nationalId: nid,
+              studentClass: updatedData[index].studentClass || selectedClassForNid,
+            };
+            if (nid.length === 14) {
+              const digit13 = parseInt(nid.charAt(12), 10);
+              const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
+              updatedData[index].gender = newGender;
+              updatedData[index].enrollmentStatus = convertStatus(updatedData[index].enrollmentStatus, newGender);
+              updatedData[index].religion = convertReligion(updatedData[index].religion, newGender);
+            }
+          }
+        });
+      }
       onChange(updatedData);
     }
     setNationalIdModalText('');
@@ -1184,6 +1266,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
             if (cmp !== 0) return cmp * modifier;
           }
+          if (criteria.id === 'studentClass' || criteria.id === 'class') {
+            const valA = (a.studentClass || '').toString();
+            const valB = (b.studentClass || '').toString();
+            const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
+            if (cmp !== 0) return cmp * modifier;
+          }
         }
         return 0;
       });
@@ -1248,12 +1336,29 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     onChange,
   ]);
 
-  let filteredData = data.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.nationalId.includes(searchTerm) ||
-    (s.enrollmentStatus && s.enrollmentStatus.includes(searchTerm)) ||
-    (s.enrollmentType && s.enrollmentType.includes(searchTerm))
-  ).sort((a, b) => {
+  let filteredData = data.filter(s => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = s.name.toLowerCase().includes(searchLower) || 
+                         s.nationalId.includes(searchTerm) ||
+                         (s.enrollmentStatus && s.enrollmentStatus.includes(searchTerm)) ||
+                         (s.enrollmentType && s.enrollmentType.includes(searchTerm));
+    
+    if (!matchesSearch) return false;
+
+    if (filters.gender && s.gender !== filters.gender) return false;
+    if (filters.religion) {
+      const isMuslim = s.religion === 'muslim' || (s.religion || '').includes('ل');
+      const isChristian = s.religion === 'christian' || (s.religion || '').includes('ح');
+      if (filters.religion === 'muslim' && !isMuslim) return false;
+      if (filters.religion === 'christian' && !isChristian) return false;
+    }
+    if (filters.studentClass && s.studentClass !== filters.studentClass) return false;
+    if (filters.enrollmentStatus && s.enrollmentStatus !== filters.enrollmentStatus) return false;
+    if (filters.enrollmentType && s.enrollmentType !== filters.enrollmentType) return false;
+    if (filters.committeeNumber && s.committeeNumber !== filters.committeeNumber) return false;
+
+    return true;
+  }).sort((a, b) => {
     for (const criteria of sortBy) {
       const modifier = criteria.direction === 'desc' ? -1 : 1;
       if (criteria.id === 'alphabetical' || criteria.id === 'name') {
@@ -1291,6 +1396,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       if (criteria.id === 'secretNumber') {
         const valA = a.secretNumbers?.[semester] || (semester === 'first' ? a.secretNumber : '') || '';
         const valB = b.secretNumbers?.[semester] || (semester === 'first' ? b.secretNumber : '') || '';
+        const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
+        if (cmp !== 0) return cmp * modifier;
+      }
+      if (criteria.id === 'studentClass' || criteria.id === 'class') {
+        const valA = (a.studentClass || '').toString();
+        const valB = (b.studentClass || '').toString();
         const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en', { numeric: true });
         if (cmp !== 0) return cmp * modifier;
       }
@@ -1364,7 +1475,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, colIndex: number) => {
-    const tableColumns = isKindergarten ? 6 : (showExamFields ? 9 : 7);
+    const tableColumns = isKindergarten ? 7 : (showExamFields ? 10 : 8);
     let nextRow = rowIndex;
     let nextCol = colIndex;
 
@@ -1604,6 +1715,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2.5} />
               </button>
             </div>
+            <FilterButtonMenu
+              filters={filters}
+              onFilterChange={setFilters}
+              lang={lang}
+              data={data}
+              numberLang={numberLang}
+              isKindergarten={isKindergarten}
+              className="shrink-0"
+            />
             <button
               type="button"
               onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
@@ -2889,6 +3009,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     { id: 'religion', label: t.sortReligion },
                     { id: 'seatNumber', label: (t as any).seatNumber },
                     { id: 'secretNumber', label: (t as any).secretNumber },
+                    { id: 'studentClass', label: (t as any).sortClass || 'الفصل' },
                     { id: 'total', label: (t as any).totalSort || 'المجموع' }
                   ].find(o => o.id === c.id);
                   return (
@@ -2949,7 +3070,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           ...(showExamFields ? [
                             { id: 'seatNumber', label: (t as any).seatNumber, color: 'from-cyan-500 to-blue-500', active: 'from-cyan-400 via-blue-500 to-cyan-600', shadow: 'shadow-cyan-500/30' },
                             { id: 'secretNumber', label: (t as any).secretNumber, color: 'from-sky-500 to-indigo-500', active: 'from-sky-400 via-indigo-500 to-sky-600', shadow: 'shadow-sky-500/30' }
-                          ] : [])
+                          ] : []),
+                          { id: 'studentClass', label: (t as any).sortClass || 'الفصل', color: 'from-orange-500 to-amber-500', active: 'from-orange-400 via-amber-500 to-orange-600', shadow: 'shadow-orange-500/30' }
                         ].map(opt => {
                           const existingSort = sortBy.find(s => s.id === opt.id || (opt.id === 'alphabetical' && s.id === 'name') || (opt.id === 'name' && s.id === 'alphabetical'));
                           const isSelected = (opt.id === 'default' && sortBy.length === 0) || !!existingSort;
@@ -3101,6 +3223,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 )}
                 <th className="py-[18px] px-3 w-44 border-2 border-slate-900 bg-transparent">{(t as any).enrollmentType || 'نوعية القيد'}</th>
                 <th className={`py-[18px] px-3 border-2 border-slate-900 bg-transparent ${showExamFields ? 'min-w-[130px] max-w-[130px] w-[130px]' : 'w-32'}`}>{t.religion}</th>
+                <th className="py-[18px] px-3 w-32 border-2 border-slate-900 bg-transparent">الفصل</th>
                 {showExamFields && (
                   <>
                     <th className="py-[18px] px-3 w-32 border-2 border-slate-900 bg-transparent">{(t as any).seatNumber}</th>
@@ -3326,36 +3449,54 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       </option>
                     </select>
                   </td>
+                  <td className="p-0 border-2 border-slate-900 relative focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 w-32">
+                    <select 
+                      id={`cell-${idx}-6`}
+                      value={student.studentClass || ''}
+                      onChange={(e) => handleChange(student.id, 'studentClass' as any, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, idx, 6)}
+                      onFocus={(e) => {
+                        ensureCellVisible(e.target);
+                      }}
+                      className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none appearance-none cursor-pointer"
+                      style={{ textAlignLast: 'center' }}
+                    >
+                      <option value=""></option>
+                      {availableClasses.map(cls => (
+                        <option key={cls} value={cls}>{formatNumberDigits(cls, numberLang)}</option>
+                      ))}
+                    </select>
+                  </td>
                   {showExamFields && (
                     <>
                       <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                         <input
-                          id={`cell-${idx}-6`}
+                          id={`cell-${idx}-7`}
                           type="text"
                           value={formatNumberDigits(student.seatNumbers?.[semester] || (semester === 'first' ? student.seatNumber : '') || '', numberLang)}
                           onChange={(e) => handleSemesterFieldChange(student.id, 'seatNumbers', formatNumberDigits(e.target.value, 'en'))}
-                          onKeyDown={(e) => handleKeyDown(e, idx, 6)}
+                          onKeyDown={(e) => handleKeyDown(e, idx, 7)}
                           onFocus={(e) => {
                             e.target.select();
                             ensureCellVisible(e.target);
                           }}
-                          onPaste={(e) => handlePaste(e, student.id, "seatNumbers", idx, 6)}
+                          onPaste={(e) => handlePaste(e, student.id, "seatNumbers", idx, 7)}
                           className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                           dir="ltr"
                         />
                       </td>
                       <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                         <input
-                          id={`cell-${idx}-7`}
+                          id={`cell-${idx}-8`}
                           type="text"
                           value={formatNumberDigits(student.secretNumbers?.[semester] || (semester === 'first' ? student.secretNumber : '') || '', numberLang)}
                           onChange={(e) => handleSemesterFieldChange(student.id, 'secretNumbers', formatNumberDigits(e.target.value, 'en'))}
-                          onKeyDown={(e) => handleKeyDown(e, idx, 7)}
+                          onKeyDown={(e) => handleKeyDown(e, idx, 8)}
                           onFocus={(e) => {
                             e.target.select();
                             ensureCellVisible(e.target);
                           }}
-                          onPaste={(e) => handlePaste(e, student.id, "secretNumbers", idx, 7)}
+                          onPaste={(e) => handlePaste(e, student.id, "secretNumbers", idx, 8)}
                           className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                           dir="ltr"
                         />
@@ -3365,16 +3506,16 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   {!isKindergarten && (
                     <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                       <input
-                        id={`cell-${idx}-${showExamFields ? 8 : 6}`}
+                        id={`cell-${idx}-${showExamFields ? 9 : 7}`}
                         type="text"
                         value={formatNumberDigits(student.committeeNumbers?.[semester] || student.committeeNumber || '', numberLang)}
                         onChange={(e) => handleSemesterFieldChange(student.id, 'committeeNumbers', formatNumberDigits(e.target.value, 'en'))}
-                        onKeyDown={(e) => handleKeyDown(e, idx, showExamFields ? 8 : 6)}
+                        onKeyDown={(e) => handleKeyDown(e, idx, showExamFields ? 9 : 7)}
                         onFocus={(e) => {
                           e.target.select();
                           ensureCellVisible(e.target);
                         }}
-                        onPaste={(e) => handlePaste(e, student.id, "committeeNumbers", idx, showExamFields ? 8 : 6)}
+                        onPaste={(e) => handlePaste(e, student.id, "committeeNumbers", idx, showExamFields ? 9 : 7)}
                         className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                         dir="ltr"
                       />
@@ -3398,9 +3539,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               <motion.div 
                 animate={{ x: [-5, 5, -5] }}
                 transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                className="inline-block text-slate-500 font-bold"
+                className="inline-block text-slate-500 font-bold text-base"
               >
-                {t.noStudentsMsg}
+                {(Object.values(filters).some(v => v && v !== 'all') || Boolean(searchTerm))
+                  ? 'لا يوجد طلاب حسب التصفية المحددة'
+                  : t.noStudentsMsg}
               </motion.div>
             </div>
           )}
@@ -3495,14 +3638,56 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <p className="text-indigo-200/80 font-medium text-xs">{t.studentsModalSub2}</p>
                 </div>
                 
-                <div className="p-8 flex flex-col items-center bg-[linear-gradient(to_right,#e0e7ff,#c7d2fe,#e0e7ff)] bg-[length:200%_auto] animate-shine w-full">
-                  <textarea
-                    value={modalText}
-                    onChange={(e) => setModalText(e.target.value)}
-                    placeholder="أحمد محمد&#10;محمود علي&#10;سارة أحمد..."
-                    className="w-full h-48 bg-white/80 backdrop-blur-sm rounded-xl border-2 border-slate-900 shadow-inner p-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-4 ring-indigo-500/20 resize-none font-bold leading-relaxed transition-all"
-                    dir={lang === 'ar' ? 'rtl' : 'ltr'}
-                  />
+                <div className="p-8 flex flex-col gap-6 bg-[linear-gradient(to_right,#e0e7ff,#c7d2fe,#e0e7ff)] bg-[length:200%_auto] animate-shine w-full">
+                  <div className="flex flex-col gap-3 w-full text-right">
+                    <label className="text-slate-800 font-black text-sm flex items-center gap-2 pr-1">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                      إختر ( الفصل ) للطلاب الذين ستقوم بإضافتهم :
+                    </label>
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => setSelectedClass(e.target.value)}
+                      className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black text-lg focus:outline-none focus:border-indigo-600 focus:ring-4 ring-indigo-500/20 appearance-none text-center cursor-pointer shadow-sm transition-all hover:bg-slate-50"
+                      style={{ textAlignLast: 'center' }}
+                    >
+                      {Array.from({ length: 16 }, (_, i) => {
+                        const gradeNum = (() => {
+                          if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
+                          if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
+                          if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
+                          if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
+                          if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
+                          if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
+                          return '1';
+                        })();
+                        const classLabel = `${gradeNum} / ${i + 1}`;
+                        return (
+                          <option key={classLabel} value={classLabel} className="font-bold">
+                            {formatNumberDigits(classLabel, numberLang)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2 w-full text-right">
+                    <div className="flex flex-col gap-1 pr-1">
+                      <label className="text-slate-800 font-black text-sm flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                        {t.studentsModalSub1}
+                      </label>
+                      <p className="text-indigo-950/80 font-bold text-xs pr-4">
+                        {t.studentsModalSub2}
+                      </p>
+                    </div>
+                    <textarea
+                      value={modalText}
+                      onChange={(e) => setModalText(e.target.value)}
+                      placeholder="أحمد محمد&#10;محمود علي&#10;سارة أحمد..."
+                      className="w-full h-48 bg-white/80 backdrop-blur-sm rounded-xl border-2 border-slate-900 shadow-inner p-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-4 ring-indigo-500/20 resize-none font-bold leading-relaxed transition-all"
+                      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                    />
+                  </div>
                 </div>
                 
                 <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
@@ -3533,12 +3718,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm [perspective:1000px]"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
+              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
             >
               {/* Slow Moving Light Glow */}
@@ -3551,14 +3737,56 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <p className="text-blue-200/80 font-medium text-xs">{t.studentsModalSub2}</p>
                 </div>
                 
-                <div className="p-8 flex flex-col items-center bg-[linear-gradient(to_right,#dbeafe,#cffafe,#dbeafe)] bg-[length:200%_auto] animate-shine w-full">
-                  <textarea
-                    value={nationalIdModalText}
-                    onChange={(e) => setNationalIdModalText(e.target.value)}
-                    placeholder="30001011234567&#10;30001011234568&#10;30001011234569..."
-                    className="w-full h-48 bg-white/80 backdrop-blur-sm rounded-xl border-2 border-slate-900 shadow-inner p-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-500/20 resize-none font-bold leading-relaxed font-mono transition-all"
-                    dir="ltr"
-                  />
+                <div className="p-8 flex flex-col gap-6 bg-[linear-gradient(to_right,#dbeafe,#cffafe,#dbeafe)] bg-[length:200%_auto] animate-shine w-full">
+                  <div className="flex flex-col gap-3 w-full text-right">
+                    <label className="text-slate-800 font-black text-sm flex items-center gap-2 pr-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-600" />
+                      إختر ( الفصل ) للطلاب الذين ستقوم بإضافتهم :
+                    </label>
+                    <select
+                      value={selectedClassForNid}
+                      onChange={(e) => setSelectedClassForNid(e.target.value)}
+                      className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black text-lg focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-500/20 appearance-none text-center cursor-pointer shadow-sm transition-all hover:bg-slate-50"
+                      style={{ textAlignLast: 'center' }}
+                    >
+                      {Array.from({ length: 16 }, (_, i) => {
+                        const classLabel = `${gradeNumForClass} / ${i + 1}`;
+                        return (
+                          <option key={classLabel} value={classLabel} className="font-bold">
+                            {formatNumberDigits(classLabel, numberLang)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2 w-full text-right">
+                    <div className="flex flex-col gap-1 pr-1">
+                      <label className="text-slate-800 font-black text-sm flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-600" />
+                        {t.nationalIdsModalSub1}
+                      </label>
+                      <p className="text-blue-950/80 font-bold text-xs pr-4">
+                        {t.studentsModalSub2}
+                      </p>
+                    </div>
+                    <textarea
+                      value={nationalIdModalText}
+                      onChange={(e) => {
+                        const cleanValue = e.target.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                        const lines = cleanValue.split('\n');
+                        const processed = lines.map(line => {
+                          const normalized = line.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+                          const digits = normalized.replace(/\D/g, '');
+                          return digits.slice(0, 14);
+                        });
+                        setNationalIdModalText(processed.join('\n'));
+                      }}
+                      placeholder="30001011234567&#10;30001011234568&#10;30001011234569..."
+                      className="w-full h-48 bg-white/80 backdrop-blur-sm rounded-xl border-2 border-slate-900 shadow-inner p-4 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-500/20 resize-none font-bold leading-relaxed font-mono transition-all"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
                 
                 <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
