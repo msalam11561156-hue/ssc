@@ -4,7 +4,7 @@ import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } f
 import { getStoredSubjectEn } from './subjectLanguage';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 import { getActiveFooterTagline } from './adFilter';
-const ministryLogoUrl = '';
+import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 
 function drawCrispImage(

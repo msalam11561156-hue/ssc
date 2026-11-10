@@ -92,4 +92,15 @@ export interface StudentData {
   studentClass?: string;
 }
 
+export interface ExamScheduleItem {
+  id: string;
+  day: string;
+  date: string;
+  period: string;
+  fromTime: string;
+  toTime: string;
+  subject: string;
+}
+
 export type Language = 'ar';
+

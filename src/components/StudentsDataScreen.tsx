@@ -1,8 +1,9 @@
+import { getActiveFooterTagline } from "../utils/adFilter";
 import React, { useState, useEffect } from 'react';
 import { translations, applyEntityTerms } from '../i18n';
 import { Language, StudentData } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, FileSpreadsheet, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, FileSpreadsheet, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
@@ -11,7 +12,7 @@ import { SeatNumbersModal } from './SeatNumbersModal';
 import { CustomControlSheetModal } from './CustomControlSheetModal';
 import { AdvancedStatsModal } from './AdvancedStatsModal';
 import { ensureCellVisible } from '../utils/cellNavigation';
-import { exportStudentsDataToPdf, getSubjectsConfigForStageGrade, PdfReportType, RowBgTheme, CustomControlSheetOptions } from '../utils/exportPdf';
+import { exportStudentsDataToPdf, exportExamScheduleToPdf, getSubjectsConfigForStageGrade, PdfReportType, RowBgTheme, CustomControlSheetOptions } from '../utils/exportPdf';
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
 import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
@@ -46,6 +47,87 @@ interface StudentsDataScreenProps {
   onSortChange?: (newSort: { id: string; direction: 'asc' | 'desc' }[]) => void;
   isTrialMode?: boolean;
 }
+
+interface ExamScheduleItem {
+  id: string;
+  day: string;
+  date: string;
+  period: string;
+  fromTime?: string;
+  toTime?: string;
+  subject: string;
+}
+
+const SCHEDULE_DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+const SCHEDULE_PERIODS = ['الفترة الأولى', 'الفترة الثانية', 'الفترة الثالثة'];
+
+export const sortExamScheduleItems = (items: ExamScheduleItem[]): ExamScheduleItem[] => {
+  const DAY_ORDER: Record<string, number> = {
+    'السبت': 1,
+    'الأحد': 2,
+    'الاحد': 2,
+    'الإثنين': 3,
+    'الاثنين': 3,
+    'الثلاثاء': 4,
+    'الأربعاء': 5,
+    'الاربعاء': 5,
+    'الخميس': 6,
+    'الجمعة': 7,
+  };
+
+  const PERIOD_ORDER: Record<string, number> = {
+    'الفترة الأولى': 1,
+    'الفترة الاولى': 1,
+    'الفترة الثانية': 2,
+    'الفترة الثالثة': 3,
+    'الفترة الرابعة': 4,
+    'الفترة الخامسة': 5,
+  };
+
+  return [...items].sort((a, b) => {
+    // 1. الترتيب حسب التاريخ إن وجد وإلا حسب أيام الأسبوع
+    if (a.date && b.date && a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+
+    const dayA = DAY_ORDER[(a.day || '').trim()] || 99;
+    const dayB = DAY_ORDER[(b.day || '').trim()] || 99;
+
+    if (dayA !== dayB) {
+      return dayA - dayB;
+    }
+
+    // 2. الترتيب حسب الفترة
+    const perA = PERIOD_ORDER[(a.period || '').trim()] || (parseInt(a.period || '') || 99);
+    const perB = PERIOD_ORDER[(b.period || '').trim()] || (parseInt(b.period || '') || 99);
+
+    if (perA !== perB) {
+      return perA - perB;
+    }
+
+    // 3. الترتيب حسب وقت البداية
+    if (a.fromTime && b.fromTime && a.fromTime !== b.fromTime) {
+      return a.fromTime.localeCompare(b.fromTime);
+    }
+
+    return 0;
+  });
+};
+
+const formatDateRTL = (dStr: string, nLang: NumberLang) => {
+  if (!dStr) return '-';
+  const cleanStr = dStr.trim();
+  const parts = cleanStr.split(/[-/]/);
+  let formatted = cleanStr;
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      formatted = `${parts[2]} / ${parts[1]} / ${parts[0]}`;
+    } else if (parts[2].length === 4) {
+      formatted = `${parts[0]} / ${parts[1]} / ${parts[2]}`;
+    }
+  }
+  return formatNumberDigits(formatted, nLang);
+};
 
 export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   lang,
@@ -151,6 +233,639 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [nationalIdModalText, setNationalIdModalText] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+
+  const stageDisplayName = (() => {
+    if (stage === 'primary') return 'الابتدائية';
+    if (stage === 'middle' || stage === 'prep') return 'الإعدادية';
+    if (stage === 'secondary') return 'الثانوية';
+    if (stage === 'kindergarten') return 'رياض الأطفال';
+    return stage || '';
+  })();
+
+  const examScheduleStorageKey = `sheet_control_exam_schedule_${stage || 'default'}_${selectedGrade || 'default'}_${semester || 'first'}`;
+
+  const [isExamScheduleModalOpen, setIsExamScheduleModalOpen] = useState(false);
+  const [examSchedule, setExamSchedule] = useState<ExamScheduleItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(examScheduleStorageKey);
+      return saved ? sortExamScheduleItems(JSON.parse(saved)) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(examScheduleStorageKey);
+      setExamSchedule(saved ? sortExamScheduleItems(JSON.parse(saved)) : []);
+    } catch {
+      setExamSchedule([]);
+    }
+  }, [examScheduleStorageKey]);
+
+  const scheduleRowSpans = React.useMemo(() => {
+    const n = examSchedule.length;
+    const daySpans = new Array(n).fill(1);
+    const dateSpans = new Array(n).fill(1);
+    const periodSpans = new Array(n).fill(1);
+    const fromTimeSpans = new Array(n).fill(1);
+    const toTimeSpans = new Array(n).fill(1);
+
+    const showDay = new Array(n).fill(true);
+    const showDate = new Array(n).fill(true);
+    const showPeriod = new Array(n).fill(true);
+    const showFromTime = new Array(n).fill(true);
+    const showToTime = new Array(n).fill(true);
+
+    let i = 0;
+    while (i < n) {
+      let j = i + 1;
+      const curDay = (examSchedule[i].day || "").trim();
+      const curDate = (examSchedule[i].date || "").trim();
+
+      while (
+        j < n &&
+        (examSchedule[j].day || "").trim() === curDay &&
+        (examSchedule[j].date || "").trim() === curDate
+      ) {
+        j++;
+      }
+
+      const count = j - i;
+      daySpans[i] = count;
+      dateSpans[i] = count;
+
+      for (let k = i + 1; k < j; k++) {
+        showDay[k] = false;
+        showDate[k] = false;
+        daySpans[k] = 0;
+        dateSpans[k] = 0;
+      }
+
+      let p = i;
+      while (p < j) {
+        let q = p + 1;
+        const curPeriod = (examSchedule[p].period || "").trim();
+
+        while (
+          q < j &&
+          (examSchedule[q].period || "").trim() === curPeriod
+        ) {
+          q++;
+        }
+
+        const pCount = q - p;
+        periodSpans[p] = pCount;
+        showPeriod[p] = true;
+
+        for (let k = p + 1; k < q; k++) {
+          showPeriod[k] = false;
+          periodSpans[k] = 0;
+        }
+
+        let tf = p;
+        while (tf < q) {
+          let tNext = tf + 1;
+          const curFrom = (examSchedule[tf].fromTime || "").trim();
+          const curTo = (examSchedule[tf].toTime || "").trim();
+
+          while (
+            tNext < q &&
+            (examSchedule[tNext].fromTime || "").trim() === curFrom &&
+            (examSchedule[tNext].toTime || "").trim() === curTo
+          ) {
+            tNext++;
+          }
+
+          const tCount = tNext - tf;
+          fromTimeSpans[tf] = tCount;
+          toTimeSpans[tf] = tCount;
+          showFromTime[tf] = true;
+          showToTime[tf] = true;
+
+          for (let k = tf + 1; k < tNext; k++) {
+            showFromTime[k] = false;
+            showToTime[k] = false;
+            fromTimeSpans[k] = 0;
+            toTimeSpans[k] = 0;
+          }
+
+          tf = tNext;
+        }
+
+        p = q;
+      }
+
+      i = j;
+    }
+
+    return {
+      daySpans,
+      dateSpans,
+      periodSpans,
+      fromTimeSpans,
+      toTimeSpans,
+      showDay,
+      showDate,
+      showPeriod,
+      showFromTime,
+      showToTime,
+    };
+  }, [examSchedule]);
+
+  const availableSubjectsForSchedule = React.useMemo(() => {
+    const isHomeschoolResolved = Boolean(
+      (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool'))) ||
+      (typeof window !== 'undefined' && localStorage.getItem('current_system_type') === 'homeschool')
+    );
+    try {
+      const { customCols: subjCols, defaultSubjectsOverrides: subjOvr } = getSubjectsConfigForStageGrade(
+        stage,
+        selectedGrade,
+        isHomeschoolResolved
+      );
+      if (Array.isArray(subjCols) && subjCols.length > 0) {
+        const list = subjCols.map((sc: any) => subjOvr?.[sc.key]?.label || sc.label).filter(Boolean);
+        const unique = Array.from(new Set(list));
+        if (unique.length > 0) return unique;
+      }
+    } catch (err) {
+      console.error('Error fetching subjects config:', err);
+    }
+    return [
+      'اللغة العربية',
+      'اللغة الإنجليزية',
+      'الرياضيات',
+      'العلوم',
+      'الدراسات الاجتماعية',
+      'التربية الدينية',
+      'تكنولوجيا المعلومات والاتصالات',
+      'التربية الفنية'
+    ];
+  }, [stage, selectedGrade, title]);
+
+  const [schedDay, setSchedDay] = useState<string>('السبت');
+  const [schedDate, setSchedDate] = useState<string>('');
+  const [schedPeriod, setSchedPeriod] = useState<string>('الفترة الأولى');
+  const [schedFromTime, setSchedFromTime] = useState<string>('08:00');
+  const [schedToTime, setSchedToTime] = useState<string>('09:30');
+  const [schedSubject, setSchedSubject] = useState<string>('');
+
+  useEffect(() => {
+    if (availableSubjectsForSchedule.length > 0 && (!schedSubject || !availableSubjectsForSchedule.includes(schedSubject))) {
+      setSchedSubject(availableSubjectsForSchedule[0]);
+    }
+  }, [availableSubjectsForSchedule, schedSubject]);
+
+  const handleDateChange = (val: string) => {
+    setSchedDate(val);
+    if (val) {
+      try {
+        const d = new Date(val);
+        const dayIndex = d.getDay();
+        const dayMap: Record<number, string> = {
+          6: 'السبت',
+          0: 'الأحد',
+          1: 'الإثنين',
+          2: 'الثلاثاء',
+          3: 'الأربعاء',
+          4: 'الخميس',
+        };
+        if (dayIndex !== 5 && dayMap[dayIndex]) {
+          setSchedDay(dayMap[dayIndex]);
+        }
+      } catch {}
+    }
+  };
+
+  const [editingScheduleItemId, setEditingScheduleItemId] = useState<string | null>(null);
+
+  const handleStartEditScheduleItem = (item: ExamScheduleItem) => {
+    setEditingScheduleItemId(item.id);
+    setSchedDay(item.day || 'السبت');
+    setSchedDate(item.date || '');
+    setSchedPeriod(item.period || 'الفترة الأولى');
+    setSchedFromTime(item.fromTime || '08:00');
+    setSchedToTime(item.toTime || '09:30');
+    setSchedSubject(item.subject || (availableSubjectsForSchedule[0] || 'اللغة العربية'));
+  };
+
+  const handleCancelEditSchedule = () => {
+    setEditingScheduleItemId(null);
+  };
+
+  const handleAddScheduleItem = () => {
+    const subToAdd = schedSubject || (availableSubjectsForSchedule[0] || 'اللغة العربية');
+    if (editingScheduleItemId) {
+      const updated = examSchedule.map(item => {
+        if (item.id === editingScheduleItemId) {
+          return {
+            ...item,
+            day: schedDay,
+            date: schedDate,
+            period: schedPeriod,
+            fromTime: schedFromTime,
+            toTime: schedToTime,
+            subject: subToAdd,
+          };
+        }
+        return item;
+      });
+      const sorted = sortExamScheduleItems(updated);
+      setExamSchedule(sorted);
+      setEditingScheduleItemId(null);
+      try {
+        localStorage.setItem(examScheduleStorageKey, JSON.stringify(sorted));
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
+
+    const newItem: ExamScheduleItem = {
+      id: Math.random().toString(36).substring(2, 10),
+      day: schedDay,
+      date: schedDate,
+      period: schedPeriod,
+      fromTime: schedFromTime,
+      toTime: schedToTime,
+      subject: subToAdd,
+    };
+    const updated = [...examSchedule, newItem];
+    const sorted = sortExamScheduleItems(updated);
+    setExamSchedule(sorted);
+    try {
+      localStorage.setItem(examScheduleStorageKey, JSON.stringify(sorted));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteScheduleItem = (id: string) => {
+    if (editingScheduleItemId === id) {
+      setEditingScheduleItemId(null);
+    }
+    const updated = examSchedule.filter(item => item.id !== id);
+    setExamSchedule(updated);
+    try {
+      localStorage.setItem(examScheduleStorageKey, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleClearSchedule = () => {
+    setExamSchedule([]);
+    try {
+      localStorage.removeItem(examScheduleStorageKey);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePrintExamSchedule = () => {
+    try {
+      exportExamScheduleToPdf({
+        stage,
+        selectedGrade,
+        semester,
+        administration,
+        schoolName,
+        dataOfficer,
+        controlHead,
+        committeeHead,
+        numberLang,
+        examSchedule,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    const printIframe = document.createElement('iframe');
+    printIframe.style.position = 'fixed';
+    printIframe.style.right = '0';
+    printIframe.style.bottom = '0';
+    printIframe.style.width = '0';
+    printIframe.style.height = '0';
+    printIframe.style.border = '0';
+    document.body.appendChild(printIframe);
+
+    const doc = printIframe.contentWindow?.document;
+    if (!doc) return;
+
+    let printRows = [];
+    let pIdx = 0;
+    while (pIdx < examSchedule.length) {
+      let pNext = pIdx + 1;
+      const curDay = (examSchedule[pIdx].day || "").trim();
+      const curDate = (examSchedule[pIdx].date || "").trim();
+      while (
+        pNext < examSchedule.length &&
+        (examSchedule[pNext].day || "").trim() === curDay &&
+        (examSchedule[pNext].date || "").trim() === curDate
+      ) {
+        pNext++;
+      }
+      const dayDateSpan = pNext - pIdx;
+
+      let subIdx = pIdx;
+      while (subIdx < pNext) {
+        let subNext = subIdx + 1;
+        const curPeriod = (examSchedule[subIdx].period || "").trim();
+        while (
+          subNext < pNext &&
+          (examSchedule[subNext].period || "").trim() === curPeriod
+        ) {
+          subNext++;
+        }
+        const periodSpan = subNext - subIdx;
+
+        let tfIdx = subIdx;
+        while (tfIdx < subNext) {
+          let tfNext = tfIdx + 1;
+          const curFrom = (examSchedule[tfIdx].fromTime || "").trim();
+          const curTo = (examSchedule[tfIdx].toTime || "").trim();
+          while (
+            tfNext < subNext &&
+            (examSchedule[tfNext].fromTime || "").trim() === curFrom &&
+            (examSchedule[tfNext].toTime || "").trim() === curTo
+          ) {
+            tfNext++;
+          }
+          const timeSpan = tfNext - tfIdx;
+
+          for (let k = tfIdx; k < tfNext; k++) {
+            const item = examSchedule[k];
+            const isFirstDayDate = k === pIdx;
+            const isFirstPeriod = k === subIdx;
+            const isFirstTime = k === tfIdx;
+            const isNewDayDivider = k > 0 && isFirstDayDate;
+            const dayDividerStyle = "";
+            if (isNewDayDivider) {
+              printRows.push(`
+                <tr style="height: 18px; background: #fff;">
+                  <td colspan="7" style="padding: 0; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; border-left: none; border-right: none;">&nbsp;</td>
+                </tr>
+              `);
+            }
+
+            printRows.push(`
+              <tr>
+                <td style="padding: 10px 6px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: bold;">${formatNumberDigits(String(k + 1), numberLang)}</td>
+                ${isFirstDayDate ? `<td rowspan="${dayDateSpan}" style="padding: 10px 8px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: bold; font-size: 15px; vertical-align: middle;">${item.day}</td>` : ""}
+                ${isFirstDayDate ? `<td rowspan="${dayDateSpan}" style="padding: 10px 8px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: 900; font-family: monospace; font-size: 22px; vertical-align: middle;" dir="rtl">${formatDateRTL(item.date, numberLang)}</td>` : ""}
+                ${isFirstPeriod ? `<td rowspan="${periodSpan}" style="padding: 10px 8px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: bold; font-size: 15px; vertical-align: middle;">${item.period}</td>` : ""}
+                ${isFirstTime ? `<td rowspan="${timeSpan}" style="padding: 10px 8px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: 900; font-family: monospace; font-size: 22px; vertical-align: middle;"><span dir="ltr">${item.fromTime && item.fromTime.includes(":") ? `${formatNumberDigits(item.fromTime.split(":")[0].trim(), numberLang)} : ${formatNumberDigits(item.fromTime.split(":")[1].trim(), numberLang)}` : item.fromTime ? formatNumberDigits(item.fromTime, numberLang) : "-"}</span></td>` : ""}
+                ${isFirstTime ? `<td rowspan="${timeSpan}" style="padding: 10px 8px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: 900; font-family: monospace; font-size: 22px; vertical-align: middle;"><span dir="ltr">${item.toTime && item.toTime.includes(":") ? `${formatNumberDigits(item.toTime.split(":")[0].trim(), numberLang)} : ${formatNumberDigits(item.toTime.split(":")[1].trim(), numberLang)}` : item.toTime ? formatNumberDigits(item.toTime, numberLang) : "-"}</span></td>` : ""}
+                <td style="padding: 10px 10px; border: 2px solid #000; ${dayDividerStyle} text-align: center; font-weight: 900; font-size: 16px;">${item.subject}</td>
+              </tr>
+            `);
+          }
+          tfIdx = tfNext;
+        }
+        subIdx = subNext;
+      }
+      pIdx = pNext;
+    }
+    const rowsHtml = printRows.join("");
+
+    const fullStageTitle = (() => {
+      if (stage === "kindergarten") return "رياض الأطفال";
+      if (stage === "primary") return "المرحلة الابتدائية";
+      if (stage === "middle" || stage === "prep") return "المرحلة الإعدادية";
+      if (stage === "secondary") return "المرحلة الثانوية";
+      if (stage) return stage.startsWith("المرحلة") ? stage : `المرحلة ${stage}`;
+      return "الدراسية";
+    })();
+
+    const examScheduleTitle = fullStageTitle
+      ? `جدول امتحانات ${fullStageTitle}${selectedGrade ? ` - ${selectedGrade}` : ""}`
+      : `جدول امتحانات ${selectedGrade || ""}`;
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayFormatted = formatDateRTL(todayStr, numberLang);
+    const taglineText = getActiveFooterTagline(selectedGrade, stage) || "المنظومة الرقمية لريادة أعمال المدارس المصرية  01098594956 - 01131097055";
+
+    const adminDisplay = administration && administration.trim() ? applyEntityTerms(administration.trim()) : "........................";
+    const schoolDisplay = schoolName && schoolName.trim() ? applyEntityTerms(schoolName.trim()) : "........................";
+    const dataOfficerDisplay = dataOfficer && dataOfficer.trim() ? dataOfficer.trim() : "........................";
+    const controlHeadDisplay = controlHead && controlHead.trim() ? controlHead.trim() : "........................";
+    const committeeHeadDisplay = committeeHead && committeeHead.trim() ? committeeHead.trim() : "........................";
+
+    const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8">
+        <title>${examScheduleTitle}</title>
+        <style>
+          @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap");
+          * { box-sizing: border-box; }
+          body {
+            font-family: "Cairo", Tahoma, sans-serif;
+            margin: 0;
+            padding: 15px;
+            direction: rtl;
+            text-align: center;
+            color: #0f172a;
+            background-color: #ffffff;
+          }
+          .page-container {
+            width: 100%;
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 10px;
+          }
+          .header-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2.5px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1.7;
+          }
+          .header-right {
+            text-align: right;
+          }
+          .header-left {
+            text-align: left;
+            font-size: 13px;
+          }
+          .title-banner {
+            background: linear-gradient(135deg, #0a2240 0%, #1e3a8a 100%);
+            color: #ffffff;
+            padding: 8px 24px;
+            border-radius: 8px;
+            display: inline-block;
+            font-size: 22px;
+            font-weight: 900;
+            margin: 0 auto 6px auto;
+            border: 2px solid #c29b38;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          .subtitle-text {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 16px;
+          }
+          table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 2.5px solid #000;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 15px;
+          }
+          th {
+            border: 2.5px solid #000;
+            padding: 15px 8px;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 900;
+            font-size: 16px;
+            text-align: center;
+          }
+          td {
+            border: 2px solid #000;
+            padding: 8px 6px;
+            vertical-align: middle;
+          }
+          .footer-section {
+            margin-top: 30px;
+            page-break-inside: avoid;
+          }
+          .signatures-hr {
+            border: none;
+            border-top: 2.5px solid #0f172a;
+            margin-bottom: 10px;
+          }
+          .signatures-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            font-size: 13.5px;
+            color: #0f172a;
+            padding: 4px 8px;
+          }
+          .signatures-right {
+            display: flex;
+            gap: 20px;
+            text-align: right;
+            flex-wrap: wrap;
+          }
+          .page-info-left {
+            text-align: left;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            white-space: nowrap;
+          }
+          .sub-footer-hr {
+            border: none;
+            border-top: 1.5px solid #94a3b8;
+            margin: 10px 0 6px 0;
+          }
+          .tagline-text {
+            font-size: 12px;
+            font-weight: 800;
+            color: #334155;
+            text-align: center;
+          }
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm;
+            }
+            body {
+              padding: 0;
+            }
+            .page-container {
+              max-width: 100%;
+              padding: 0;
+            }
+            .title-banner {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            th {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          <div class="header-box">
+            <div class="header-right">
+              <div>${applyEntityTerms("الإدارة :")} ${adminDisplay}</div>
+            </div>
+            <div class="header-left">
+              <div>${applyEntityTerms(stage === "kindergarten" ? "الروضة :" : "المدرسة :")} ${schoolDisplay}</div>
+            </div>
+          </div>
+          
+          <div class="title-banner">${examScheduleTitle}</div>
+          <div class="subtitle-text">${semester === "first" ? "امتحانات الفصل الدراسي الأول" : "امتحانات الفصل الدراسي الثاني"}</div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 45px;">م</th>
+                <th style="width: 110px;">اليوم</th>
+                <th style="width: 130px;">التاريخ</th>
+                <th style="width: 120px;">الفترة</th>
+                <th style="width: 90px;">من</th>
+                <th style="width: 90px;">إلى</th>
+                <th>المادة الدراسية</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          
+          <div class="footer-section">
+            <hr class="signatures-hr" />
+            <div class="signatures-row">
+              <div class="signatures-right">
+                <div>مسئول البيانات والمعلومات : ${dataOfficerDisplay}</div>
+                <div>رئيس الكنترول : ${controlHeadDisplay}</div>
+                <div>رئيس اللجنة : ${committeeHeadDisplay}</div>
+              </div>
+              <div class="page-info-left">
+                الصفحة 1 من 1 - ${todayFormatted}
+              </div>
+            </div>
+            <hr class="sub-footer-hr" />
+            <div class="tagline-text">
+              ${taglineText}
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      printIframe.contentWindow?.focus();
+      printIframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(printIframe);
+      }, 1000);
+    }, 300);
+  };
   const [editingRowTheme, setEditingRowTheme] = useState<RowBgTheme>(() => {
     if (typeof window !== 'undefined') {
       const saved = (localStorage.getItem('students_data_row_theme') || localStorage.getItem('editing_table_row_theme')) as RowBgTheme | null;
@@ -492,6 +1207,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       isFirstGrade,
       showExamFields,
       semester,
+      examSchedule,
       normalizeStatusForGrade,
       labels: {
         serial: t.serial,
@@ -685,6 +1401,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       }
     }
     if (stage !== 'kindergarten') {
+      if (reportType === 'seat_numbers_with_schedule') {
+        await executePrintOption('seat_numbers_with_schedule');
+        return;
+      }
       if (reportType === 'seat_numbers') {
         setIsSeatNumbersEnglish(false);
         setIsSeatNumbersModalOpen(true);
@@ -1782,6 +2502,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           disabled={isTrialMode}
                           title={isTrialMode ? "متاح فى النسخة الرسمية فقط" : undefined}
                         />
+
+                        <ActionMenuButton
+                          onClick={() => { setIsToolsMenuOpen(false); setIsExamScheduleModalOpen(true); }}
+                          icon={<Calendar className="w-4 h-4" />}
+                          text="تحرير جدول الامتحان"
+                          bgGradient="bg-[linear-gradient(to_right,#0284c7,#2563eb,#0284c7)]"
+                        />
                         
                         {showExamFields && (
                           <>
@@ -1980,6 +2707,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               icon={<Printer className="w-4 h-4" />}
                               text="أرقام الجلوس"
                               bgGradient="bg-[linear-gradient(to_right,#f59e0b,#d97706,#f59e0b)]"
+                            />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('seat_numbers_with_schedule')}
+                              icon={<Printer className="w-4 h-4" />}
+                              text="أرقام الجلوس بجدول الإمتحانات"
+                              bgGradient="bg-[linear-gradient(to_right,#f59e0b,#ea580c,#f59e0b)]"
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('seat_numbers_english')}
@@ -3693,7 +4426,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
                   <button
                     onClick={handleModalAdd}
-                    className="flex-[2] py-3 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
+                    className="flex-[2] h-14 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
                   >
                     <Plus className="w-6 h-6" strokeWidth={3} />
                     {t.add}
@@ -3792,7 +4525,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
                   <button
                     onClick={handleNationalIdModalAdd}
-                    className="flex-[2] py-3 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
+                    className="flex-[2] h-14 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
                   >
                     <Plus className="w-6 h-6" strokeWidth={3} />
                     {t.add}
@@ -3802,6 +4535,415 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
                   >
                     <X className="w-8 h-8" strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Exam Schedule Modal Overlay */}
+      <AnimatePresence>
+        {isExamScheduleModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm [perspective:1000px]"
+            onClick={() => setIsExamScheduleModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
+              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              className="relative w-full max-w-6xl rounded-[24px] shadow-2xl overflow-hidden p-0 flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+
+              <div className="relative z-10 flex flex-col w-full max-h-[90vh] rounded-[20px] overflow-hidden bg-white">
+                {/* Header */}
+                <div className="py-5 sm:py-6 min-h-[76px] sm:min-h-[84px] flex flex-col items-center justify-center text-center relative overflow-hidden bg-gradient-to-r from-blue-700 via-emerald-600 to-amber-500 border-b-2 border-slate-900 shadow-md">
+                  <motion.div
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ repeat: Infinity, duration: 38, ease: "linear" }}
+                    className="flex items-center gap-2.5 whitespace-nowrap"
+                  >
+                    <Calendar className="w-6 h-6 text-yellow-300 shrink-0 drop-shadow" strokeWidth={2.5} />
+                    <h3 className="text-base sm:text-lg md:text-xl font-black text-white drop-shadow tracking-wide">
+                      جدول امتحانات {stageDisplayName.startsWith('المرحلة') ? stageDisplayName : 'المرحلة ' + stageDisplayName} - {selectedGrade || ''} - {semester === 'first' ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثاني'} - 2026 - 2027
+                    </h3>
+                  </motion.div>
+                </div>
+
+                {/* Body */}
+                <div className="p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar bg-slate-50/80">
+                  {/* Inputs Form */}
+                  <div className="bg-[linear-gradient(135deg,#fbcfe8_0%,#fce7f3_35%,#ccfbf1_70%,#99f6e4_100%)] rounded-2xl border-2 border-slate-900 p-4 sm:p-5 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center gap-2 border-b border-slate-900/20 pb-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                      <span className="font-black text-sm text-slate-900">
+                        {editingScheduleItemId ? 'تعديل مادة في جدول الامتحان :' : 'إضافة مادة إلى جدول الامتحان :'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                      {/* Day */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          اليوم :
+                        </label>
+                        <select
+                          value={schedDay}
+                          onChange={(e) => setSchedDay(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-sm sm:text-base focus:outline-none appearance-none [-webkit-appearance:none] [-moz-appearance:none] bg-none text-center cursor-pointer shadow-sm transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                          style={{ textAlignLast: 'center' }}
+                        >
+                          {SCHEDULE_DAYS.map(d => (
+                            <option key={d} value={d} className="font-bold">{d}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Date */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          التاريخ :
+                        </label>
+                        <input
+                          type="date"
+                          value={schedDate}
+                          onChange={(e) => handleDateChange(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-sm sm:text-base focus:outline-none text-center cursor-pointer shadow-sm font-mono transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Period */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          الفترة :
+                        </label>
+                        <select
+                          value={schedPeriod}
+                          onChange={(e) => setSchedPeriod(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-sm sm:text-base focus:outline-none appearance-none [-webkit-appearance:none] [-moz-appearance:none] bg-none text-center cursor-pointer shadow-sm transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                          style={{ textAlignLast: 'center' }}
+                        >
+                          {SCHEDULE_PERIODS.map(p => (
+                            <option key={p} value={p} className="font-bold">{p}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* From Time */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          من :
+                        </label>
+                        <input
+                          type="time"
+                          value={schedFromTime}
+                          onChange={(e) => setSchedFromTime(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-lg sm:text-xl focus:outline-none text-center cursor-pointer shadow-sm font-mono transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                        />
+                      </div>
+
+                      {/* To Time */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          إلى :
+                        </label>
+                        <input
+                          type="time"
+                          value={schedToTime}
+                          onChange={(e) => setSchedToTime(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-lg sm:text-xl focus:outline-none text-center cursor-pointer shadow-sm font-mono transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Subject */}
+                      <div className="flex flex-col gap-1.5 text-right">
+                        <label className={`font-black text-xs sm:text-sm flex items-center gap-1.5 ${editingScheduleItemId ? 'text-amber-950' : 'text-slate-900'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${editingScheduleItemId ? 'bg-amber-600 animate-pulse' : 'bg-blue-600'}`} />
+                          المادة الدراسية :
+                        </label>
+                        <select
+                          value={schedSubject}
+                          onChange={(e) => setSchedSubject(e.target.value)}
+                          className={`w-full h-12 px-3 rounded-xl border-2 text-sm sm:text-base focus:outline-none appearance-none [-webkit-appearance:none] [-moz-appearance:none] bg-none text-center cursor-pointer shadow-sm transition-all font-black ${
+                            editingScheduleItemId
+                              ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] border-amber-600 text-amber-950 ring-2 ring-amber-400/50 shadow-md'
+                              : 'border-slate-900 bg-white text-slate-900 hover:bg-slate-50 focus:border-blue-600 focus:ring-2 ring-blue-500/20'
+                          }`}
+                          style={{ textAlignLast: 'center' }}
+                        >
+                          {availableSubjectsForSchedule.map(s => (
+                            <option key={s} value={s} className="font-bold">{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      {editingScheduleItemId ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleCancelEditSchedule}
+                            className="h-12 px-5 rounded-xl font-black text-slate-700 bg-white hover:bg-slate-100 transition-all border-2 border-slate-900 active:scale-95 text-sm sm:text-base flex items-center justify-center gap-1.5 shadow-sm"
+                          >
+                            <X className="w-4 h-4" />
+                            إلغاء التعديل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAddScheduleItem}
+                            className="h-12 px-7 rounded-xl font-black text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-sm sm:text-base flex items-center justify-center gap-2"
+                          >
+                            <Check className="w-5 h-5" strokeWidth={3} />
+                            حفظ التعديل
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleAddScheduleItem}
+                          className="w-full sm:w-auto h-12 px-8 rounded-xl font-black text-white bg-gradient-to-r from-red-600 via-rose-600 to-pink-600 hover:from-red-700 hover:to-pink-700 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-sm sm:text-base flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-5 h-5" strokeWidth={3} />
+                          إضافة إلى جدول الامتحان
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Schedule Table */}
+                  <div className="bg-[linear-gradient(to_right,#ffffff,#f0fdf4,#ffffff)] bg-[length:200%_auto] animate-shine rounded-2xl border-2 border-slate-900 overflow-hidden shadow-sm flex flex-col">
+                    <div className="p-3 bg-slate-100 border-b-2 border-slate-900 flex justify-between items-center">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 whitespace-nowrap truncate">
+                          جدول امتحانات المرحلة {stageDisplayName} - {selectedGrade || ''} - {semester === 'first' ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثاني'} - 2026 - 2027
+                        </span>
+                      </div>
+                      {examSchedule.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('هل أنت متأكد من مسح جميع بنود جدول الامتحان؟')) {
+                              handleClearSchedule();
+                            }
+                          }}
+                          className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 transition-colors shrink-0 mr-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          مسح الكل
+                        </button>
+                      )}
+                    </div>
+
+                    {examSchedule.length === 0 ? (
+                      <div className="py-12 px-4 flex flex-col items-center justify-center text-center gap-3">
+                        <div className="w-14 h-14 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center text-blue-500">
+                          <Calendar className="w-7 h-7" />
+                        </div>
+                        <p className="font-black text-slate-700 text-sm">
+                          لم يتم إضافة أي مواد إلى جدول الامتحان بعد
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-6 overflow-x-auto rounded-2xl border-y-2 border-slate-900 shadow-sm">
+                        <table className="w-full text-center border-collapse">
+                          <thead>
+                            <tr className="bg-slate-200/80 text-slate-900 font-black text-xs sm:text-sm border-b-2 border-slate-900">
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900 w-12">م</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">اليوم</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">التاريخ</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">الفترة</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">من</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">إلى</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900">المادة الدراسية</th>
+                              <th className="py-2.5 px-3 border-l-2 border-slate-900 w-16">تعديل</th>
+                              <th className="py-2.5 px-3 w-16">حذف</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {examSchedule.map((item, idx) => {
+                              const showDay = scheduleRowSpans.showDay[idx];
+                              const daySpan = scheduleRowSpans.daySpans[idx];
+                              const showDate = scheduleRowSpans.showDate[idx];
+                              const dateSpan = scheduleRowSpans.dateSpans[idx];
+                              const showPeriod = scheduleRowSpans.showPeriod[idx];
+                              const periodSpan = scheduleRowSpans.periodSpans[idx];
+                              const showFromTime = scheduleRowSpans.showFromTime[idx];
+                              const fromTimeSpan = scheduleRowSpans.fromTimeSpans[idx];
+                              const showToTime = scheduleRowSpans.showToTime[idx];
+                              const toTimeSpan = scheduleRowSpans.toTimeSpans[idx];
+
+                              const isNewDayDivider = idx > 0 && showDay;
+                              const divCls = "";
+
+                              return (
+                                <React.Fragment key={item.id}>
+                                  {isNewDayDivider && (
+                                    <tr key={`sep-${item.id}`} className="bg-white h-5">
+                                      <td
+                                        colSpan={9}
+                                        className="p-0 h-5 border-t-2 border-b-2 border-slate-900 border-l-0 border-r-0 bg-slate-50/50"
+                                      >
+                                        &nbsp;
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr
+                                    className={`font-bold text-xs sm:text-sm border-b border-slate-300 hover:bg-emerald-50/60 transition-colors ${
+                                      editingScheduleItemId === item.id ? 'bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950 ring-2 ring-amber-500 shadow-md font-black' : idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                                    }`}
+                                  >
+                                    <td className="py-2.5 px-3 border-l-2 border-slate-900 text-slate-600 font-mono">
+                                    {formatNumberDigits(String(idx + 1), numberLang)}
+                                  </td>
+                                  {showDay && (
+                                    <td
+                                      rowSpan={daySpan}
+                                      className={`py-2.5 px-3 border-l-2 border-slate-900 font-black align-middle text-center ${divCls} ${editingScheduleItemId === item.id ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950" : "bg-white text-slate-900"}`}
+                                    >
+                                      {item.day}
+                                    </td>
+                                  )}
+                                  {showDate && (
+                                    <td
+                                      rowSpan={dateSpan}
+                                      className={`py-2.5 px-3 border-l-2 border-slate-900 font-mono font-black text-base sm:text-lg md:text-xl align-middle text-center ${divCls} ${editingScheduleItemId === item.id ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950" : "bg-white text-slate-900"}`}
+                                    >
+                                      {item.date ? (
+                                        <span dir="rtl" className="inline-block">{formatDateRTL(item.date, numberLang)}</span>
+                                      ) : "-"}
+                                    </td>
+                                  )}
+                                  {showPeriod && (
+                                    <td
+                                      rowSpan={periodSpan}
+                                      className={`py-2.5 px-3 border-l-2 border-slate-900 font-black align-middle text-center ${divCls} ${editingScheduleItemId === item.id ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950" : "bg-white text-slate-800"}`}
+                                    >
+                                      {item.period}
+                                    </td>
+                                  )}
+                                  {showFromTime && (
+                                    <td
+                                      rowSpan={fromTimeSpan}
+                                      className={`py-2.5 px-3 border-l-2 border-slate-900 font-mono font-black text-base sm:text-lg md:text-xl align-middle text-center ${divCls} ${
+                                        editingScheduleItemId === item.id
+                                          ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950"
+                                          : "bg-white text-slate-900"
+                                      }`}
+                                    >
+                                      {item.fromTime && item.fromTime.includes(":") ? (
+                                        <span dir="ltr" className="inline-flex items-center justify-center gap-1.5 font-mono font-black">
+                                          <span>{formatNumberDigits(item.fromTime.split(":")[0].trim(), numberLang)}</span>
+                                          <span>:</span>
+                                          <span>{formatNumberDigits(item.fromTime.split(":")[1].trim(), numberLang)}</span>
+                                        </span>
+                                      ) : item.fromTime ? formatNumberDigits(item.fromTime, numberLang) : "-"}
+                                    </td>
+                                  )}
+                                  {showToTime && (
+                                    <td
+                                      rowSpan={toTimeSpan}
+                                      className={`py-2.5 px-3 border-l-2 border-slate-900 font-mono font-black text-base sm:text-lg md:text-xl align-middle text-center ${divCls} ${
+                                        editingScheduleItemId === item.id
+                                          ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950"
+                                          : "bg-white text-slate-900"
+                                      }`}
+                                    >
+                                      {item.toTime && item.toTime.includes(":") ? (
+                                        <span dir="ltr" className="inline-flex items-center justify-center gap-1.5 font-mono font-black">
+                                          <span>{formatNumberDigits(item.toTime.split(":")[0].trim(), numberLang)}</span>
+                                          <span>:</span>
+                                          <span>{formatNumberDigits(item.toTime.split(":")[1].trim(), numberLang)}</span>
+                                        </span>
+                                      ) : item.toTime ? formatNumberDigits(item.toTime, numberLang) : "-"}
+                                    </td>
+                                  )}
+                                  <td className={`py-2.5 px-3 border-l-2 border-slate-900 font-black text-sm ${divCls} ${editingScheduleItemId === item.id ? "bg-[linear-gradient(135deg,#fef08a_0%,#fde047_50%,#fef08a_100%)] text-amber-950" : "text-blue-950"}`}>
+                                    {item.subject}
+                                  </td>
+                                  <td className={`py-2.5 px-3 border-l-2 border-slate-900 text-center ${divCls}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEditScheduleItem(item)}
+                                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
+                                      title="تعديل هذا البند"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                  <td className={`py-2.5 px-3 text-center ${divCls}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteScheduleItem(item.id)}
+                                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-100 transition-colors"
+                                      title="حذف هذا البند"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              </React.Fragment>
+                            );
+                          })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-slate-100 border-t-2 border-slate-900 p-4 sm:p-5 flex justify-between items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={examSchedule.length === 0}
+                      onClick={handlePrintExamSchedule}
+                      className="h-12 px-6 rounded-xl font-black text-white bg-[linear-gradient(to_right,#059669,#10b981,#059669)] hover:bg-[linear-gradient(to_right,#047857,#059669,#047857)] bg-[length:200%_auto] animate-shine transition-all shadow-md border-2 border-slate-900 active:scale-95 text-sm sm:text-base flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <FileDown className="w-5 h-5" strokeWidth={2.5} />
+                      تصدير إلى PDF
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsExamScheduleModalOpen(false)}
+                    className="h-12 px-8 rounded-xl font-black text-slate-800 bg-white hover:bg-slate-200 transition-colors border-2 border-slate-900 shadow-sm active:scale-95 text-sm sm:text-base flex items-center justify-center"
+                  >
+                    إغلاق
                   </button>
                 </div>
               </div>

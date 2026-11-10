@@ -1,4 +1,4 @@
-import { StudentData } from '../types';
+import { StudentData, ExamScheduleItem } from '../types';
 import { applyEntityTerms } from '../i18n';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal, formatToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
@@ -6,7 +6,51 @@ import { sortStudents, SortCriterion } from './studentSorting';
 import { getActiveFooterTagline } from './adFilter';
 import { formatNumberDigits, NumberLang } from './numberLangHelper';
 import qrCodeUrl from '../assets/images/asd11.jpg';
-const ministryLogoUrl = '';
+import ministryLogoUrl from '../assets/images/ministry_logo.png';
+
+const DAY_ORDER_MAP: Record<string, number> = {
+  'السبت': 1,
+  'الأحد': 2,
+  'الاحد': 2,
+  'الإثنين': 3,
+  'الاثنين': 3,
+  'الثلاثاء': 4,
+  'الأربعاء': 5,
+  'الاربعاء': 5,
+  'الخميس': 6,
+  'الجمعة': 7,
+};
+
+const PERIOD_ORDER_MAP: Record<string, number> = {
+  'الفترة الأولى': 1,
+  'الفترة الاولى': 1,
+  'الفترة الثانية': 2,
+  'الفترة الثالثة': 3,
+  'الفترة الرابعة': 4,
+  'الفترة الخامسة': 5,
+};
+
+function sortExamScheduleItemsLocal(items: ExamScheduleItem[]): ExamScheduleItem[] {
+  return [...items].sort((a, b) => {
+    if (a.date && b.date && a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    const dayA = DAY_ORDER_MAP[(a.day || '').trim()] || 99;
+    const dayB = DAY_ORDER_MAP[(b.day || '').trim()] || 99;
+    if (dayA !== dayB) return dayA - dayB;
+
+    const perA = PERIOD_ORDER_MAP[(a.period || '').trim()] || (parseInt(a.period || '') || 99);
+    const perB = PERIOD_ORDER_MAP[(b.period || '').trim()] || (parseInt(b.period || '') || 99);
+    if (perA !== perB) return perA - perB;
+
+    if (a.fromTime && b.fromTime && a.fromTime !== b.fromTime) {
+      return a.fromTime.localeCompare(b.fromTime);
+    }
+    return 0;
+  });
+}
+
+
 
 const isNumericGrade = (v: string): boolean => {
   if (!v) return false;
@@ -126,6 +170,7 @@ export type PdfReportType =
   | 'students_data'
   | 'calling_list'
   | 'seat_numbers'
+  | 'seat_numbers_with_schedule'
   | 'seat_numbers_default'
   | 'seat_numbers_model_1'
   | 'seat_numbers_model_2'
@@ -316,6 +361,7 @@ export interface ExportStudentsPdfOptions {
   isFirstGrade: boolean;
   showExamFields: boolean;
   semester: string;
+  examSchedule?: ExamScheduleItem[];
   normalizeStatusForGrade: (status: string, isFirst: boolean, gender?: string) => string;
   labels: {
     serial: string;
@@ -3288,6 +3334,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     semester: propSemester,
     normalizeStatusForGrade,
     labels,
+    examSchedule: propExamSchedule,
   } = options;
 
   activePdfNumberLang = numberLang || (typeof window !== 'undefined' ? (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar' : 'ar');
@@ -3782,8 +3829,10 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
   // A4 Portrait for seat_numbers, calling_list, and secret_numbers; A4 Landscape for other reports; A1 Landscape for non-Kindergarten control_sheet
   const isNonKgControlSheet = isControlSheet && !isKindergartenStage;
+  const isSeatNumbersWithSchedule = reportType === 'seat_numbers_with_schedule';
   const isSeatNumbersCard =
     reportType === 'seat_numbers' ||
+    isSeatNumbersWithSchedule ||
     Boolean(reportType && reportType.startsWith('seat_numbers'));
   const isPortrait =
     isSeatNumbersCard ||
@@ -3873,7 +3922,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     committeeNumText: getStudentCommitteeNum(student, idx),
   }));
 
-  const rowsPerPage = isSeatNumbersCard ? 3 : 15;
+  const rowsPerPage = isSeatNumbersWithSchedule ? 2 : isSeatNumbersCard ? 3 : 15;
   const pagesData: IndexedStudent[][] = [];
 
   const isExplicitlyRegular = Boolean(
@@ -4989,6 +5038,357 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     ctx.fillRect(0, 0, widthPx, heightPx);
 
     if (isSeatNumbersCard) {
+      if (isSeatNumbersWithSchedule) {
+        let schedList: ExamScheduleItem[] = propExamSchedule || [];
+        if ((!schedList || schedList.length === 0) && typeof window !== 'undefined') {
+          try {
+            const storageKey = `exam_schedule_${stage}_${selectedGrade}`;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+              schedList = JSON.parse(saved);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        const sortedSched = sortExamScheduleItemsLocal(schedList);
+        const rawCleanTitle = (title || '').trim();
+        const cleanTitle = rawCleanTitle;
+
+        const pageStudents =
+          students.length > 0
+            ? students.slice(pageIdx * rowsPerPage, (pageIdx + 1) * rowsPerPage)
+            : [
+                {
+                  id: 'empty',
+                  name: 'لا يوجد',
+                  nationalId: '',
+                  gender: 'male',
+                  enrollmentStatus: '',
+                  enrollmentType: 'قيد عادى',
+                  religion: 'muslim',
+                } as StudentData,
+              ];
+
+        const now = new Date();
+        let day = now.getDate();
+        let month = now.getMonth() + 1;
+        let year = now.getFullYear();
+        try {
+          const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Africa/Cairo',
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+          }).formatToParts(now);
+          const d = parts.find((p) => p.type === 'day')?.value;
+          const m = parts.find((p) => p.type === 'month')?.value;
+          const y = parts.find((p) => p.type === 'year')?.value;
+          if (d && m && y) {
+            day = parseInt(d, 10);
+            month = parseInt(m, 10);
+            year = parseInt(y, 10);
+          }
+        } catch {}
+        const dateDisplay = `${day} - ${month} - ${year} م`;
+
+        let fallbackCommSize = 20;
+        let fallbackMergeLast = false;
+        try {
+          const savedSize = Number(localStorage.getItem('sheet_control_committee_size'));
+          if (savedSize >= 1) fallbackCommSize = savedSize;
+          const savedMerge = localStorage.getItem('sheet_control_merge_last_committee');
+          if (savedMerge !== null) fallbackMergeLast = savedMerge === 'true';
+        } catch {}
+
+        const totalStudentsCount = students.length;
+        const fullCommitteesCount = Math.floor(totalStudentsCount / fallbackCommSize);
+        const hasIncompleteLastComm =
+          totalStudentsCount > fallbackCommSize && totalStudentsCount % fallbackCommSize !== 0;
+
+        const sectionHeight = 840;
+        const topPadding = 40;
+
+        const { evenBg: themeEvenBg, oddBg: themeOddBg } = getReportRowBgColors(reportType, false, rowTheme);
+
+        pageStudents.forEach((student, cIdx) => {
+          const globalStudentIdx = pageIdx * rowsPerPage + cIdx;
+          const statusText = normalizeStatusForGrade(
+            student.enrollmentStatus,
+            isFirstGrade,
+            student.gender
+          );
+          const enrollmentTypeText =
+            student.enrollmentType === 'تحويل من مدرسة أخرى'
+              ? 'تحويلات'
+              : student.enrollmentType === 'قيد عادي'
+              ? 'قيد عادى'
+              : student.enrollmentType || 'قيد عادى';
+
+          const isMuslim =
+            student.religion === 'muslim' || (student.religion || '').includes('ل');
+          const isChristian =
+            student.religion === 'christian' || (student.religion || '').includes('ح');
+          const religionText = isMuslim
+            ? student.gender === 'female'
+              ? labels.muslimFemale
+              : labels.muslim
+            : isChristian
+            ? student.gender === 'female'
+              ? labels.christianFemale
+              : labels.christian
+            : '';
+
+          const seatNumText =
+            student.seatNumbers?.[semester] ||
+            (semester === 'first' ? student.seatNumber : '') ||
+            '';
+
+          let computedCommNum = Math.floor(globalStudentIdx / fallbackCommSize) + 1;
+          if (fallbackMergeLast && hasIncompleteLastComm && computedCommNum > fullCommitteesCount) {
+            computedCommNum = fullCommitteesCount;
+          }
+          const committeeNumText =
+            student.committeeNumbers?.[semester] ||
+            student.committeeNumber ||
+            String(computedCommNum);
+
+          const sectionTopY = topPadding + cIdx * (sectionHeight + 20);
+          const cardTopY = sectionTopY;
+          const cardH = 425; // ارتفاع البطاقة
+
+          // 1. Draw Seat Number Card (Default Model)
+          drawSeatNumberCard(
+            ctx,
+            marginX,
+            cardTopY,
+            contentW,
+            cardH,
+            student,
+            globalStudentIdx,
+            {
+              cleanTitle,
+              administration,
+              schoolName,
+              dataOfficer,
+              controlHead,
+              committeeHead,
+              statusText,
+              enrollmentTypeText,
+              religionText,
+              seatNumText,
+              committeeNumText,
+              dateDisplay,
+              qrImage,
+              ministryLogoImage,
+              schoolLogoImage,
+              isEnglish: false,
+              isNoQr: false,
+              model: 'default',
+              selectedGrade,
+              stage,
+            }
+          );
+
+          // 2. Draw Exam Schedule Table with rounded corners and rowTheme background colors
+          const tableTopY = cardTopY + cardH + 14;
+          const bannerH = 60; // ارتفاع صف العنوان (60)
+          const schedHeaderH = 43; // تقليل ارتفاع صف رؤوس الأعمدة بنسبة 15% (من 51 إلى 43)
+          const bannerX = marginX;
+
+          const rows = sortedSched;
+          const availableTableH = 410;
+          const maxRows = Math.max(1, rows.length);
+          const rowH = Math.max(28, Math.min(36, Math.floor((availableTableH - bannerH - schedHeaderH - 10) / maxRows)));
+          const tableTotalHeight = bannerH + schedHeaderH + (rows.length === 0 ? rowH : rows.length * rowH);
+
+          const tableCornerRadius = 12;
+
+          // Clip whole table for rounded corners
+          ctx.save();
+          ctx.beginPath();
+          if (typeof (ctx as any).roundRect === 'function') {
+            (ctx as any).roundRect(marginX, tableTopY, contentW, tableTotalHeight, tableCornerRadius);
+          } else {
+            ctx.rect(marginX, tableTopY, contentW, tableTotalHeight);
+          }
+          ctx.clip();
+
+          // Schedule Banner Header
+          const bannerGrad = ctx.createLinearGradient(bannerX, tableTopY, bannerX, tableTopY + bannerH);
+          bannerGrad.addColorStop(0, '#1e3a8a');
+          bannerGrad.addColorStop(1, '#0f172a');
+          ctx.fillStyle = bannerGrad;
+          ctx.fillRect(bannerX, tableTopY, contentW, bannerH);
+
+          const stageDisplayName = (() => {
+            if (stage === 'kindergarten') return 'رياض الأطفال';
+            if (stage === 'primary') return 'المرحلة الابتدائية';
+            if (stage === 'middle' || stage === 'prep') return 'المرحلة الإعدادية';
+            if (stage === 'secondary') return 'المرحلة الثانوية';
+            return stage || 'الدراسية';
+          })();
+
+          const semName = semester === 'first' ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثاني';
+          const yearsDisplay = activePdfNumberLang ? formatNumberDigits('2026 - 2027', activePdfNumberLang) : '2026 - 2027';
+
+          ctx.direction = 'rtl';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold 19.5px "Cairo", sans-serif`;
+          ctx.fillText(
+            `جدول امتحانات ${stageDisplayName} - ${selectedGrade || ''} - ${semName} - ${yearsDisplay}`,
+            bannerX + contentW / 2,
+            tableTopY + bannerH / 2
+          );
+
+          // Schedule Table Columns & Headers Row
+          const schedHeaderY = tableTopY + bannerH;
+          const schedColWidths = [45, 140, 160, 160, 110, 110, 443];
+          const schedColHeaders = ['م', 'اليوم', 'التاريخ', 'الفترة', 'من', 'إلى', 'المادة الدراسية'];
+
+          let curX = marginX + contentW;
+          ctx.fillStyle = '#f1f5f9';
+          ctx.fillRect(marginX, schedHeaderY, contentW, schedHeaderH);
+          ctx.strokeStyle = '#000000'; // حدود داخلية سوداء slim
+          ctx.lineWidth = 0.8;
+
+          ctx.direction = 'rtl';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0f172a';
+          ctx.font = `bold 16px "Cairo", sans-serif`;
+
+          for (let colI = 0; colI < schedColHeaders.length; colI++) {
+            const colW = schedColWidths[colI];
+            ctx.strokeRect(curX - colW, schedHeaderY, colW, schedHeaderH);
+            ctx.fillText(schedColHeaders[colI], curX - colW / 2, schedHeaderY + schedHeaderH / 2);
+            curX -= colW;
+          }
+
+          // Draw Schedule Rows (خلفية الصفوف حسب بالتة ألوان المطبوعات rowTheme)
+          let curRowY = schedHeaderY + schedHeaderH;
+
+          if (rows.length === 0) {
+            ctx.fillStyle = themeEvenBg || '#ffffff';
+            ctx.fillRect(marginX, curRowY, contentW, rowH);
+            ctx.strokeStyle = '#000000'; // حدود داخلية سوداء slim
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(marginX, curRowY, contentW, rowH);
+            ctx.direction = 'rtl';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#64748b';
+            ctx.font = `bold 15px "Cairo", sans-serif`;
+            ctx.fillText('لا توجد مواد مجدولة في جدول الامتحانات', marginX + contentW / 2, curRowY + rowH / 2);
+            curRowY += rowH;
+          } else {
+            const formatDateRTLLocal = (dStr: string) => {
+              if (!dStr) return '-';
+              const cleanStr = dStr.trim();
+              const parts = cleanStr.split(/[-/]/);
+              let formatted = cleanStr;
+              if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                  formatted = `${parts[2]} / ${parts[1]} / ${parts[0]}`;
+                } else if (parts[2].length === 4) {
+                  formatted = `${parts[0]} / ${parts[1]} / ${parts[2]}`;
+                }
+              }
+              return activePdfNumberLang ? formatNumberDigits(formatted, activePdfNumberLang) : formatted;
+            };
+
+            for (let rI = 0; rI < rows.length; rI++) {
+              const item = rows[rI];
+              const rowBg = rI % 2 === 0 ? themeEvenBg : themeOddBg;
+              const isDarkRow = (rI % 2 !== 0 && (themeOddBg === '#000000' || themeOddBg === '#dc2626' || rowTheme === 'theme_black' || rowTheme === 'theme_red')) ||
+                                (rI % 2 === 0 && (themeEvenBg === '#000000' || themeEvenBg === '#dc2626'));
+              const cellTextColor = isDarkRow ? '#ffffff' : '#0f172a';
+
+              ctx.fillStyle = rowBg;
+              ctx.fillRect(marginX, curRowY, contentW, rowH);
+              ctx.strokeStyle = '#000000'; // حدود داخلية سوداء slim
+              ctx.lineWidth = 0.8;
+              ctx.strokeRect(marginX, curRowY, contentW, rowH);
+
+              const rowValues = [
+                activePdfNumberLang ? formatNumberDigits(String(rI + 1), activePdfNumberLang) : String(rI + 1),
+                item.day || '-',
+                formatDateRTLLocal(item.date),
+                item.period || '-',
+                item.fromTime ? (activePdfNumberLang ? formatNumberDigits(item.fromTime, activePdfNumberLang) : item.fromTime) : '-',
+                item.toTime ? (activePdfNumberLang ? formatNumberDigits(item.toTime, activePdfNumberLang) : item.toTime) : '-',
+                item.subject || '-',
+              ];
+
+              let cellX = marginX + contentW;
+              ctx.direction = 'rtl';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = cellTextColor;
+              ctx.font = `bold 14px "Cairo", sans-serif`;
+
+              for (let colI = 0; colI < rowValues.length; colI++) {
+                const colW = schedColWidths[colI];
+                ctx.strokeRect(cellX - colW, curRowY, colW, rowH);
+                ctx.fillText(rowValues[colI], cellX - colW / 2, curRowY + rowH / 2);
+                cellX -= colW;
+              }
+              curRowY += rowH;
+            }
+          }
+          ctx.restore(); // Restore clip
+
+          // Outer rounded stroke around the schedule table (أسود)
+          ctx.save();
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          if (typeof (ctx as any).roundRect === 'function') {
+            (ctx as any).roundRect(marginX, tableTopY, contentW, tableTotalHeight, tableCornerRadius);
+          } else {
+            ctx.rect(marginX, tableTopY, contentW, tableTotalHeight);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+          // 5. Black Cutting Line (متساوي المسافة تماماً بين أسفل الجدول الحالي وأعلى بطاقة الطالب التالي)
+          if (cIdx === 0 && pageStudents.length > 1) {
+            const table1BottomY = tableTopY + tableTotalHeight;
+            const nextCardTopY = topPadding + (sectionHeight + 20);
+            const cutY = table1BottomY + (nextCardTopY - table1BottomY) / 2;
+
+            ctx.save();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(marginX, cutY);
+            ctx.lineTo(marginX + contentW, cutY);
+            ctx.stroke();
+
+            // 6. المقص المعكوس في أقصى اليمين بعيداً عن الإطارات
+            const scissorX = marginX + contentW + 20;
+            ctx.setLineDash([]);
+            ctx.translate(scissorX, cutY);
+            ctx.scale(-1, 1); // عكس اتجاه المقص أفقيًا
+            ctx.fillStyle = '#000000';
+            ctx.font = `bold 30px "Cairo", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✂', 0, 0);
+            ctx.restore();
+          }
+        });
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.98);
+        const base64 = dataUrl.split(',')[1];
+        const jpegBytes = base64ToUint8Array(base64);
+        renderedPages.push({ jpegBytes, widthPx: canvas.width, heightPx: canvas.height });
+        continue;
+      }
+
       const isEnglishCard = Boolean(reportType && reportType.startsWith('seat_numbers_english'));
       const rawCleanTitle = (title || '').trim();
       const cleanTitle = isEnglishCard
@@ -10073,7 +10473,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   const safeTitle = baseTitleForFile.replace(/[\\/:*?"<>|]/g, '_');
   const safeSubject = (subjectLabelDisplay || '').replace(/[\\/:*?"<>|]/g, '_');
   const filePrefix =
-    reportType === 'calling_list'
+    reportType === 'seat_numbers_with_schedule'
+      ? 'أرقام_الجلوس_بجدول_الامتحانات'
+      : reportType === 'calling_list'
       ? 'تقارير_المناداة'
       : reportType === 'seat_numbers_default'
       ? 'أرقام_الجلوس_النموذج_الافتراضي'
@@ -10158,3 +10560,543 @@ export {
   KG_TEACHER_RECOMMENDATIONS,
   getRandomKgTeacherRecommendation,
 } from './kgAssessmentsReportHelper';
+
+
+export interface ExportExamSchedulePdfOptions {
+  stage?: string;
+  selectedGrade?: string;
+  semester?: string;
+  administration?: string;
+  schoolName?: string;
+  dataOfficer?: string;
+  controlHead?: string;
+  committeeHead?: string;
+  numberLang?: NumberLang;
+  examSchedule: {
+    id: string;
+    day: string;
+    date: string;
+    period: string;
+    fromTime?: string;
+    toTime?: string;
+    subject: string;
+  }[];
+}
+
+export async function exportExamScheduleToPdf(options: ExportExamSchedulePdfOptions): Promise<void> {
+  const {
+    stage,
+    selectedGrade,
+    semester = "first",
+    administration = "",
+    schoolName = "",
+    dataOfficer = "",
+    controlHead = "",
+    committeeHead = "",
+    numberLang = "ar",
+    examSchedule = [],
+  } = options;
+
+  const savedSchoolLogo =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('sheet_control_official_school_logo') ||
+        localStorage.getItem('sheet_control_school_logo') ||
+        localStorage.getItem('school_logo') ||
+        ''
+      : '';
+
+  const rawSchoolLogo = savedSchoolLogo ? await loadImage(savedSchoolLogo) : null;
+  const ministryLogo = await loadImage(ministryLogoUrl);
+  const activeLogo = rawSchoolLogo || ministryLogo;
+  const qrImage = await loadImage(qrCodeUrl).catch(() => null);
+
+  if (examSchedule.length === 0) return;
+
+  const formatDateRTL = (dStr: string, nLang: NumberLang) => {
+    if (!dStr) return "-";
+    const cleanStr = dStr.trim();
+    const parts = cleanStr.split(/[-/]/);
+    let formatted = cleanStr;
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        formatted = `${parts[2]} / ${parts[1]} / ${parts[0]}`;
+      } else if (parts[2].length === 4) {
+        formatted = `${parts[0]} / ${parts[1]} / ${parts[2]}`;
+      }
+    }
+    return formatNumberDigits(formatted, nLang);
+  };
+
+  const drawScheduleTimeCell = (
+    targetCtx: CanvasRenderingContext2D,
+    tStr: string | undefined,
+    centerX: number,
+    centerY: number,
+    nLang: NumberLang
+  ) => {
+    if (!tStr || !tStr.trim() || tStr.trim() === "-") {
+      targetCtx.save();
+      targetCtx.textAlign = "center";
+      targetCtx.textBaseline = "middle";
+      targetCtx.fillStyle = "#0f172a";
+      targetCtx.font = `bold 26px "Cairo", monospace`;
+      targetCtx.fillText("-", centerX, centerY);
+      targetCtx.restore();
+      return;
+    }
+
+    const clean = tStr.trim();
+    const parts = clean.split(":");
+    if (parts.length === 2) {
+      const rawHours = parts[0].trim();
+      const rawMinutes = parts[1].trim();
+      const hoursFormatted = formatNumberDigits(rawHours, nLang);
+      const minutesFormatted = formatNumberDigits(rawMinutes, nLang);
+
+      targetCtx.save();
+      targetCtx.direction = "ltr";
+      targetCtx.textBaseline = "middle";
+      targetCtx.fillStyle = "#0f172a";
+      targetCtx.font = `bold 26px "Cairo", monospace`;
+
+      // النقطتان في المنتصف تماماً
+      targetCtx.textAlign = "center";
+      targetCtx.fillText(":", centerX, centerY);
+
+      // الساعة دائماً ناحية اليسار
+      targetCtx.textAlign = "right";
+      targetCtx.fillText(hoursFormatted, centerX - 10, centerY);
+
+      // الدقائق دائماً ناحية اليمين
+      targetCtx.textAlign = "left";
+      targetCtx.fillText(minutesFormatted, centerX + 10, centerY);
+
+      targetCtx.restore();
+    } else {
+      targetCtx.save();
+      targetCtx.textAlign = "center";
+      targetCtx.textBaseline = "middle";
+      targetCtx.fillStyle = "#0f172a";
+      targetCtx.font = `bold 26px "Cairo", monospace`;
+      targetCtx.fillText(formatNumberDigits(clean, nLang), centerX, centerY);
+      targetCtx.restore();
+    }
+  };
+
+  const stageDisplayName = (() => {
+    if (stage === "kindergarten") return "رياض الأطفال";
+    if (stage === "primary") return "المرحلة الابتدائية";
+    if (stage === "middle" || stage === "prep") return "المرحلة الإعدادية";
+    if (stage === "secondary") return "المرحلة الثانوية";
+    return stage || "الدراسية";
+  })();
+
+  const canvas = document.createElement("canvas");
+  const widthPx = 1654;
+  const heightPx = 2339;
+  canvas.width = widthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  // إعدادات جودة الرسم العالية لتجنب أي تشويش بالشعار والنصوص
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, widthPx, heightPx);
+
+  const marginX = 80;
+  const contentW = widthPx - marginX * 2;
+  const headerTopY = 35;
+  const headerHeight = 185;
+  const headerLineY = headerTopY + headerHeight;
+  const headerCenterY = headerTopY + headerHeight / 2;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayFormatted = formatDateRTL(todayStr, numberLang);
+  const taglineText = getActiveFooterTagline(selectedGrade, stage) || "المنظومة الرقمية لريادة أعمال المدارس المصرية  01098594956 - 01131097055";
+
+  const adminDisplay = administration.trim() ? applyEntityTerms(administration.trim()) : "........................";
+  const schoolDisplay = schoolName.trim() ? applyEntityTerms(schoolName.trim()) : "........................";
+  const dataOfficerDisplay = dataOfficer.trim() ? dataOfficer.trim() : "........................";
+  const controlHeadDisplay = controlHead.trim() ? controlHead.trim() : "........................";
+  const committeeHeadDisplay = committeeHead.trim() ? committeeHead.trim() : "........................";
+
+  ctx.direction = "rtl";
+  ctx.fillStyle = "#0f172a";
+  ctx.font = `bold 24px "Cairo", sans-serif`;
+  ctx.textBaseline = "bottom";
+
+  // اسم الإدارة والمدرسة فوق الخط الفاصل مباشرة
+  const adminLabel = applyEntityTerms("الإدارة :");
+  const schoolLabel = applyEntityTerms(stage === "kindergarten" ? "الروضة :" : "المدرسة :");
+  const headerTextY = headerLineY - 14;
+
+  ctx.textAlign = "right";
+  ctx.fillText(`${adminLabel} ${adminDisplay}`, marginX + contentW, headerTextY);
+
+  ctx.textAlign = "left";
+  ctx.fillText(`${schoolLabel} ${schoolDisplay}`, marginX, headerTextY);
+
+  const logoCenterX = marginX + contentW / 2;
+  const logoSize = 150;
+  // تنزيل الشعار لأسفل بنسبة 50% من المسافة الموجودة بين الشعار والخط الذي أسفله (17.5px)
+  const logoCenterY = headerCenterY;
+
+  if (activeLogo) {
+    const naturalW = (activeLogo as any).naturalWidth || (activeLogo as any).width || 1;
+    const naturalH = (activeLogo as any).naturalHeight || (activeLogo as any).height || 1;
+    const aspect = naturalW / naturalH;
+    let drawW = logoSize;
+    let drawH = logoSize;
+    if (aspect > 1) {
+      drawH = logoSize / aspect;
+    } else {
+      drawW = logoSize * aspect;
+    }
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.filter = "contrast(1.06)";
+    ctx.drawImage(activeLogo, logoCenterX - drawW / 2, logoCenterY - drawH / 2, drawW, drawH);
+    ctx.restore();
+  } else {
+    drawDefaultSchoolCrest(ctx, logoCenterX, logoCenterY, logoSize / 2, schoolName || 'شعار المدرسة');
+  }
+
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(marginX, headerLineY);
+  ctx.lineTo(marginX + contentW, headerLineY);
+  ctx.stroke();
+
+  const bannerW = contentW;
+  const bannerH = 105;
+  const bannerX = marginX;
+  // تقليل المسافة بين الشريط البني والخط الفاصل أعلاه بنسبة 50% (من 25 إلى 12.5 بكسل)
+  const bannerY = headerLineY + 12.5;
+
+  ctx.save();
+  const bannerGrad = ctx.createLinearGradient(bannerX, bannerY, bannerX, bannerY + bannerH);
+  bannerGrad.addColorStop(0, "#5e3a27"); // Lighter brown
+  bannerGrad.addColorStop(1, "#361500"); // Burnt brown
+  ctx.fillStyle = bannerGrad;
+
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === "function") {
+    (ctx as any).roundRect(bannerX, bannerY, bannerW, bannerH, 8);
+  } else {
+    ctx.rect(bannerX, bannerY, bannerW, bannerH);
+  }
+  ctx.fill();
+  ctx.restore();
+
+  ctx.direction = "rtl";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold 32px "Cairo", sans-serif`;
+  ctx.fillText(`جدول امتحانات ${stageDisplayName} - ${selectedGrade || ""}`, bannerX + bannerW / 2, bannerY + bannerH / 2);
+
+  // خط فاصل أسفل الشريط البني بنفس سمك ولون الخط العلوي
+  const postBannerLineY = bannerY + bannerH + 12.5;
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(marginX, postBannerLineY);
+  ctx.lineTo(marginX + contentW, postBannerLineY);
+  ctx.stroke();
+
+  const subY = postBannerLineY + 35;
+  ctx.fillStyle = "#1e293b";
+  ctx.font = `bold 26px "Cairo", sans-serif`;
+  ctx.fillText(`الفصل الدراسي : ${semester === "first" ? "الأول" : "الثاني"} - 2026 - 2027`, marginX + contentW / 2, subY);
+
+  const tableTopY = subY + 35;
+  const colWidths = [70, 200, 250, 220, 160, 160, 434];
+  const colHeaders = ["م", "اليوم", "التاريخ", "الفترة", "من", "إلى", "المادة الدراسية"];
+  const headerH = 90; // زيادة ارتفاع صف رؤوس الأعمدة بمقدار 50% (من 60 إلى 90)
+
+  const numRows = examSchedule.length;
+  const rowH = 65;
+  const separatorH = Math.round(rowH * 0.5); // ارتفاع الصف الفارغ = 50% من ارتفاع الصف الافتراضي (33px)
+
+  const n = examSchedule.length;
+  let pIdx = 0;
+  const rowSpansData: {
+    item: any;
+    k: number;
+    dayDateSpan: number;
+    periodSpan: number;
+    timeSpan: number;
+    isFirstDayDate: boolean;
+    isFirstPeriod: boolean;
+    isFirstTime: boolean;
+  }[] = [];
+
+  while (pIdx < n) {
+    let pNext = pIdx + 1;
+    const curDay = (examSchedule[pIdx].day || "").trim();
+    const curDate = (examSchedule[pIdx].date || "").trim();
+    while (
+      pNext < n &&
+      (examSchedule[pNext].day || "").trim() === curDay &&
+      (examSchedule[pNext].date || "").trim() === curDate
+    ) {
+      pNext++;
+    }
+    const dayDateSpan = pNext - pIdx;
+
+    let subIdx = pIdx;
+    while (subIdx < pNext) {
+      let subNext = subIdx + 1;
+      const curPeriod = (examSchedule[subIdx].period || "").trim();
+      while (
+        subNext < pNext &&
+        (examSchedule[subNext].period || "").trim() === curPeriod
+      ) {
+        subNext++;
+      }
+      const periodSpan = subNext - subIdx;
+
+      let tfIdx = subIdx;
+      while (tfIdx < subNext) {
+        let tfNext = tfIdx + 1;
+        const curFrom = (examSchedule[tfIdx].fromTime || "").trim();
+        const curTo = (examSchedule[tfIdx].toTime || "").trim();
+        while (
+          tfNext < subNext &&
+          (examSchedule[tfNext].fromTime || "").trim() === curFrom &&
+          (examSchedule[tfNext].toTime || "").trim() === curTo
+        ) {
+          tfNext++;
+        }
+        const timeSpan = tfNext - tfIdx;
+
+        for (let k = tfIdx; k < tfNext; k++) {
+          rowSpansData.push({
+            item: examSchedule[k],
+            k,
+            dayDateSpan,
+            periodSpan,
+            timeSpan,
+            isFirstDayDate: k === pIdx,
+            isFirstPeriod: k === subIdx,
+            isFirstTime: k === tfIdx,
+          });
+        }
+        tfIdx = tfNext;
+      }
+      subIdx = subNext;
+    }
+    pIdx = pNext;
+  }
+
+  const totalDaySeparators = rowSpansData.filter((rd) => rd.k > 0 && rd.isFirstDayDate).length;
+  const tableTotalH = headerH + numRows * rowH + totalDaySeparators * separatorH;
+  const tableRadius = 14;
+
+  ctx.save();
+  drawRoundedRect(ctx, marginX, tableTopY, contentW, tableTotalH, tableRadius);
+  ctx.clip();
+
+  ctx.fillStyle = "#f1f5f9";
+  ctx.fillRect(marginX, tableTopY, contentW, headerH);
+
+  let curX = marginX + contentW;
+  const tableBorderColor = "#0f172a";
+  const tableBorderWidth = 1.5; // توحيد جميع حدود الجدول الداخلية والخارجية بسمك واحد رفيع slim
+  ctx.strokeStyle = tableBorderColor;
+  ctx.lineWidth = tableBorderWidth;
+  ctx.fillStyle = "#0f172a";
+  ctx.font = `bold 26px "Cairo", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (let c = 0; c < colWidths.length; c++) {
+    const w = colWidths[c];
+    const cellX = curX - w;
+    ctx.strokeRect(cellX, tableTopY, w, headerH);
+    ctx.fillText(colHeaders[c], cellX + w / 2, tableTopY + headerH / 2);
+    curX = cellX;
+  }
+
+  let curY = tableTopY + headerH;
+  const separatorPositions: number[] = [];
+
+  rowSpansData.forEach((rd) => {
+    const { item, k, dayDateSpan, periodSpan, timeSpan, isFirstDayDate, isFirstPeriod, isFirstTime } = rd;
+    const isNewDayDivider = k > 0 && isFirstDayDate;
+
+    if (isNewDayDivider) {
+      separatorPositions.push(curY);
+      // صف فارغ بدون حدود جانبية بعد كل يوم بارتفاع = 50% من ارتفاع الصف الافتراضي
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(marginX, curY, contentW, separatorH);
+
+      ctx.strokeStyle = tableBorderColor;
+      ctx.lineWidth = tableBorderWidth;
+      ctx.beginPath();
+      // خط أفقي أعلى الصف الفارغ (نهاية اليوم السابق)
+      ctx.moveTo(marginX, curY);
+      ctx.lineTo(marginX + contentW, curY);
+      // خط أفقي أسفل الصف الفارغ (بداية اليوم الجديد)
+      ctx.moveTo(marginX, curY + separatorH);
+      ctx.lineTo(marginX + contentW, curY + separatorH);
+      ctx.stroke();
+
+      curY += separatorH;
+    }
+
+    ctx.strokeStyle = tableBorderColor;
+    ctx.lineWidth = tableBorderWidth;
+
+    let cX = marginX + contentW;
+    let w = colWidths[0];
+    cX -= w;
+    ctx.strokeRect(cX, curY, w, rowH);
+    ctx.fillStyle = "#0f172a";
+    ctx.font = `bold 22px "Cairo", monospace`;
+    ctx.fillText(formatNumberDigits(String(k + 1), numberLang), cX + w / 2, curY + rowH / 2);
+
+    w = colWidths[1];
+    cX -= w;
+    if (isFirstDayDate) {
+      const spH = dayDateSpan * rowH;
+      ctx.strokeRect(cX, curY, w, spH);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = `bold 24px "Cairo", sans-serif`;
+      ctx.fillText(item.day || "", cX + w / 2, curY + spH / 2);
+    }
+
+    w = colWidths[2];
+    cX -= w;
+    if (isFirstDayDate) {
+      const spH = dayDateSpan * rowH;
+      ctx.strokeRect(cX, curY, w, spH);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = `bold 26px "Cairo", monospace`;
+      ctx.fillText(formatDateRTL(item.date, numberLang), cX + w / 2, curY + spH / 2);
+    }
+
+    w = colWidths[3];
+    cX -= w;
+    if (isFirstPeriod) {
+      const spH = periodSpan * rowH;
+      ctx.strokeRect(cX, curY, w, spH);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = `bold 24px "Cairo", sans-serif`;
+      ctx.fillText(item.period || "", cX + w / 2, curY + spH / 2);
+    }
+
+    w = colWidths[4];
+    cX -= w;
+    if (isFirstTime) {
+      const spH = timeSpan * rowH;
+      ctx.strokeRect(cX, curY, w, spH);
+      drawScheduleTimeCell(ctx, item.fromTime, cX + w / 2, curY + spH / 2, numberLang);
+    }
+
+    w = colWidths[5];
+    cX -= w;
+    if (isFirstTime) {
+      const spH = timeSpan * rowH;
+      ctx.strokeRect(cX, curY, w, spH);
+      drawScheduleTimeCell(ctx, item.toTime, cX + w / 2, curY + spH / 2, numberLang);
+    }
+
+    w = colWidths[6];
+    cX -= w;
+    ctx.strokeRect(cX, curY, w, rowH);
+    ctx.fillStyle = "#0a2240";
+    ctx.font = `bold 25px "Cairo", sans-serif`;
+    ctx.fillText(item.subject || "", cX + w / 2, curY + rowH / 2);
+
+    curY += rowH;
+  });
+
+  ctx.restore(); // Restore context after clipping
+  ctx.strokeStyle = tableBorderColor;
+  ctx.lineWidth = tableBorderWidth;
+  drawRoundedRect(ctx, marginX, tableTopY, contentW, tableTotalH, tableRadius);
+  ctx.stroke();
+
+  // في الصفوف الفارغة الفاصلة بين الأيام: جعل لون الحد الخارجي الأيمن والأيسر باللون الأبيض
+  if (separatorPositions.length > 0) {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = tableBorderWidth + 2; // لضمان تغطية الحد الخارجي تماماً باللون الأبيض
+    separatorPositions.forEach((sepY) => {
+      // الحد الخارجي الأيمن باللون الأبيض
+      ctx.beginPath();
+      ctx.moveTo(marginX + contentW, sepY + 1.2);
+      ctx.lineTo(marginX + contentW, sepY + separatorH - 1.2);
+      ctx.stroke();
+
+      // الحد الخارجي الأيسر باللون الأبيض
+      ctx.beginPath();
+      ctx.moveTo(marginX, sepY + 1.2);
+      ctx.lineTo(marginX, sepY + separatorH - 1.2);
+      ctx.stroke();
+    });
+  }
+
+  const footerY = Math.max(curY + 50, heightPx - 220);
+
+  const pageCenterX = marginX + contentW / 2;
+
+  const sigTextY = footerY - 22; // فوق الخط الفاصل
+  const sigText = `مسئول البيانات والمعلومات : ${dataOfficerDisplay}      رئيس الكنترول : ${controlHeadDisplay}      رئيس اللجنة : ${committeeHeadDisplay}`;
+  ctx.direction = "rtl";
+  ctx.fillStyle = "#0f172a";
+  ctx.font = `bold 22px "Cairo", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(sigText, pageCenterX, sigTextY);
+
+  ctx.strokeStyle = "#0f172a";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(marginX, footerY);
+  ctx.lineTo(marginX + contentW, footerY);
+  ctx.stroke();
+
+  const footerQrSize = 128; // زيادة مساحة رمز الاستجابة السريعة بمقدار 50%
+  const footerQrX = marginX + contentW - footerQrSize;
+  const footerQrY = footerY + 15; // تقليل المسافة بين رمز الاستجابة والخط الفاصل أعلاه بمقدار 40% (من 25 إلى 15)
+
+  if (qrImage) {
+    ctx.save();
+    drawRoundedRect(ctx, footerQrX, footerQrY, footerQrSize, footerQrSize, 8);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.clip();
+    ctx.drawImage(qrImage, footerQrX, footerQrY, footerQrSize, footerQrSize);
+    ctx.restore();
+  }
+
+  const pageInfoY = footerY + 26; // تحت الخط الفاصل مباشرة
+
+  ctx.direction = "rtl";
+  ctx.font = `bold 20px "Cairo", sans-serif`;
+  ctx.fillStyle = "#334155";
+  ctx.textAlign = "center";
+  ctx.fillText(`${taglineText} - الصفحة 1 من 1 - ${todayFormatted}`, pageCenterX, pageInfoY);
+
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.98);
+  const base64 = dataUrl.split(",")[1];
+  const jpegBytes = base64ToUint8Array(base64);
+  const pdfBytes = buildPdfFromJpegPages([{ jpegBytes, widthPx: canvas.width, heightPx: canvas.height }], 595.28, 841.89);
+
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const safeStage = (stageDisplayName || "المرحلة").replace(/[\\/:*?"<>|]/g, "_");
+  const safeGrade = (selectedGrade || "").replace(/[\\/:*?"<>|]/g, "_");
+  link.download = `جدول_امتحانات_${safeStage}_${safeGrade}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}

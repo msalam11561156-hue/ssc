@@ -2,7 +2,7 @@ import { StudentData } from '../types';
 import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme } from './exportPdf';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 import { getActiveFooterTagline } from './adFilter';
-const ministryLogoUrl = '';
+import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 import kgBadgeBlueUrl from '../assets/images/kg_eval_blue.png';
 import kgBadgeGreenUrl from '../assets/images/kg_eval_green.png';
