@@ -19,7 +19,7 @@ import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/theme
 import { SchoolData, ControlData, Language, StudentData } from './types';
 import { translations, setCurrentAffiliatedEntity } from './i18n';
 import { AnimatedBackground } from './components/AnimatedBackground';
-import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock } from 'lucide-react';
+import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock, Wifi, WifiOff } from 'lucide-react';
 
 import { FooterBanner } from './components/FooterBanner';
 import { BrandHeader } from './components/BrandHeader';
@@ -200,6 +200,18 @@ export default function App() {
   const [isFooterSettingsModalOpen, setIsFooterSettingsModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [customAdText, setCustomAdText] = useState(() => localStorage.getItem('sheet_control_ad_text') || '');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleSaveAdText = (slots: { text: string; grade: string }[]) => {
     setCustomAdText(slots.length > 0 ? slots[0].text : '');
@@ -1819,6 +1831,12 @@ export default function App() {
           </AnimatePresence>
         </main>
         <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
+        {!isOnline && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-rose-600 text-white px-6 py-4 rounded-xl font-bold shadow-2xl border-2 border-white flex items-center gap-2">
+            <WifiOff className="w-5 h-5" />
+            <span>غير متصل بالإنترنت</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -62,14 +62,14 @@ export async function getCachedCertificateTemplate(design: 'classic' | 'royal'):
   }
 }
 
-export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard' | 'screenshot';
+export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard' | 'screenshot' | 'screenshot2';
 
 /**
  * جلب وحفظ خلفيات شاشة البداية الافتتاحية محلياً على جهاز العميل (IndexedDB)
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v12`;
+  const cacheKey = `offline_splash_bg_${type}_v13`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -98,6 +98,8 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
       ? splashGoldShieldUrl
       : type === 'screenshot'
       ? '/assets/aistudio/ASD56565_2b16dafd.jfif'
+      : type === 'screenshot2'
+      ? '/assets/aistudio/dfsfdsf_0cbe4c45.jfif'
       : splashCloudDashboardUrl;
 
   try {
@@ -163,6 +165,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedSplashBackground('gold_shield'),
       getCachedSplashBackground('cloud_dashboard'),
       getCachedSplashBackground('screenshot'),
+      getCachedSplashBackground('screenshot2'),
     ]);
 
     // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB
