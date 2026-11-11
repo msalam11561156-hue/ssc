@@ -17,9 +17,14 @@ export default defineConfig(() => {
           'appicon.ico', 
           'apple-touch-icon.png', 
           'favicon.svg', 
+          'pwa-32x32.png',
+          'pwa-48x48.png',
+          'pwa-96x96.png',
           'pwa-192x192.png', 
+          'pwa-256x256.png',
           'pwa-512x512.png', 
           'pwa-maskable-512x512.png', 
+          'brand_shield.png',
           'assets/images/splash_brand_bg.jpg', 
           'assets/images/splash_control_illustration.jpg',
           'sounds/click.wav'
@@ -37,8 +42,26 @@ export default defineConfig(() => {
           scope: '/',
           icons: [
             {
+              src: '/pwa-48x48.png',
+              sizes: '48x48',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: '/pwa-96x96.png',
+              sizes: '96x96',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
               src: '/pwa-192x192.png',
               sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: '/pwa-256x256.png',
+              sizes: '256x256',
               type: 'image/png',
               purpose: 'any',
             },

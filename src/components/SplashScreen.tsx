@@ -188,7 +188,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [goldShieldImg, setGoldShieldImg] = useState(goldShieldBg);
   const [cloudDashboardImg, setCloudDashboardImg] = useState(cloudDashboardBg);
   const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/ASD56565_2b16dafd.jfif');
-  const [screenshot2Img, setScreenshot2Img] = useState('/assets/aistudio/dfsfdsf_0cbe4c45.jfif');
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
@@ -202,11 +201,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     getCachedSplashBackground('gold_shield').then((url) => { if (url) setGoldShieldImg(url); });
     getCachedSplashBackground('cloud_dashboard').then((url) => { if (url) setCloudDashboardImg(url); });
     getCachedSplashBackground('screenshot').then((url) => { if (url) setScreenshotImg(url); });
-    getCachedSplashBackground('screenshot2').then((url) => { if (url) setScreenshot2Img(url); });
 
-    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور الثمان
+    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور السبع
     const interval = setInterval(() => {
-      setActiveBgIndex((prev) => (prev + 1) % 8);
+      setActiveBgIndex((prev) => (prev + 1) % 7);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -420,21 +418,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 style={{ imageRendering: 'high-quality' }}
               />
             </div>
-
-            {/* 8. Second New Screenshot (الصورة الثامنة - المرفقة) */}
-            <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 7 ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-            >
-              <img
-                src={screenshot2Img}
-                alt="Second New Screenshot"
-                className="w-full h-full object-fill pointer-events-none select-none"
-                style={{ imageRendering: 'high-quality' }}
-              />
-            </div>
-
 
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
             <div className="absolute inset-0 z-0 bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />

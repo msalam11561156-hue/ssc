@@ -62,7 +62,7 @@ export async function getCachedCertificateTemplate(design: 'classic' | 'royal'):
   }
 }
 
-export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard' | 'screenshot' | 'screenshot2';
+export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard' | 'screenshot';
 
 /**
  * جلب وحفظ خلفيات شاشة البداية الافتتاحية محلياً على جهاز العميل (IndexedDB)
@@ -98,8 +98,6 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
       ? splashGoldShieldUrl
       : type === 'screenshot'
       ? '/assets/aistudio/ASD56565_2b16dafd.jfif'
-      : type === 'screenshot2'
-      ? '/assets/aistudio/dfsfdsf_0cbe4c45.jfif'
       : splashCloudDashboardUrl;
 
   try {
@@ -156,7 +154,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedCertificateTemplate('classic'),
     ]);
 
-    // 2. حفظ صور الشاشة الافتتاحية الست في IndexedDB
+    // 2. حفظ صور الشاشة الافتتاحية السبع في IndexedDB
     const splashPromise = Promise.allSettled([
       getCachedSplashBackground('blue_shield'),
       getCachedSplashBackground('illustration'),
@@ -165,7 +163,6 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedSplashBackground('gold_shield'),
       getCachedSplashBackground('cloud_dashboard'),
       getCachedSplashBackground('screenshot'),
-      getCachedSplashBackground('screenshot2'),
     ]);
 
     // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB
