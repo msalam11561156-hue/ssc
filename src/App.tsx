@@ -1832,9 +1832,16 @@ export default function App() {
         </main>
         <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
         {!isOnline && (
-          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-rose-600 text-white px-6 py-4 rounded-xl font-bold shadow-2xl border-2 border-white flex items-center gap-2">
-            <WifiOff className="w-5 h-5" />
-            <span>غير متصل بالإنترنت</span>
+          <div className="fixed bottom-16 sm:bottom-20 start-4 z-[200] bg-gradient-to-r from-emerald-800/95 via-teal-900/95 to-slate-900/95 text-white px-4 py-2.5 rounded-xl font-bold shadow-2xl border-2 border-emerald-400/60 flex items-center gap-2.5 backdrop-blur-md transition-all">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <WifiOff className="w-4 h-4 text-emerald-300 shrink-0" />
+            <div className="flex flex-col text-xs sm:text-sm">
+              <span className="font-black text-emerald-100">وضع العمل بدون إنترنت (Offline)</span>
+              <span className="text-[11px] text-emerald-200/90 font-medium">التطبيق وشيتات الكنترول تعمل ومحفوظة بالكامل على هذا الجهاز</span>
+            </div>
           </div>
         )}
       </div>

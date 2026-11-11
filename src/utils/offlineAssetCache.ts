@@ -171,18 +171,29 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
     // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB
     const adExamplePromise = getCachedAdPrivilegeExample().catch(() => {});
 
-    // 4. تخزين الأيقونات محلياً في ذاكرة التخزين الدائم للمتصفح
+    // 4. تخزين الأيقونات وصفحة البداية وملف المانيفست محلياً في ذاكرة التخزين الدائم للمتصفح (Cache Storage)
     if ('caches' in window) {
-      caches.open('smart-control-offline-assets').then((cache) => {
-        cache.addAll([
+      caches.open('smart-control-offline-assets').then(async (cache) => {
+        const shellAssets = [
+          '/',
+          '/index.html',
+          '/manifest.webmanifest',
           '/appicon.ico',
           '/favicon.ico',
           '/favicon.svg',
           '/pwa-192x192.png',
           '/pwa-512x512.png',
           '/pwa-maskable-512x512.png',
-          '/apple-touch-icon.png'
-        ]).catch(() => {});
+          '/apple-touch-icon.png',
+          '/sounds/click.wav',
+        ];
+        for (const asset of shellAssets) {
+          try {
+            await cache.add(asset);
+          } catch {
+            // تجاهل أي فشل فردي عند عدم توفر اتصال
+          }
+        }
       }).catch(() => {});
     }
 

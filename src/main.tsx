@@ -7,11 +7,17 @@ import { registerSW } from 'virtual:pwa-register';
 import { preloadAndCacheOfflineAssets } from './utils/offlineAssetCache';
 import { checkAndPerformInPlaceUpgrade } from './utils/upgradeManager';
 
-// التحديث في المكان (In-Place Upgrade) التلقائي وتسجيل الخدمة
+// التحديث في المكان (In-Place Upgrade) التلقائي وتسجيل الخدمة لضمان العمل بدون إنترنت
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
     updateSW(true);
+  },
+  onOfflineReady() {
+    console.log('[PWA] Smart Control ready to work offline');
+  },
+  onRegisterError(err) {
+    console.warn('[PWA] Service worker registration error:', err);
   },
 });
 

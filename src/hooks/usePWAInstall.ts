@@ -61,7 +61,7 @@ export function usePWAInstall() {
     
     // Fallback for browsers that don't support beforeinstallprompt
     if (isUnsupported) {
-      alert("للتثبيت على هذا المتصفح، يرجى استخدام ميزة 'إضافة إلى الشاشة الرئيسية' أو 'تثبيت التطبيق' من قائمة إعدادات المتصفح.");
+      console.info("Use browser settings menu 'Add to Home screen' or 'Install App' on this browser.");
       return true;
     }
     

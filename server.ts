@@ -12,6 +12,17 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
+// PWA Service Worker & Manifest headers
+app.use((req, res, next) => {
+  if (req.path === '/sw.js' || req.path.startsWith('/dev-sw.js')) {
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  } else if (req.path === '/manifest.webmanifest') {
+    res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  }
+  next();
+});
+
 const DATA_DIR = path.join(__dirname, '.data');
 const TRIAL_FILE = path.join(DATA_DIR, 'trial_devices.json');
 
