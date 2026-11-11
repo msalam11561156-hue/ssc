@@ -247,7 +247,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex-1 min-h-0 flex flex-col justify-between items-center overflow-hidden">
+    <div className="w-full h-[100dvh] flex flex-col justify-between items-center overflow-hidden bg-slate-900">
 
       {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
       <div className="w-full z-20 shrink-0">
@@ -301,7 +301,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, x: -100, scale: 0.9 }}
           transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11.7] max-h-[90vh] sm:max-h-[46vh] md:max-h-[58vh] lg:max-h-[65vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1"
+          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11] max-h-[50vh] sm:max-h-[60vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1 flex items-center justify-center"
         >
           <motion.div
             animate={{ rotate: 360 }}
