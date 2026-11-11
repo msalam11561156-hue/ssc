@@ -162,7 +162,7 @@ export const FilterButtonMenu: React.FC<FilterButtonMenuProps> = ({
           </span>
         </div>
         {activeFilterCount > 0 && (
-          <span className="mr-2 rtl:mr-2 ltr:ml-2 bg-white text-purple-700 w-5 h-5 rounded-full inline-flex items-center justify-center text-[11px] font-black shadow-md shrink-0">
+          <span className="mr-2 rtl:mr-2 ltr:ml-2 bg-white text-purple-700 w-5 h-5 rounded-full inline-flex items-center justify-center text-[16.5px] font-black shadow-md shrink-0">
             {activeFilterCount}
           </span>
         )}

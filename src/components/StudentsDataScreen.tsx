@@ -13,6 +13,7 @@ import { CustomControlSheetModal } from './CustomControlSheetModal';
 import { AdvancedStatsModal } from './AdvancedStatsModal';
 import { ensureCellVisible } from '../utils/cellNavigation';
 import { exportStudentsDataToPdf, exportExamScheduleToPdf, getSubjectsConfigForStageGrade, PdfReportType, RowBgTheme, CustomControlSheetOptions } from '../utils/exportPdf';
+import { ExportExcelModal } from './ExportExcelModal';
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
 import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
@@ -233,6 +234,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [nationalIdModalText, setNationalIdModalText] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const stageDisplayName = (() => {
     if (stage === 'primary') return 'الابتدائية';
@@ -523,9 +525,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     }
   };
 
-  const handlePrintExamSchedule = () => {
+  const handlePrintExamSchedule = async () => {
     try {
-      exportExamScheduleToPdf({
+      await exportExamScheduleToPdf({
         stage,
         selectedGrade,
         semester,
@@ -537,6 +539,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         numberLang,
         examSchedule,
       });
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (e) {
       console.error(e);
     }
@@ -618,6 +622,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   });
 
   const [isCommitteeSizeModalOpen, setIsCommitteeSizeModalOpen] = useState(false);
+  const [isExportExcelModalOpen, setIsExportExcelModalOpen] = useState(false);
   const [committeeModalSemester, setCommitteeModalSemester] = useState<'first' | 'second'>(semester === 'second' ? 'second' : 'first');
 
   const [committeeSizeFirst, setCommitteeSizeFirst] = useState<number | ''>(() => {
@@ -2490,6 +2495,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           icon={<Printer className="w-4 h-4" />}
                           text={semester === 'first' ? 'شيت كنترول الفصل الدراسي الأول' : 'شيت كنترول الفصل الدراسي الثانى'}
                           bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]"
+                        />
+                        <ActionMenuButton
+                          onClick={() => setIsExportExcelModalOpen(true)}
+                          icon={<FileSpreadsheet className="w-4 h-4" />}
+                          text="تصدير شيت الكنترول إلى ملف EXCEL"
+                          bgGradient="bg-[linear-gradient(to_right,#15803d,#16a34a,#15803d)]"
                         />
                         <ActionMenuButton
                           onClick={() => {
@@ -5339,6 +5350,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
       />
 
+      <ExportExcelModal
+        isOpen={isExportExcelModalOpen}
+        onClose={() => setIsExportExcelModalOpen(false)}
+        students={data}
+        stage={stage}
+        selectedGrade={selectedGrade}
+      />
       <CertificatesSelectionModal
         isOpen={isCertSelectionModalOpen}
         onClose={() => setIsCertSelectionModalOpen(false)}
@@ -5346,6 +5364,18 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         onSelectTopTenDamg={() => handlePrintOption('top_ten_damg_students_certificates')}
         onSelectAllStudents={() => handlePrintOption('all_students_certificates' as any)}
       />
+      <AnimatePresence>
+        {downloadSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-emerald-600 text-white px-6 py-4 rounded-xl font-bold shadow-2xl border-2 border-white"
+          >
+            تم تنزيل الملف بنجاح
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
