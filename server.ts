@@ -12,16 +12,41 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-// PWA Service Worker & Manifest headers
-app.use((req, res, next) => {
-  if (req.path === '/sw.js' || req.path.startsWith('/dev-sw.js')) {
+const publicPath = path.join(__dirname, 'public');
+const distPath = path.join(__dirname, 'dist');
+
+// Explicit route for /sw.js with correct MIME type and headers
+app.get(['/sw.js', '/dev-sw.js'], (_req, res) => {
+  const swPublicPath = path.join(publicPath, 'sw.js');
+  const swDistPath = path.join(distPath, 'sw.js');
+  const target = fs.existsSync(swPublicPath) ? swPublicPath : swDistPath;
+  if (fs.existsSync(target)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     res.setHeader('Service-Worker-Allowed', '/');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  } else if (req.path === '/manifest.webmanifest') {
-    res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+    return res.sendFile(target);
   }
-  next();
+  return res.status(404).type('text/plain').send('Service Worker not found');
 });
+
+// Explicit route for /manifest.webmanifest
+app.get('/manifest.webmanifest', (_req, res) => {
+  const mPublicPath = path.join(publicPath, 'manifest.webmanifest');
+  const mDistPath = path.join(distPath, 'manifest.webmanifest');
+  const target = fs.existsSync(mPublicPath) ? mPublicPath : mDistPath;
+  if (fs.existsSync(target)) {
+    res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.sendFile(target);
+  }
+  return res.status(404).type('text/plain').send('Manifest not found');
+});
+
+// Serve static assets from public/ and dist/
+app.use(express.static(publicPath));
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
 
 const DATA_DIR = path.join(__dirname, '.data');
 const TRIAL_FILE = path.join(DATA_DIR, 'trial_devices.json');
@@ -279,6 +304,10 @@ async function startServer() {
     app.use(vite.middlewares);
     app.use('*', async (req, res, next) => {
       if (req.method !== 'GET') return next();
+      // Do not serve index.html for static asset requests (scripts, styles, images, audio, etc.)
+      if (req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?)$/i)) {
+        return res.status(404).end();
+      }
       try {
         let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(req.originalUrl, template);

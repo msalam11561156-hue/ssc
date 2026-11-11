@@ -18,7 +18,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
     return null;
   }
 
-  const buttonText = lang === 'ar' ? 'تثبيت التطبيق ليعمل بدون انترنت' : 'Install App (Works Offline)';
+  const buttonText = lang === 'ar' ? 'تثبيت التطبيق' : 'Install App';
 
   // On mobile phone devices, hide the install button
   if (isMobile) {

@@ -21,6 +21,21 @@ const updateSW = registerSW({
   },
 });
 
+// ضمان تسجيل /sw.js للعمل فورياً بدون اتصال بالإنترنت
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        console.log('[PWA] Active Service Worker registered:', registration.scope);
+        registration.update().catch(() => {});
+      })
+      .catch((err) => {
+        console.warn('[PWA] Service Worker registration info:', err);
+      });
+  });
+}
+
 // فحص وحماية ترقية البيانات بدون أي فقدان
 checkAndPerformInPlaceUpgrade().catch(() => {});
 
