@@ -159,6 +159,184 @@ const PrecisionLightOverlay: React.FC = () => (
   </svg>
 );
 
+const EgyptianSchoolsTitleEffect: React.FC = () => (
+  <div 
+    className="absolute z-10 pointer-events-none select-none overflow-visible"
+    style={{
+      left: '27.8%',
+      top: '41.3%',
+      width: '51.8%',
+      height: '17.2%',
+    }}
+  >
+    {/* 1. Luminous ambient glow breathing through the banner */}
+    <motion.div
+      animate={{
+        opacity: [0.3, 0.8, 0.3],
+        scaleY: [0.94, 1.06, 0.94],
+      }}
+      transition={{
+        duration: 3,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+      className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent blur-md mix-blend-screen"
+    />
+
+    {/* 2. Sleek high-tech golden & cyan laser borders on top and bottom of the banner */}
+    <div className="absolute top-0 inset-x-0 h-[2px] overflow-hidden">
+      <motion.div
+        animate={{ x: ['-100%', '100%'] }}
+        transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}
+        className="w-full h-full bg-gradient-to-r from-transparent via-[#38bdf8] to-[#fbbf24] shadow-[0_0_8px_#38bdf8]"
+      />
+    </div>
+    <div className="absolute bottom-0 inset-x-0 h-[2px] overflow-hidden">
+      <motion.div
+        animate={{ x: ['100%', '-100%'] }}
+        transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}
+        className="w-full h-full bg-gradient-to-r from-transparent via-[#fbbf24] to-[#38bdf8] shadow-[0_0_8px_#fbbf24]"
+      />
+    </div>
+
+    {/* 3. SVG Light Beam & Traveling Starburst Lens Flares across the text */}
+    <svg
+      viewBox="0 0 710 130"
+      className="absolute inset-0 w-full h-full overflow-visible"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <filter id="egyptTitleGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur2" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur3" />
+          <feMerge>
+            <feMergeNode in="blur3" />
+            <feMergeNode in="blur2" />
+            <feMergeNode in="blur1" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <linearGradient id="laserBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
+          <stop offset="25%" stopColor="#38bdf8" stopOpacity="0.8" />
+          <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="75%" stopColor="#fbbf24" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+        </linearGradient>
+
+        <radialGradient id="starCoreRadial" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="25%" stopColor="#fef08a" stopOpacity="0.95" />
+          <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.65" />
+          <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Traveling light streak along the text horizontal midline */}
+      <line
+        x1="25"
+        y1="65"
+        x2="685"
+        y2="65"
+        stroke="url(#laserBeamGrad)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        filter="url(#egyptTitleGlow)"
+        strokeDasharray="200 700"
+      >
+        <animate
+          attributeName="stroke-dashoffset"
+          values="700; -700"
+          dur="3.4s"
+          repeatCount="indefinite"
+        />
+      </line>
+
+      {/* Primary Radiant Diamond Starburst traveling across the words */}
+      <g>
+        <animate
+          attributeName="transform"
+          type="translate"
+          values="685 65; 25 65; 685 65"
+          dur="6.5s"
+          repeatCount="indefinite"
+          calcMode="spline"
+          keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+        />
+
+        {/* Outer radial glow */}
+        <circle r="38" fill="url(#starCoreRadial)" opacity="0.9" />
+        <circle r="15" fill="#fbbf24" filter="url(#egyptTitleGlow)" opacity="0.95" />
+        <circle r="6" fill="#ffffff" filter="url(#egyptTitleGlow)" />
+
+
+
+        {/* Golden diagonal sparkle */}
+        <polygon
+          points="0,-20 3.5,-4 20,0 3.5,4 0,20 -3.5,4 -20,0 -3.5,-4"
+          fill="#fef08a"
+          opacity="0.9"
+          transform="rotate(45)"
+        />
+      </g>
+    </svg>
+
+    {/* 4. Diagonal Metallic Light-Sheen Sweep across the letters */}
+    <div 
+      className="absolute inset-0 flex items-center justify-center mix-blend-overlay pointer-events-none overflow-hidden"
+    >
+      <motion.div
+        animate={{
+          x: ['-140%', '140%'],
+        }}
+        transition={{
+          duration: 3.2,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          repeatDelay: 0.6,
+        }}
+        className="w-1/3 h-full bg-gradient-to-r from-transparent via-white/85 to-transparent skew-x-[-25deg] blur-[1.5px]"
+      />
+    </div>
+
+    {/* 5. Floating Micro-Sparkle Particles rising gently from the text */}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[
+        { left: '18%', top: '25%', delay: '0s', dur: '2.5s', size: 6 },
+        { left: '36%', top: '70%', delay: '0.9s', dur: '2.8s', size: 8 },
+        { left: '54%', top: '20%', delay: '1.5s', dur: '2.3s', size: 7 },
+        { left: '72%', top: '65%', delay: '0.4s', dur: '3.1s', size: 9 },
+        { left: '88%', top: '30%', delay: '1.8s', dur: '2.7s', size: 6 },
+      ].map((sparkle, idx) => (
+        <motion.div
+          key={idx}
+          animate={{
+            y: [0, -18, -35],
+            opacity: [0, 1, 0],
+            scale: [0.5, 1.3, 0.3],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: parseFloat(sparkle.dur),
+            delay: parseFloat(sparkle.delay),
+            ease: 'easeInOut',
+          }}
+          style={{
+            position: 'absolute',
+            left: sparkle.left,
+            top: sparkle.top,
+            width: `${sparkle.size}px`,
+            height: `${sparkle.size}px`,
+          }}
+          className="rounded-full bg-gradient-to-br from-white via-amber-300 to-cyan-400 shadow-[0_0_10px_#38bdf8]"
+        />
+      ))}
+    </div>
+  </div>
+);
+
 interface SplashScreenProps {
   onNext: (isTrial?: boolean) => void;
   lang: Language;
@@ -411,12 +589,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 activeBgIndex === 6 ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
-              <img
-                src={screenshotImg}
-                alt="New Screenshot"
-                className="w-full h-full object-fill pointer-events-none select-none"
-                style={{ imageRendering: 'high-quality' }}
-              />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={screenshotImg}
+                  alt="New Screenshot"
+                  className="w-full h-full object-fill pointer-events-none select-none"
+                  style={{ imageRendering: 'high-quality' }}
+                />
+                <EgyptianSchoolsTitleEffect />
+              </div>
             </div>
 
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
