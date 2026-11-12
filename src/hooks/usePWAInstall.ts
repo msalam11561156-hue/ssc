@@ -69,7 +69,7 @@ export function usePWAInstall() {
   };
 
   return {
-    isInstallable: !!deferredPrompt || isUnsupported, // Make button visible
+    isInstallable: true, // Always allow clicking the install button on desktop/tablet
     isInstalled,
     isIOS,
     install,

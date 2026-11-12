@@ -482,9 +482,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11] max-h-[50vh] sm:max-h-[60vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1 flex items-center justify-center"
         >
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
+            animate={{ rotate: 360, scale: [1, 1.08, 1] }}
+            transition={{ rotate: { repeat: Infinity, duration: 15, ease: 'linear' }, scale: { repeat: Infinity, duration: 6, ease: 'easeInOut' } }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] aspect-square bg-[conic-gradient(from_0deg_at_50%_50%,#06b6d4_0deg,#a855f7_90deg,#fbbf24_180deg,#3b82f6_270deg,#06b6d4_360deg)] opacity-85 blur-2xl"
           />
           
           <div className="relative rounded-[1.2rem] sm:rounded-[1.8rem] md:rounded-[2.2rem] overflow-hidden border-[2px] sm:border-[3px] border-black w-full h-full flex flex-col">
