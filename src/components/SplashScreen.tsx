@@ -12,6 +12,7 @@ import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
+import { AnimatedBackground } from './AnimatedBackground';
 
 import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -425,7 +426,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   };
 
   return (
-    <div className="w-full h-[100dvh] flex flex-col justify-between items-center overflow-hidden bg-slate-900">
+    <div className="w-full h-[100dvh] flex flex-col justify-between items-center overflow-hidden bg-transparent relative">
+      <AnimatedBackground />
 
       {/* Top Scrolling Ticker Bar - Spans full width of the screen on any device */}
       <div className="w-full z-20 shrink-0">
@@ -479,20 +481,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, x: -100, scale: 0.9 }}
           transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11] max-h-[50vh] sm:max-h-[60vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1 flex items-center justify-center"
+          className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11] max-h-[50vh] sm:max-h-[60vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1 flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
         >
           <motion.div
             animate={{ rotate: 360, scale: [1, 1.08, 1] }}
             transition={{ rotate: { repeat: Infinity, duration: 15, ease: 'linear' }, scale: { repeat: Infinity, duration: 6, ease: 'easeInOut' } }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] aspect-square bg-[conic-gradient(from_0deg_at_50%_50%,#06b6d4_0deg,#a855f7_90deg,#fbbf24_180deg,#3b82f6_270deg,#06b6d4_360deg)] opacity-85 blur-2xl"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] aspect-square bg-[conic-gradient(from_0deg_at_50%_50%,#06b6d4_0deg,#a855f7_90deg,#fbbf24_180deg,#3b82f6_270deg,#06b6d4_360deg)] opacity-90 blur-xl z-0 pointer-events-none"
           />
           
-          <div className="relative rounded-[1.2rem] sm:rounded-[1.8rem] md:rounded-[2.2rem] overflow-hidden border-[2px] sm:border-[3px] border-black w-full h-full flex flex-col">
+          <div className="relative rounded-[1.2rem] sm:rounded-[1.8rem] md:rounded-[2.2rem] overflow-hidden border-[2px] sm:border-[3px] border-black w-full h-full flex flex-col z-10 bg-slate-950">
           <div 
-            className="absolute inset-0 z-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"
+            className="absolute inset-0 z-0 bg-slate-950/40"
           />
-        
-          <div className="relative z-10 w-full h-full flex flex-col items-center justify-center overflow-hidden">
             {/* 1. Blue Shield Image (الصورة الأولى - الدرع الأزرق وشعار SMART CONTROL) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
@@ -603,8 +603,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
             <div className="absolute inset-0 z-0 bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
       <motion.div
         initial={{ y: 15, opacity: 0 }}

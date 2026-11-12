@@ -2,7 +2,7 @@ import React from 'react';
 
 export const AnimatedBackground = () => {
   return (
-    <div className="fixed inset-0 z-[-1] bg-slate-900 overflow-hidden">
+    <div className="fixed inset-0 z-[-1] bg-gradient-to-b from-slate-950 via-slate-900 to-black overflow-hidden">
       <style>
         {`
           .wave-layer {
