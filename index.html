@@ -8,6 +8,30 @@
         window.$RefreshReg$ = window.$RefreshReg$ || function() {};
         window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
         
+        if (typeof window !== 'undefined') {
+          try {
+            const OrigWS = window.WebSocket;
+            if (OrigWS) {
+              window.WebSocket = function(url, protocols) {
+                try {
+                  const ws = new OrigWS(url, protocols);
+                  ws.onerror = function() {};
+                  return ws;
+                } catch (err) {
+                  return {
+                    send: function() {},
+                    close: function() {},
+                    addEventListener: function() {},
+                    removeEventListener: function() {},
+                    readyState: 3
+                  };
+                }
+              };
+              window.WebSocket.prototype = OrigWS.prototype;
+            }
+          } catch (e) {}
+        }
+
         window.addEventListener('error', function(e) {
           if (e && e.message && (e.message.indexOf('send') !== -1 || e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('vite') !== -1)) {
             e.preventDefault();

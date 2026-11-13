@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { translations, applyEntityTerms } from '../i18n';
 import { Language, StudentData } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, FileSpreadsheet, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
@@ -2495,12 +2495,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           icon={<Printer className="w-4 h-4" />}
                           text={semester === 'first' ? 'شيت كنترول الفصل الدراسي الأول' : 'شيت كنترول الفصل الدراسي الثانى'}
                           bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]"
-                        />
-                        <ActionMenuButton
-                          onClick={() => setIsExportExcelModalOpen(true)}
-                          icon={<FileSpreadsheet className="w-4 h-4" />}
-                          text="تصدير شيت الكنترول إلى ملف EXCEL"
-                          bgGradient="bg-[linear-gradient(to_right,#15803d,#16a34a,#15803d)]"
                         />
                         <ActionMenuButton
                           onClick={() => {
