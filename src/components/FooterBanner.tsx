@@ -53,12 +53,16 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
                 }
               }
               .animate-scroll-ltr {
-                animation: scroll-ltr 45s linear infinite;
+                animation: scroll-ltr 65s linear infinite;
                 display: inline-block;
               }
               .animate-scroll-rtl {
-                animation: scroll-rtl 45s linear infinite;
+                animation: scroll-rtl 65s linear infinite;
                 display: inline-block;
+              }
+              .animate-scroll-ltr:hover,
+              .animate-scroll-rtl:hover {
+                animation-play-state: paused;
               }
               .animate-gradient-x {
                 animation: gradient-x 4s ease infinite;
@@ -69,6 +73,18 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
             {bannerText}
           </div>
         </div>
+
+        {/* زر ملون: مطلوب وكلاء بالمحافظات */}
+        <a
+          href="https://wa.me/201098594956?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%20..%20%D8%A3%D9%88%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%B7%D9%84%D8%A8%20%D9%88%D9%83%D9%84%D8%A7%D8%A1%20%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%20%D8%B3%D9%85%D8%A7%D8%B1%D8%AA%20%D9%83%D9%86%D8%AA%D8%B1%D9%88%D9%84%20%D8%A8%D8%A7%D9%84%D9%85%D8%AD%D8%A7%D9%81%D8%B8%D8%A7%D8%AA"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={lang === 'ar' ? 'مطلوب وكلاء بالمحافظات' : 'Agents Wanted in Governorates'}
+          className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 md:px-4 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-[11px] sm:text-xs md:text-sm border-[1.5px] border-slate-900 rounded-lg transition-all shadow-sm shrink-0 h-11 sm:h-12 md:h-14 cursor-pointer active:scale-[0.98] whitespace-nowrap"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping shrink-0" />
+          <span>مطلوب وكلاء بالمحافظات</span>
+        </a>
 
         <PWAInstallButton lang={lang} />
 
