@@ -7,41 +7,28 @@
         window.__vite_plugin_react_preamble_installed__ = true;
         window.$RefreshReg$ = window.$RefreshReg$ || function() {};
         window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
-        
-        if (typeof window !== 'undefined') {
-          try {
-            const OrigWS = window.WebSocket;
-            if (OrigWS) {
-              window.WebSocket = function(url, protocols) {
-                try {
-                  const ws = new OrigWS(url, protocols);
-                  ws.onerror = function() {};
-                  return ws;
-                } catch (err) {
-                  return {
-                    send: function() {},
-                    close: function() {},
-                    addEventListener: function() {},
-                    removeEventListener: function() {},
-                    readyState: 3
-                  };
-                }
-              };
-              window.WebSocket.prototype = OrigWS.prototype;
-            }
-          } catch (e) {}
-        }
+
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          var str = String(msg || '') + ' ' + String(url || '') + ' ' + (error ? String(error.message || error.stack || '') : '');
+          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
+            return true;
+          }
+        };
 
         window.addEventListener('error', function(e) {
-          if (e && e.message && (e.message.indexOf('send') !== -1 || e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('vite') !== -1)) {
+          var str = String(e && e.message ? e.message : '') + ' ' + (e && e.error && e.error.message ? String(e.error.message) : '');
+          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
             e.preventDefault();
+            e.stopPropagation();
             return true;
           }
         }, true);
 
         window.addEventListener('unhandledrejection', function(e) {
-          if (e && e.reason && (String(e.reason).indexOf('send') !== -1 || String(e.reason).indexOf('WebSocket') !== -1)) {
+          var str = String(e && e.reason ? (e.reason.message || e.reason) : '');
+          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
             e.preventDefault();
+            e.stopPropagation();
           }
         });
 
@@ -50,13 +37,27 @@
           for (var i = 0; i < arguments.length; i++) {
             var arg = arguments[i];
             if (arg) {
-              var text = (typeof arg === 'string' ? arg : (arg && arg.message ? arg.message : String(arg)));
-              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('send') !== -1) {
+              var text = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg));
+              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('send') !== -1 || text.indexOf('@vite/client') !== -1) {
                 return;
               }
             }
           }
           origError.apply(console, arguments);
+        };
+
+        var origWarn = console.warn;
+        console.warn = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            if (arg) {
+              var text = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg));
+              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('send') !== -1) {
+                return;
+              }
+            }
+          }
+          origWarn.apply(console, arguments);
         };
       })();
     </script>
