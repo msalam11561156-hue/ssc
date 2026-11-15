@@ -592,6 +592,7 @@ export function getSavedEnglishMainFields(stage?: string): {
     official_distinguished: 'Distinguished Official Language Schools',
     ips: 'Official International Schools (IPS)',
     private: 'Private Schools',
+    international: 'International Schools',
     national: 'National Schools',
     egyptian_japanese: 'Egyptian Japanese Schools (EJS)',
     nile_egyptian: 'Nile Egyptian Schools (NES)',

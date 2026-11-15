@@ -1,6 +1,6 @@
 export type AffiliatedEntity = 'moe' | 'azhar' | '';
 export type EducationalStage = 'kindergarten' | 'primary' | 'middle' | 'secondary' | 'commercial_technical' | 'industrial_technical' | 'agricultural_technical' | 'hotel_technical' | '';
-export type EducationType = 'official' | 'official_languages' | 'official_distinguished' | 'private' | 'other_schools' | '';
+export type EducationType = 'official' | 'official_languages' | 'official_distinguished' | 'private' | 'international' | 'other_schools' | '';
 
 export interface SchoolData {
   affiliatedEntity?: AffiliatedEntity;

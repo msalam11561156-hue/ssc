@@ -916,6 +916,7 @@ export default function App() {
       case 'official_distinguished': return (t as any).officialDistinguished;
       case 'ips': return (t as any).ips;
       case 'private': return (t as any).private;
+      case 'international': return (t as any).international || 'مدارس دولية';
       case 'national': return (t as any).national;
       case 'intellectual_schools': return (t as any).intellectualSchools;
       case 'vocational_schools': return (t as any).vocationalSchools;

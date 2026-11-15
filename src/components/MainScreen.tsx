@@ -33,6 +33,7 @@ const DEFAULT_EDUCATION_TYPE_EN: Record<string, string> = {
   official_languages: 'Official Language Schools',
   official_distinguished: 'Distinguished Official Language Schools',
   private: 'Private Schools',
+  international: 'International Schools',
   other_schools: 'Other Schools',
 };
 
@@ -451,6 +452,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                   <option value="official_languages">{t.officialLanguages}</option>
                   <option value="official_distinguished">{t.officialDistinguished}</option>
                   <option value="private">{t.private}</option>
+                  <option value="international">{t.international}</option>
                   <option value="other_schools">{t.otherSchools}</option>
                 </select>
                 {renderLanguageButton(
