@@ -1,18 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import brandShield from '../assets/images/brand_shield.png';
+import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
 
 interface BrandHeaderProps {
   variant?: 'gold' | 'black';
 }
 
 export const BrandHeader: React.FC<BrandHeaderProps> = ({ variant = 'black' }) => {
+  const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
+
+  useEffect(() => {
+    let active = true;
+    getCachedBrandShield().then((cached) => {
+      if (active && cached) {
+        setLogoSrc(cached);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleImageError = () => {
+    if (logoSrc !== '/brand_shield.png' && !logoSrc.startsWith('data:image/')) {
+      setLogoSrc('/brand_shield.png');
+    } else if (logoSrc !== '/pwa-192x192.png') {
+      setLogoSrc('/pwa-192x192.png');
+    }
+  };
+
   const textStyles = variant === 'gold'
     ? "text-transparent bg-clip-text bg-gradient-to-br from-white via-amber-200 to-amber-500"
     : "text-black";
 
   return (
-    <div className="flex flex-col items-center gap-2 pb-3 mb-2">
+    <div className="flex flex-col items-center gap-2 pb-3 mb-2 shrink-0 w-full">
       {/* Professional Floating & Glowing Logo */}
       <motion.div
         animate={{ 
@@ -34,8 +56,9 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ variant = 'black' }) =
         className="relative z-10 mb-1"
       >
         <img 
-          src={brandShield} 
+          src={logoSrc} 
           alt="Brand Shield Logo" 
+          onError={handleImageError}
           className="w-20 h-20 md:w-24 md:h-24 object-contain select-none pointer-events-none" 
         />
         {/* Background Glow Effect */}

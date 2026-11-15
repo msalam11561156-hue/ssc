@@ -1,7 +1,7 @@
 import { getActiveFooterTagline } from "../utils/adFilter";
 import React, { useState, useEffect } from 'react';
-import { translations, applyEntityTerms } from '../i18n';
-import { Language, StudentData } from '../types';
+import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
+import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -47,6 +47,7 @@ interface StudentsDataScreenProps {
   sortBy?: { id: string; direction: 'asc' | 'desc' }[];
   onSortChange?: (newSort: { id: string; direction: 'asc' | 'desc' }[]) => void;
   isTrialMode?: boolean;
+  educationType?: EducationType;
 }
 
 interface ExamScheduleItem {
@@ -156,6 +157,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   sortBy: externalSortBy,
   onSortChange,
   isTrialMode = false,
+  educationType,
 }) => {
   const t = translations[lang];
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
@@ -166,6 +168,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     localStorage.setItem('sheet_control_number_lang', numberLang);
   }, [numberLang]);
   const isKindergarten = stage === 'kindergarten';
+  const isInternational = isInternationalSchool(educationType);
+  const showExemptionStatus = isInternational && !isKindergarten;
+  const colOffset = showExemptionStatus ? 1 : 0;
   const isFirstSemester = semester === 'first';
   const isHomeschool = systemType === 'homeschool' || Boolean(title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')));
   const isMiddleOrSecHomeschool = (stage === 'middle' || stage === 'prep' || stage === 'secondary' || Boolean(title && (title.includes('المرحلة الإعدادية') || title.includes('المرحلة الثانوية') || title.includes('ثانوي')))) && isHomeschool;
@@ -232,6 +237,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [studentToDelete, setStudentToDelete] = useState<StudentData | null>(null);
   const [isNationalIdModalOpen, setIsNationalIdModalOpen] = useState(false);
   const [nationalIdModalText, setNationalIdModalText] = useState('');
+  const [isDefaultValuesModalOpen, setIsDefaultValuesModalOpen] = useState(false);
+  const [defaultEnrollmentStatus, setDefaultEnrollmentStatus] = useState<'منقول' | ''>('منقول');
+  const [defaultExemptionStatus, setDefaultExemptionStatus] = useState<'كلى' | 'تدريجى' | ''>(() => (showExemptionStatus ? 'كلى' : ''));
+  const [defaultEnrollmentType, setDefaultEnrollmentType] = useState<'قيد عادى' | ''>('قيد عادى');
+  const [defaultReligion, setDefaultReligion] = useState<'muslim' | ''>('muslim');
   const [showInstructions, setShowInstructions] = useState(false);
   const [isColorModalOpen, setIsColorModalOpen] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -594,8 +604,33 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   
   const [isSeatNumModalOpen, setIsSeatNumModalOpen] = useState(false);
   const [isSecretNumModalOpen, setIsSecretNumModalOpen] = useState(false);
-  const committeeStorageKey = `${stage || 'default'}_${selectedGrade || 'default'}`;
+  const committeeStorageKey = `${stage || 'default'}_${selectedGrade || 'default'}${systemType && systemType !== 'regular' ? `_${systemType}` : ''}`;
+  const legacyCommitteeStorageKey = `${stage || 'default'}_${selectedGrade || 'default'}`;
   const numberingStorageKey = `${committeeStorageKey}_${semester || 'first'}`;
+
+  const readCommitteeSettingsForKey = (key: string, legacyKey: string) => {
+    const defaults = {
+      firstSize: 20 as number | '',
+      firstMerge: false,
+      secondSize: 20 as number | '',
+      secondMerge: false,
+    };
+    try {
+      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
+      if (!byGradeRaw) return defaults;
+      const parsed = JSON.parse(byGradeRaw);
+      const entryFirst = parsed?.[`${key}_first`] ?? parsed?.[key];
+      const entrySecond = parsed?.[`${key}_second`] ?? parsed?.[key];
+      return {
+        firstSize: Number(entryFirst?.committeeSize) >= 1 ? Number(entryFirst.committeeSize) : 20,
+        firstMerge: typeof entryFirst?.mergeLastCommittee === 'boolean' ? entryFirst.mergeLastCommittee : false,
+        secondSize: Number(entrySecond?.committeeSize) >= 1 ? Number(entrySecond.committeeSize) : 20,
+        secondMerge: typeof entrySecond?.mergeLastCommittee === 'boolean' ? entrySecond.mergeLastCommittee : false,
+      };
+    } catch {
+      return defaults;
+    }
+  };
 
   const [seatNumStart, setSeatNumStart] = useState<number>(() => {
     try {
@@ -625,112 +660,25 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [isExportExcelModalOpen, setIsExportExcelModalOpen] = useState(false);
   const [committeeModalSemester, setCommitteeModalSemester] = useState<'first' | 'second'>(semester === 'second' ? 'second' : 'first');
 
-  const [committeeSizeFirst, setCommitteeSizeFirst] = useState<number | ''>(() => {
-    try {
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        const semVal = Number(parsed?.[`${committeeStorageKey}_first`]?.committeeSize);
-        if (semVal >= 1) return semVal;
-        const legacyVal = Number(parsed?.[committeeStorageKey]?.committeeSize);
-        if (legacyVal >= 1) return legacyVal;
-      }
-      const globalRaw = localStorage.getItem('sheet_control_committee_size');
-      if (globalRaw) {
-        const parsedGlobal = Number(globalRaw);
-        if (parsedGlobal >= 1) return parsedGlobal;
-      }
-    } catch {}
-    return 20;
-  });
-
-  const [mergeLastCommitteeFirst, setMergeLastCommitteeFirst] = useState<boolean>(() => {
-    try {
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        if (typeof parsed?.[`${committeeStorageKey}_first`]?.mergeLastCommittee === 'boolean') {
-          return parsed[`${committeeStorageKey}_first`].mergeLastCommittee;
-        }
-        if (typeof parsed?.[committeeStorageKey]?.mergeLastCommittee === 'boolean') {
-          return parsed[committeeStorageKey].mergeLastCommittee;
-        }
-      }
-      const globalMerge = localStorage.getItem('sheet_control_merge_last_committee');
-      if (globalMerge !== null) {
-        return globalMerge === 'true';
-      }
-    } catch {}
-    return false;
-  });
-
-  const [committeeSizeSecond, setCommitteeSizeSecond] = useState<number | ''>(() => {
-    try {
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        const semVal = Number(parsed?.[`${committeeStorageKey}_second`]?.committeeSize);
-        if (semVal >= 1) return semVal;
-        const legacyVal = Number(parsed?.[committeeStorageKey]?.committeeSize);
-        if (legacyVal >= 1) return legacyVal;
-      }
-      const globalRaw = localStorage.getItem('sheet_control_committee_size');
-      if (globalRaw) {
-        const parsedGlobal = Number(globalRaw);
-        if (parsedGlobal >= 1) return parsedGlobal;
-      }
-    } catch {}
-    return 20;
-  });
-
-  const [mergeLastCommitteeSecond, setMergeLastCommitteeSecond] = useState<boolean>(() => {
-    try {
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        if (typeof parsed?.[`${committeeStorageKey}_second`]?.mergeLastCommittee === 'boolean') {
-          return parsed[`${committeeStorageKey}_second`].mergeLastCommittee;
-        }
-        if (typeof parsed?.[committeeStorageKey]?.mergeLastCommittee === 'boolean') {
-          return parsed[committeeStorageKey].mergeLastCommittee;
-        }
-      }
-      const globalMerge = localStorage.getItem('sheet_control_merge_last_committee');
-      if (globalMerge !== null) {
-        return globalMerge === 'true';
-      }
-    } catch {}
-    return false;
-  });
+  const initialCommitteeSettings = readCommitteeSettingsForKey(committeeStorageKey, legacyCommitteeStorageKey);
+  const [committeeSizeFirst, setCommitteeSizeFirst] = useState<number | ''>(initialCommitteeSettings.firstSize);
+  const [mergeLastCommitteeFirst, setMergeLastCommitteeFirst] = useState<boolean>(initialCommitteeSettings.firstMerge);
+  const [committeeSizeSecond, setCommitteeSizeSecond] = useState<number | ''>(initialCommitteeSettings.secondSize);
+  const [mergeLastCommitteeSecond, setMergeLastCommitteeSecond] = useState<boolean>(initialCommitteeSettings.secondMerge);
+  const loadedCommitteeKeyRef = React.useRef<string>(committeeStorageKey);
 
   useEffect(() => {
-    try {
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        const entryFirst = parsed?.[`${committeeStorageKey}_first`] ?? parsed?.[committeeStorageKey];
-        if (entryFirst) {
-          if (Number(entryFirst.committeeSize) >= 1) {
-            setCommitteeSizeFirst(Number(entryFirst.committeeSize));
-          }
-          if (typeof entryFirst.mergeLastCommittee === 'boolean') {
-            setMergeLastCommitteeFirst(entryFirst.mergeLastCommittee);
-          }
-        }
-        const entrySecond = parsed?.[`${committeeStorageKey}_second`] ?? parsed?.[committeeStorageKey];
-        if (entrySecond) {
-          if (Number(entrySecond.committeeSize) >= 1) {
-            setCommitteeSizeSecond(Number(entrySecond.committeeSize));
-          }
-          if (typeof entrySecond.mergeLastCommittee === 'boolean') {
-            setMergeLastCommitteeSecond(entrySecond.mergeLastCommittee);
-          }
-        }
-      }
-    } catch {}
-  }, [committeeStorageKey]);
+    const loaded = readCommitteeSettingsForKey(committeeStorageKey, legacyCommitteeStorageKey);
+    loadedCommitteeKeyRef.current = '';
+    setCommitteeSizeFirst(loaded.firstSize);
+    setMergeLastCommitteeFirst(loaded.firstMerge);
+    setCommitteeSizeSecond(loaded.secondSize);
+    setMergeLastCommitteeSecond(loaded.secondMerge);
+    loadedCommitteeKeyRef.current = committeeStorageKey;
+  }, [committeeStorageKey, legacyCommitteeStorageKey]);
 
   useEffect(() => {
+    if (loadedCommitteeKeyRef.current !== committeeStorageKey) return;
     try {
       const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
       const parsed = byGradeRaw ? JSON.parse(byGradeRaw) : {};
@@ -753,8 +701,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         mergeLastCommittee: currentMerge,
       };
 
-      localStorage.setItem('sheet_control_committee_size', String(currentValidSize));
-      localStorage.setItem('sheet_control_merge_last_committee', String(currentMerge));
       localStorage.setItem('sheet_control_committee_settings_by_grade', JSON.stringify(parsed));
     } catch {}
   }, [
@@ -767,6 +713,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   ]);
   const [isStatsMenuOpen, setIsStatsMenuOpen] = useState(false);
   const [isDetailedStatsMenuOpen, setIsDetailedStatsMenuOpen] = useState(false);
+  const [isExemptionStatsMenuOpen, setIsExemptionStatsMenuOpen] = useState(false);
   const [isEnrollmentTypeStatsMenuOpen, setIsEnrollmentTypeStatsMenuOpen] = useState(false);
   const [isDamgStatsMenuOpen, setIsDamgStatsMenuOpen] = useState(false);
   const [isAdvancedStatsModalOpen, setIsAdvancedStatsModalOpen] = useState(false);
@@ -911,6 +858,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       screenSubtitle: 'تحرير البيانات',
       administration,
       schoolName,
+      educationType,
       dataOfficer,
       controlHead,
       committeeHead,
@@ -929,6 +877,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         nationalId: t.nationalId,
         gender: t.gender,
         enrollmentStatus: isKindergarten ? 'حالة التلميذ' : t.enrollmentStatus,
+        exemptionStatus: (t as any).exemptionStatus || 'حالة الإعفاء',
         enrollmentType: (t as any).enrollmentType || 'نوعية القيد',
         religion: t.religion,
         seatNumber: (t as any).seatNumber || 'رقم الجلوس',
@@ -1227,6 +1176,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         let valToSet = value;
         if (field === 'enrollmentStatus') {
           valToSet = normalizeStatusForGrade(value, isFirstGrade, s.gender);
+        } else if (field === 'exemptionStatus') {
+          const v = value.trim();
+          if (v === 'كلي' || v === 'كلى') valToSet = 'كلى';
+          else if (v === 'تدريجي' || v === 'تدريجى') valToSet = 'تدريجى';
+          else valToSet = v;
         } else if (field === 'studentStatus') {
           valToSet = value === 'دمج' ? 'دمج' : 'عادى';
         } else if (field === 'religion') {
@@ -1284,6 +1238,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         }
         if (criteria.id === 'status') {
           const cmp = (a.enrollmentStatus || '').localeCompare(b.enrollmentStatus || '', lang === 'ar' ? 'ar' : 'en');
+          if (cmp !== 0) return cmp * modifier;
+        }
+        if (criteria.id === 'exemptionStatus') {
+          const cmp = (a.exemptionStatus || '').localeCompare(b.exemptionStatus || '', lang === 'ar' ? 'ar' : 'en');
           if (cmp !== 0) return cmp * modifier;
         }
         if (criteria.id === 'studentStatus') {
@@ -1479,6 +1437,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         nationalId: '',
         gender: '',
         enrollmentStatus: '',
+        exemptionStatus: '',
         studentStatus: isKindergarten ? 'عادى' : undefined,
         enrollmentType: '',
         religion: '',
@@ -1574,6 +1533,37 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     }
     setNationalIdModalText('');
     setIsNationalIdModalOpen(false);
+  };
+
+  const handleApplyDefaultValues = () => {
+    const targetIds = new Set(filteredData.map(s => s.id));
+    const effectiveExemption = showExemptionStatus ? defaultExemptionStatus : '';
+    if (targetIds.size > 0 && (defaultEnrollmentStatus || effectiveExemption || defaultEnrollmentType || defaultReligion)) {
+      const updatedData = data.map(s => {
+        if (!targetIds.has(s.id)) return s;
+        const next: StudentData = { ...s };
+        if (defaultEnrollmentStatus === 'منقول') {
+          if (isKindergarten) {
+            next.studentStatus = 'عادى';
+            next.enrollmentStatus = s.gender === 'female' ? 'مستجدة' : 'مستجد';
+          } else {
+            next.enrollmentStatus = normalizeStatusForGrade('منقول', isFirstGrade, s.gender);
+          }
+        }
+        if (effectiveExemption) {
+          next.exemptionStatus = effectiveExemption;
+        }
+        if (defaultEnrollmentType === 'قيد عادى') {
+          next.enrollmentType = 'قيد عادى';
+        }
+        if (defaultReligion === 'muslim') {
+          next.religion = 'muslim';
+        }
+        return next;
+      });
+      onChange(updatedData);
+    }
+    setIsDefaultValuesModalOpen(false);
   };
 
   const handleGenerateSeatNumbers = () => {
@@ -1672,6 +1662,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           }
           if (criteria.id === 'status') {
             const cmp = (a.enrollmentStatus || '').localeCompare(b.enrollmentStatus || '', lang === 'ar' ? 'ar' : 'en');
+            if (cmp !== 0) return cmp * modifier;
+          }
+          if (criteria.id === 'exemptionStatus') {
+            const cmp = (a.exemptionStatus || '').localeCompare(b.exemptionStatus || '', lang === 'ar' ? 'ar' : 'en');
             if (cmp !== 0) return cmp * modifier;
           }
         if (criteria.id === 'studentStatus') {
@@ -1775,6 +1769,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     const matchesSearch = s.name.toLowerCase().includes(searchLower) || 
                          s.nationalId.includes(searchTerm) ||
                          (s.enrollmentStatus && s.enrollmentStatus.includes(searchTerm)) ||
+                         (showExemptionStatus && s.exemptionStatus && s.exemptionStatus.includes(searchTerm)) ||
                          (s.enrollmentType && s.enrollmentType.includes(searchTerm));
     
     if (!matchesSearch) return false;
@@ -1788,6 +1783,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     }
     if (filters.studentClass && s.studentClass !== filters.studentClass) return false;
     if (filters.enrollmentStatus && s.enrollmentStatus !== filters.enrollmentStatus) return false;
+    if (showExemptionStatus && filters.exemptionStatus && s.exemptionStatus !== filters.exemptionStatus) return false;
     if (filters.enrollmentType && s.enrollmentType !== filters.enrollmentType) return false;
     if (filters.committeeNumber && s.committeeNumber !== filters.committeeNumber) return false;
 
@@ -1805,6 +1801,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       }
       if (criteria.id === 'status') {
         const cmp = (a.enrollmentStatus || '').localeCompare(b.enrollmentStatus || '', lang === 'ar' ? 'ar' : 'en');
+        if (cmp !== 0) return cmp * modifier;
+      }
+      if (criteria.id === 'exemptionStatus') {
+        const cmp = (a.exemptionStatus || '').localeCompare(b.exemptionStatus || '', lang === 'ar' ? 'ar' : 'en');
         if (cmp !== 0) return cmp * modifier;
       }
         if (criteria.id === 'studentStatus') {
@@ -1866,7 +1866,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       isKindergarten ? 'اسم التلميذ' : t.studentName,
       t.nationalId,
       t.gender,
-      ...(isKindergarten ? ['حالة التلميذ'] : (!isKindergarten ? [t.enrollmentStatus] : [])),
+      ...(isKindergarten ? ['حالة التلميذ'] : (!isKindergarten ? [t.enrollmentStatus, ...(showExemptionStatus ? [(t as any).exemptionStatus || 'حالة الإعفاء'] : [])] : [])),
       (t as any).enrollmentType || 'نوعية القيد',
       t.religion
     ];
@@ -1885,7 +1885,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         `"${student.name}"`,
         `"${student.nationalId}"`,
         `"${student.gender === 'male' ? t.male : (student.gender === 'female' ? t.female : '')}"`,
-        ...(isKindergarten ? [`"${student.studentStatus === 'دمج' ? 'دمج' : 'عادى'}"`] : (!isKindergarten ? [`"${normalizeStatusForGrade(student.enrollmentStatus, isFirstGrade)}"`] : [])),
+        ...(isKindergarten ? [`"${student.studentStatus === 'دمج' ? 'دمج' : 'عادى'}"`] : (!isKindergarten ? [`"${normalizeStatusForGrade(student.enrollmentStatus, isFirstGrade)}"`, ...(showExemptionStatus ? [`"${student.exemptionStatus || ''}"`] : [])] : [])),
         `"${student.enrollmentType || ''}"`,
         `"${student.religion === 'muslim' ? (student.gender === 'female' ? (t as any).muslimFemale : t.muslim) : (student.religion === 'christian' ? (student.gender === 'female' ? (t as any).christianFemale : t.christian) : '')}"`
       ];
@@ -1909,7 +1909,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, colIndex: number) => {
-    const tableColumns = isKindergarten ? 7 : (showExamFields ? 10 : 8);
+    const tableColumns = isKindergarten ? 7 : (showExamFields ? 10 + colOffset : 8 + colOffset);
     let nextRow = rowIndex;
     let nextCol = colIndex;
 
@@ -2025,6 +2025,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
            let finalVal = val;
            if (field === 'enrollmentStatus') {
              finalVal = normalizeStatusForGrade(val, isFirstGrade, student.gender);
+           } else if (field === 'exemptionStatus') {
+             const v = val.trim();
+             if (v === 'كلي' || v === 'كلى') finalVal = 'كلى';
+             else if (v === 'تدريجي' || v === 'تدريجى') finalVal = 'تدريجى';
+             else if (v === '' || v === '-') finalVal = '';
+             else finalVal = v;
            } else if (field === 'studentStatus') {
              const v = val.trim();
              if (v.includes('دمج')) finalVal = 'دمج';
@@ -2156,6 +2162,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               data={data}
               numberLang={numberLang}
               isKindergarten={isKindergarten}
+              isInternational={isInternational}
+              educationType={educationType}
               className="shrink-0"
             />
             <button
@@ -2218,6 +2226,20 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         />
 
                         <ActionMenuButton
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setDefaultEnrollmentStatus('منقول');
+                            setDefaultExemptionStatus(showExemptionStatus ? 'كلى' : '');
+                            setDefaultEnrollmentType('قيد عادى');
+                            setDefaultReligion('muslim');
+                            setIsDefaultValuesModalOpen(true);
+                          }}
+                          icon={<Sliders className="w-4 h-4" />}
+                          text="القيم الافتراضية لبيانات الطلاب"
+                          bgGradient="bg-[linear-gradient(to_right,#6366f1,#3b82f6,#6366f1)]"
+                        />
+
+                        <ActionMenuButton
                           onClick={() => { setIsToolsMenuOpen(false); setIsExamScheduleModalOpen(true); }}
                           icon={<Calendar className="w-4 h-4" />}
                           text="تحرير جدول الامتحان"
@@ -2249,7 +2271,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               setIsCommitteeSizeModalOpen(true);
                             }}
                             icon={<Plus className="w-4 h-4" />}
-                            text={(t as any).studentsPerCommittee || (isKindergarten ? 'عدد التلاميذ فى اللجنة' : 'عدد الطلاب فى اللجنة')}
+                            text={(t as any).studentsPerCommittee || 'إعدادات اللجنة'}
                             bgGradient={
                               isFirstSemester
                                 ? "bg-[linear-gradient(to_right,#059669,#14b8a6,#059669)]"
@@ -2966,6 +2988,18 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                                 <span>{(t as any).statusStatistics || (t as any).detailedStatistics}</span>
                               </button>
                             )}
+                            {showExemptionStatus && (
+                              <button
+                                onClick={() => {
+                                  setIsStatsMenuOpen(false);
+                                  setIsExemptionStatsMenuOpen(true);
+                                }}
+                                className="w-full bg-gradient-to-r from-sky-600 via-cyan-600 to-sky-700 hover:from-sky-500 hover:via-cyan-500 hover:to-sky-600 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2.5 shadow-md shadow-sky-500/25 active:scale-95 transition-all text-sm border-2 border-slate-900"
+                              >
+                                <PieChart className="w-5 h-5 text-sky-200" strokeWidth={2.5} />
+                                <span>{(t as any).exemptionStatistics || 'إحصائيات حالة الإعفاء'}</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => {
                                 setIsStatsMenuOpen(false);
@@ -3150,6 +3184,104 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                                 );
                               });
                             })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+
+            {/* Detailed Stats Modal - حالة الإعفاء */}
+            <AnimatePresence>
+              {isExemptionStatsMenuOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                    onClick={() => setIsExemptionStatsMenuOpen(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                    className="relative w-full max-w-3xl rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
+                  >
+                    <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#0284c7_75%,#000000_100%)] pointer-events-none" />
+                    <div className="relative rounded-[24px] flex flex-col w-full h-full overflow-hidden bg-white/95 backdrop-blur-3xl">
+                      <div className="p-6 flex flex-col gap-6 h-full overflow-hidden">
+                        <div className="flex justify-between items-center z-10 shrink-0 border-b-2 border-slate-200 pb-4 gap-2 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className="text-slate-800 font-bold text-xl flex items-center gap-2">
+                              <PieChart className="w-6 h-6 text-sky-600" strokeWidth={2.5} />
+                              <span>{(t as any).exemptionStatistics || 'إحصائيات حالة الإعفاء'}</span>
+                            </h3>
+                            <div className="bg-gradient-to-r from-sky-50 to-cyan-50 border-2 border-sky-400 text-slate-800 px-3.5 py-1 rounded-xl text-base font-extrabold shadow-sm flex items-center gap-1.5">
+                              <span className="text-sky-900">{(t as any).totalStudents || 'الإجمالي'} =</span>
+                              <span className="text-lg font-black text-sky-600">{filteredData.length}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setIsExemptionStatsMenuOpen(false);
+                                setIsStatsMenuOpen(true);
+                              }}
+                              className="text-slate-700 hover:text-sky-600 bg-slate-100 hover:bg-sky-50 p-2 rounded-full transition-all border border-slate-200 hover:border-slate-400 flex items-center justify-center shadow-sm active:scale-95"
+                              title={t.back || 'السابق'}
+                            >
+                              {lang === 'ar' ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+                            </button>
+                            <button onClick={() => setIsExemptionStatsMenuOpen(false)} className="text-slate-500 hover:text-red-500 bg-slate-100 hover:bg-red-50 p-2 rounded-full transition-all border border-slate-200">
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-2 custom-scrollbar">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 px-2">
+                            {[
+                              { key: 'كلى', title: 'كلى', themeColor: '#0284c7', bgClass: 'bg-gradient-to-br from-sky-50 to-cyan-50' },
+                              { key: 'تدريجى', title: 'تدريجى', themeColor: '#0d9488', bgClass: 'bg-gradient-to-br from-teal-50 to-emerald-50' },
+                              { key: '', title: 'غير محدد', themeColor: '#64748b', bgClass: 'bg-gradient-to-br from-slate-50 to-gray-100' },
+                            ].map((item) => {
+                              const matched = filteredData.filter((st) => {
+                                const val = (st.exemptionStatus || '').trim();
+                                const normalized = val === 'كلي' ? 'كلى' : val === 'تدريجي' ? 'تدريجى' : val;
+                                return item.key === '' ? normalized !== 'كلى' && normalized !== 'تدريجى' : normalized === item.key;
+                              });
+                              const boys = matched.filter((st) => st.gender === 'male').length;
+                              const girls = matched.filter((st) => st.gender === 'female').length;
+                              return (
+                                <div
+                                  key={item.title}
+                                  className={`relative rounded-[17px] p-4 flex flex-col gap-3 h-full z-10 border-2 shadow-sm hover:shadow-md transition-all ${item.bgClass}`}
+                                  style={{ borderColor: item.themeColor }}
+                                >
+                                  <h4 className="font-bold border-b-2 border-slate-900/10 pb-2 text-sm leading-tight text-center" style={{ color: item.themeColor }}>
+                                    {item.title}
+                                  </h4>
+                                  <div className="flex justify-between items-center bg-white/60 rounded-xl p-2 border border-white/50 shadow-inner">
+                                    <div className="text-center flex-1">
+                                      <div className="text-xs text-slate-600 font-bold mb-1">{(t as any).totalStudents}</div>
+                                      <div className="text-xl font-black text-slate-800">{matched.length}</div>
+                                    </div>
+                                    <div className="h-10 w-[2px] bg-slate-900/10 rounded-full" />
+                                    <div className="text-center flex-1">
+                                      <div className="text-xs text-blue-600 font-bold mb-1">{(t as any).boys}</div>
+                                      <div className="text-lg font-bold text-blue-700">{boys}</div>
+                                    </div>
+                                    <div className="h-10 w-[2px] bg-slate-900/10 rounded-full" />
+                                    <div className="text-center flex-1">
+                                      <div className="text-xs text-pink-600 font-bold mb-1">{(t as any).girls}</div>
+                                      <div className="text-lg font-bold text-pink-700">{girls}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -3451,6 +3583,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     { id: 'name', label: t.sortAlphabetical },
                     { id: 'gender', label: t.sortGender },
                     { id: 'status', label: t.sortStatus },
+                    { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء' },
                     { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب' },
                     { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد' },
                     { id: 'religion', label: t.sortReligion },
@@ -3510,7 +3643,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           ...(isKindergarten ? [
                             { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب', color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' }
                           ] : [
-                            { id: 'status', label: t.sortStatus, color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' }
+                            { id: 'status', label: t.sortStatus, color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' },
+                            ...(showExemptionStatus ? [
+                              { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء', color: 'from-sky-500 to-cyan-500', active: 'from-sky-400 via-cyan-500 to-sky-600', shadow: 'shadow-sky-500/30' }
+                            ] : [])
                           ]),
                           { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد', color: 'from-teal-500 to-emerald-500', active: 'from-teal-400 via-emerald-500 to-teal-600', shadow: 'shadow-teal-500/30' },
                           { id: 'religion', label: t.sortReligion, color: 'from-purple-500 to-fuchsia-500', active: 'from-purple-400 via-fuchsia-500 to-purple-600', shadow: 'shadow-purple-500/30' },
@@ -3667,6 +3803,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <th className="py-[18px] px-3 w-36 border-2 border-slate-900 bg-transparent whitespace-nowrap">حالة التلميذ</th>
                 ) : (
                   <th className="py-[18px] px-3 min-w-[175px] max-w-[175px] w-[175px] border-2 border-slate-900 bg-transparent">{t.enrollmentStatus}</th>
+                )}
+                {showExemptionStatus && (
+                  <th className="py-[18px] px-3 w-36 border-2 border-slate-900 bg-transparent whitespace-nowrap">{(t as any).exemptionStatus || 'حالة الإعفاء'}</th>
                 )}
                 <th className="py-[18px] px-3 w-44 border-2 border-slate-900 bg-transparent">{(t as any).enrollmentType || 'نوعية القيد'}</th>
                 <th className={`py-[18px] px-3 border-2 border-slate-900 bg-transparent ${showExamFields ? 'min-w-[130px] max-w-[130px] w-[130px]' : 'w-32'}`}>{t.religion}</th>
@@ -3841,14 +3980,32 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       )}
                     </td>
                   )}
+                  {showExemptionStatus && (
+                    <td className="p-0 border-2 border-slate-900 relative group/exemption w-36 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
+                      <select
+                        id={`cell-${idx}-4`}
+                        value={student.exemptionStatus === 'كلي' ? 'كلى' : (student.exemptionStatus === 'تدريجي' ? 'تدريجى' : (student.exemptionStatus || ''))}
+                        onChange={(e) => handleChange(student.id, 'exemptionStatus', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, idx, 4)}
+                        onFocus={(e) => ensureCellVisible(e.target)}
+                        onPaste={(e) => handlePaste(e, student.id, 'exemptionStatus', idx, 4)}
+                        className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none"
+                        style={{ textAlignLast: 'center' }}
+                      >
+                        <option value="" className="text-center"></option>
+                        <option value="كلى" className="text-center">كلى</option>
+                        <option value="تدريجى" className="text-center">تدريجى</option>
+                      </select>
+                    </td>
+                  )}
                   <td className="p-0 border-2 border-slate-900 relative group/enrollmentType min-w-[160px] max-w-[160px] w-[160px] focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                     <select 
-                      id={`cell-${idx}-4`}
+                      id={`cell-${idx}-${4 + colOffset}`}
                       value={student.enrollmentType === 'تحويل من مدرسة أخرى' ? 'تحويلات' : (student.enrollmentType === 'قيد عادي' ? 'قيد عادى' : (student.enrollmentType || ''))}
                       onChange={(e) => handleChange(student.id, 'enrollmentType', e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx, 4)}
+                      onKeyDown={(e) => handleKeyDown(e, idx, 4 + colOffset)}
                       onFocus={(e) => ensureCellVisible(e.target)}
-                      onPaste={(e) => handlePaste(e, student.id, "enrollmentType", idx, 4)}
+                      onPaste={(e) => handlePaste(e, student.id, "enrollmentType", idx, 4 + colOffset)}
                       className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none text-ellipsis overflow-hidden whitespace-nowrap"
                       style={{ textAlignLast: 'center' }}
                     >
@@ -3878,12 +4035,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </td>
                   <td className={`p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[130px] max-w-[130px] w-[130px]' : ''}`}>
                     <select 
-                      id={`cell-${idx}-5`}
+                      id={`cell-${idx}-${5 + colOffset}`}
                       value={student.religion === 'muslim' || (student.religion || '').includes('ل') ? 'muslim' : (student.religion === 'christian' || (student.religion || '').includes('ح') ? 'christian' : '')}
                       onChange={(e) => handleChange(student.id, 'religion', e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx, 5)}
+                      onKeyDown={(e) => handleKeyDown(e, idx, 5 + colOffset)}
                       onFocus={(e) => ensureCellVisible(e.target)}
-                      onPaste={(e) => handlePaste(e, student.id, "religion", idx, 5)}
+                      onPaste={(e) => handlePaste(e, student.id, "religion", idx, 5 + colOffset)}
                       className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none"
                       style={{ textAlignLast: 'center' }}
                     >
@@ -3898,10 +4055,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </td>
                   <td className="p-0 border-2 border-slate-900 relative focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 w-32">
                     <select 
-                      id={`cell-${idx}-6`}
+                      id={`cell-${idx}-${6 + colOffset}`}
                       value={student.studentClass || ''}
                       onChange={(e) => handleChange(student.id, 'studentClass' as any, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx, 6)}
+                      onKeyDown={(e) => handleKeyDown(e, idx, 6 + colOffset)}
                       onFocus={(e) => {
                         ensureCellVisible(e.target);
                       }}
@@ -3918,32 +4075,32 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     <>
                       <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                         <input
-                          id={`cell-${idx}-7`}
+                          id={`cell-${idx}-${7 + colOffset}`}
                           type="text"
                           value={formatNumberDigits(student.seatNumbers?.[semester] || (semester === 'first' ? student.seatNumber : '') || '', numberLang)}
                           onChange={(e) => handleSemesterFieldChange(student.id, 'seatNumbers', formatNumberDigits(e.target.value, 'en'))}
-                          onKeyDown={(e) => handleKeyDown(e, idx, 7)}
+                          onKeyDown={(e) => handleKeyDown(e, idx, 7 + colOffset)}
                           onFocus={(e) => {
                             e.target.select();
                             ensureCellVisible(e.target);
                           }}
-                          onPaste={(e) => handlePaste(e, student.id, "seatNumbers", idx, 7)}
+                          onPaste={(e) => handlePaste(e, student.id, "seatNumbers", idx, 7 + colOffset)}
                           className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                           dir="ltr"
                         />
                       </td>
                       <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                         <input
-                          id={`cell-${idx}-8`}
+                          id={`cell-${idx}-${8 + colOffset}`}
                           type="text"
                           value={formatNumberDigits(student.secretNumbers?.[semester] || (semester === 'first' ? student.secretNumber : '') || '', numberLang)}
                           onChange={(e) => handleSemesterFieldChange(student.id, 'secretNumbers', formatNumberDigits(e.target.value, 'en'))}
-                          onKeyDown={(e) => handleKeyDown(e, idx, 8)}
+                          onKeyDown={(e) => handleKeyDown(e, idx, 8 + colOffset)}
                           onFocus={(e) => {
                             e.target.select();
                             ensureCellVisible(e.target);
                           }}
-                          onPaste={(e) => handlePaste(e, student.id, "secretNumbers", idx, 8)}
+                          onPaste={(e) => handlePaste(e, student.id, "secretNumbers", idx, 8 + colOffset)}
                           className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                           dir="ltr"
                         />
@@ -3953,16 +4110,16 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   {!isKindergarten && (
                     <td className="p-0 border-2 border-slate-900 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60">
                       <input
-                        id={`cell-${idx}-${showExamFields ? 9 : 7}`}
+                        id={`cell-${idx}-${(showExamFields ? 9 : 7) + colOffset}`}
                         type="text"
                         value={formatNumberDigits(student.committeeNumbers?.[semester] || student.committeeNumber || '', numberLang)}
                         onChange={(e) => handleSemesterFieldChange(student.id, 'committeeNumbers', formatNumberDigits(e.target.value, 'en'))}
-                        onKeyDown={(e) => handleKeyDown(e, idx, showExamFields ? 9 : 7)}
+                        onKeyDown={(e) => handleKeyDown(e, idx, (showExamFields ? 9 : 7) + colOffset)}
                         onFocus={(e) => {
                           e.target.select();
                           ensureCellVisible(e.target);
                         }}
-                        onPaste={(e) => handlePaste(e, student.id, "committeeNumbers", idx, showExamFields ? 9 : 7)}
+                        onPaste={(e) => handlePaste(e, student.id, "committeeNumbers", idx, (showExamFields ? 9 : 7) + colOffset)}
                         className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 font-mono"
                         dir="ltr"
                       />
@@ -4249,6 +4406,209 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
                   >
                     <X className="w-8 h-8" strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Default Student Values Modal Overlay */}
+      <AnimatePresence>
+        {isDefaultValuesModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm [perspective:1000px]"
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+            onClick={() => setIsDefaultValuesModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
+              transition={{ type: "spring", duration: 0.7, bounce: 0.35 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
+            >
+              <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_30%,#ffffff_50%,#ffffff_70%,transparent_100%)] pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col w-full h-full rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
+                <div className="bg-[linear-gradient(to_right,#4f46e5,#2563eb,#4f46e5)] bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-5 sm:p-6 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    القيم الافتراضية لبيانات الطلاب
+                  </h3>
+                </div>
+
+                <div className="p-5 sm:p-6 flex flex-col gap-4 bg-[linear-gradient(to_right,#eef2ff,#e0f2fe,#eef2ff)] bg-[length:200%_auto] animate-shine w-full max-h-[65vh] overflow-y-auto custom-scrollbar">
+                  {/* حالة القيد */}
+                  <div className="bg-[linear-gradient(135deg,#eff6ff,#dbeafe)] border-2 border-blue-800 rounded-2xl p-3.5 sm:p-4 shadow-md">
+                    <div className="font-black text-blue-950 text-sm sm:text-base mb-2.5 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                      حالة القيد
+                    </div>
+                    <label
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setDefaultEnrollmentStatus(prev => (prev === 'منقول' ? '' : 'منقول'));
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                        defaultEnrollmentStatus === 'منقول'
+                          ? 'bg-white border-blue-600 text-blue-950 shadow-sm ring-2 ring-blue-400/40'
+                          : 'bg-white/75 border-blue-200 text-slate-700 hover:border-blue-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="defaultEnrollmentStatus"
+                        value="منقول"
+                        checked={defaultEnrollmentStatus === 'منقول'}
+                        readOnly
+                        className="w-5 h-5 accent-blue-600 cursor-pointer shrink-0"
+                      />
+                      <span className="font-bold text-sm sm:text-base">{isFirstGrade ? 'مستجد - مستجدة' : 'منقول - منقولة'}</span>
+                    </label>
+                  </div>
+
+                  {/* حالة الإعفاء (تظهر للمدارس الدولية فقط) */}
+                  {showExemptionStatus && (
+                    <div className="bg-[linear-gradient(135deg,#fffbeb,#fef3c7)] border-2 border-amber-700 rounded-2xl p-3.5 sm:p-4 shadow-md">
+                      <div className="font-black text-amber-950 text-sm sm:text-base mb-2.5 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block" />
+                        حالة الإعفاء
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setDefaultExemptionStatus(prev => (prev === 'كلى' ? '' : 'كلى'));
+                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                            defaultExemptionStatus === 'كلى'
+                              ? 'bg-white border-amber-600 text-amber-950 shadow-sm ring-2 ring-amber-400/40'
+                              : 'bg-white/75 border-amber-200 text-slate-700 hover:border-amber-400'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="defaultExemptionStatus"
+                            value="كلى"
+                            checked={defaultExemptionStatus === 'كلى'}
+                            readOnly
+                            className="w-5 h-5 accent-amber-600 cursor-pointer shrink-0"
+                          />
+                          <span className="font-bold text-sm sm:text-base">كلى</span>
+                        </label>
+
+                        <label
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setDefaultExemptionStatus(prev => (prev === 'تدريجى' ? '' : 'تدريجى'));
+                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                            defaultExemptionStatus === 'تدريجى'
+                              ? 'bg-white border-amber-600 text-amber-950 shadow-sm ring-2 ring-amber-400/40'
+                              : 'bg-white/75 border-amber-200 text-slate-700 hover:border-amber-400'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="defaultExemptionStatus"
+                            value="تدريجى"
+                            checked={defaultExemptionStatus === 'تدريجى'}
+                            readOnly
+                            className="w-5 h-5 accent-amber-600 cursor-pointer shrink-0"
+                          />
+                          <span className="font-bold text-sm sm:text-base">تدريجى</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* نوعية القيد */}
+                  <div className="bg-[linear-gradient(135deg,#ecfdf5,#d1fae5)] border-2 border-emerald-800 rounded-2xl p-3.5 sm:p-4 shadow-md">
+                    <div className="font-black text-emerald-950 text-sm sm:text-base mb-2.5 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
+                      نوعية القيد
+                    </div>
+                    <label
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setDefaultEnrollmentType(prev => (prev === 'قيد عادى' ? '' : 'قيد عادى'));
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                        defaultEnrollmentType === 'قيد عادى'
+                          ? 'bg-white border-emerald-600 text-emerald-950 shadow-sm ring-2 ring-emerald-400/40'
+                          : 'bg-white/75 border-emerald-200 text-slate-700 hover:border-emerald-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="defaultEnrollmentType"
+                        value="قيد عادى"
+                        checked={defaultEnrollmentType === 'قيد عادى'}
+                        readOnly
+                        className="w-5 h-5 accent-emerald-600 cursor-pointer shrink-0"
+                      />
+                      <span className="font-bold text-sm sm:text-base">قيد عادى</span>
+                    </label>
+                  </div>
+
+                  {/* الديانة */}
+                  <div className="bg-[linear-gradient(135deg,#faf5ff,#f3e8ff)] border-2 border-purple-800 rounded-2xl p-3.5 sm:p-4 shadow-md">
+                    <div className="font-black text-purple-950 text-sm sm:text-base mb-2.5 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" />
+                      الديانة
+                    </div>
+                    <label
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setDefaultReligion(prev => (prev === 'muslim' ? '' : 'muslim'));
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                        defaultReligion === 'muslim'
+                          ? 'bg-white border-purple-600 text-purple-950 shadow-sm ring-2 ring-purple-400/40'
+                          : 'bg-white/75 border-purple-200 text-slate-700 hover:border-purple-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="defaultReligion"
+                        value="muslim"
+                        checked={defaultReligion === 'muslim'}
+                        readOnly
+                        className="w-5 h-5 accent-purple-600 cursor-pointer shrink-0"
+                      />
+                      <span className="font-bold text-sm sm:text-base">مسلم - مسلمة</span>
+                    </label>
+                  </div>
+
+                  <div className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50/95 border-2 border-amber-500 text-amber-950 shadow-sm">
+                    <Info className="w-5 h-5 text-amber-600 shrink-0" />
+                    <span className="font-black text-xs sm:text-sm text-center">
+                      إدراج القيم الافتراضية للحقول السابقة
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-[linear-gradient(to_right,#4f46e5,#2563eb,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-4 sm:p-5 flex justify-center gap-3 items-center">
+                  <button
+                    type="button"
+                    onClick={handleApplyDefaultValues}
+                    className="flex-1 h-12 px-5 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-base flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-5 h-5 text-emerald-600" strokeWidth={3} />
+                    إدراج
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDefaultValuesModalOpen(false)}
+                    className="flex-1 h-12 px-5 rounded-xl font-black text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 text-base flex items-center justify-center gap-2"
+                  >
+                    <X className="w-5 h-5" strokeWidth={3} />
+                    إلغاء الأمر
                   </button>
                 </div>
               </div>
@@ -4797,7 +5157,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     : 'bg-[linear-gradient(to_right,#0284c7,#06b6d4,#0369a1,#0284c7)]'
                 }`}>
                   <h3 className="text-xl font-bold text-white">
-                    عدد الطلاب في اللجنة
+                    إعدادات اللجنة
                   </h3>
                   <p className="text-white/90 font-bold text-xs sm:text-sm leading-relaxed">
                     <span style={(stage === 'secondary' || (title && title.includes('المرحلة الثانوية'))) ? { fontSize: '85%' } : undefined} className="inline-block">
@@ -4939,6 +5299,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       </div>
                     );
                   })()}
+
+                  <div className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50/95 border-2 border-amber-500 text-amber-900 shadow-sm">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                    <span className="font-black text-xs sm:text-sm text-center">
+                      {`هذه الإعدادات مخصصة للصف الحالى فقط - ${isFirstSemModal ? 'الفصل الدراسى الأول' : 'الفصل الدراسى الثانى'}`}
+                    </span>
+                  </div>
                 </div>
 
                 <div className={`bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-4 flex justify-center items-center ${
@@ -5435,6 +5802,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         students={data}
         stage={stage}
         selectedGrade={selectedGrade}
+        educationType={educationType}
       />
       <CertificatesSelectionModal
         isOpen={isCertSelectionModalOpen}

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowDownUp, ArrowDown, ArrowUp, X, Check } from 'lucide-react';
-import { Language } from '../types';
-import { translations } from '../i18n';
+import { Language, EducationType } from '../types';
+import { translations, isInternationalSchool } from '../i18n';
 import { SortCriterion } from '../utils/studentSorting';
 
 interface SortButtonMenuProps {
@@ -10,6 +10,8 @@ interface SortButtonMenuProps {
   onSortChange: (newSort: SortCriterion[]) => void;
   lang: Language;
   isKindergarten?: boolean;
+  isInternational?: boolean;
+  educationType?: EducationType;
   showExamFields?: boolean;
   className?: string;
 }
@@ -19,11 +21,14 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
   onSortChange,
   lang,
   isKindergarten = false,
+  isInternational: propIsInternational,
+  educationType,
   showExamFields = true,
   className = ''
 }) => {
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const t = translations[lang];
+  const isInternational = propIsInternational !== undefined ? propIsInternational : isInternationalSchool(educationType);
 
   const getSortOptionLabel = (id: string) => {
     const opt = [
@@ -31,6 +36,7 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
       { id: 'name', label: t.sortAlphabetical },
       { id: 'gender', label: t.sortGender },
       { id: 'status', label: t.sortStatus },
+      { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء' },
       { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب' },
       { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد' },
       { id: 'religion', label: t.sortReligion },
@@ -116,7 +122,10 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
                     ...(isKindergarten ? [
                       { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب', color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' }
                     ] : [
-                      { id: 'status', label: t.sortStatus, color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' }
+                      { id: 'status', label: t.sortStatus, color: 'from-amber-500 to-orange-500', active: 'from-amber-400 via-orange-500 to-amber-600', shadow: 'shadow-amber-500/30' },
+                      ...(isInternational ? [
+                        { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء', color: 'from-sky-500 to-cyan-500', active: 'from-sky-400 via-cyan-500 to-sky-600', shadow: 'shadow-sky-500/30' }
+                      ] : [])
                     ]),
                     { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد', color: 'from-teal-500 to-emerald-500', active: 'from-teal-400 via-emerald-500 to-teal-600', shadow: 'shadow-teal-500/30' },
                     { id: 'religion', label: t.sortReligion, color: 'from-purple-500 to-fuchsia-500', active: 'from-purple-400 via-fuchsia-500 to-purple-600', shadow: 'shadow-purple-500/30' },

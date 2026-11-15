@@ -19,6 +19,22 @@ export function setCurrentAffiliatedEntity(entity?: string) {
   currentAffiliatedEntity = entity || '';
 }
 
+export function isInternationalSchool(educationType?: string): boolean {
+  if (educationType !== undefined) {
+    return educationType === 'international';
+  }
+  try {
+    const saved = localStorage.getItem('sheet_control_school_data');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.educationType) {
+        return parsed.educationType === 'international';
+      }
+    }
+  } catch {}
+  return false;
+}
+
 export function applyEntityTerms(text: string, _entityOverride?: string): string {
   if (!text) return text;
   return text
@@ -133,6 +149,9 @@ const baseArTranslations = {
     nationalId: 'الرقم القومى',
     gender: 'النوع',
     enrollmentStatus: 'حالة القيد',
+    exemptionStatus: 'حالة الإعفاء',
+    exemptionFull: 'كلى',
+    exemptionGradual: 'تدريجى',
     enrollmentType: 'نوعية القيد',
     enrollmentTypeRegular: 'قيد عادى',
     enrollmentTypeTransfer: 'تحويلات',
@@ -142,7 +161,7 @@ const baseArTranslations = {
     seatNumber: 'رقم الجلوس',
     secretNumber: 'الرقم السري',
     committeeNumber: 'رقم اللجنة',
-    studentsPerCommittee: 'عدد الطلاب فى اللجنة',
+    studentsPerCommittee: 'إعدادات اللجنة',
     studentsPerCommitteeLabel: 'عدد الطلاب فى اللجنة الواحدة',
     insertCommitteeNumbers: 'إدراج أرقام اللجان',
     generateSeatNumbers: 'توليد أرقام جلوس',
@@ -167,6 +186,7 @@ const baseArTranslations = {
     statistics: 'إحصائيات أولية',
     detailedStatistics: 'إحصائيات حالة القيد',
     statusStatistics: 'إحصائيات حالة القيد',
+    exemptionStatistics: 'إحصائيات حالة الإعفاء',
     enrollmentTypeStatistics: 'إحصائيات نوعية القيد',
     damgStatistics: 'إحصائيات طلاب الدمج',
     muslimBoys: 'بنين مسلمين',
@@ -213,6 +233,7 @@ const baseArTranslations = {
     sortAlphabetical: 'الأبجدة',
     sortGender: 'النوع',
     sortStatus: 'حالة القيد',
+    sortExemptionStatus: 'حالة الإعفاء',
     sortEnrollmentType: 'نوعية القيد',
     sortReligion: 'الديانة',
     sortClass: 'الفصل',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createPortal } from 'react-dom';
-import { Sliders, Lock, Unlock, Eye, EyeOff, Check, X, ShieldAlert, KeyRound, User, Hash, AlertCircle, TrendingUp, Percent, BookOpen } from 'lucide-react';
+import { Sliders, Lock, Unlock, Eye, EyeOff, Check, X, ShieldAlert, KeyRound, User, Hash, AlertCircle, AlertTriangle, TrendingUp, Percent, BookOpen } from 'lucide-react';
 import { 
   GradingSettings, 
   BACKUP_PASSWORD, 
@@ -11,7 +11,7 @@ import {
 } from '../utils/gradingSettings';
 import { getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { StudentData } from '../types';
-import brandShield from '../assets/images/brand_shield.png';
+import { getBrandShieldSync } from '../utils/offlineAssetCache';
 import { formatNumberDigits } from '../utils/numberLangHelper';
 
 interface GradingSettingsModalProps {
@@ -245,7 +245,18 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                 <form onSubmit={handleUnlock} className="flex flex-col items-center text-center">
                   <div className="relative mb-6">
                     <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center relative z-10">
-                      <img src={brandShield} alt="Shield" className="w-12 h-12 object-contain" />
+                      <img
+                        src={getBrandShieldSync()}
+                        alt="Shield"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (!img.dataset.fallbackTried) {
+                            img.dataset.fallbackTried = '1';
+                            img.src = '/brand_shield.png';
+                          }
+                        }}
+                        className="w-12 h-12 object-contain"
+                      />
                     </div>
                     <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white rounded-lg p-1 z-20 shadow-md border-2 border-white">
                       <Lock className="w-4 h-4 animate-pulse" />
@@ -509,7 +520,47 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
           )}
 
           {/* نافذة اعدادات رفع درجات الطلاب - الرأفة */}
-          {((hasMercyRules && isMercyModalOpen) || mercyOnly) && (
+          {((hasMercyRules && isMercyModalOpen) || mercyOnly) && (() => {
+            const mercyStageLabel = (() => {
+              if (stage === 'primary' || !stage) return 'المرحلة الابتدائية';
+              if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
+              if (stage === 'middle' || stage === 'prep') return 'المرحلة الإعدادية';
+              if (stage === 'secondary') {
+                const isSecondSec =
+                  selectedGrade === 'الصف الثاني' ||
+                  selectedGrade?.includes('الثاني') ||
+                  selectedGrade?.includes('الثانى') ||
+                  selectedGrade?.toLowerCase().includes('2nd');
+                return isSecondSec ? 'المرحلة الثانوية' : 'المرحلة الثانوية - البكالوريا';
+              }
+              if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
+              if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
+              if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
+              if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
+              return stage;
+            })();
+
+            const mercyGradeLabel = (() => {
+              const rawGrade = (selectedGrade || '')
+                .replace(' الابتدائي', '')
+                .replace(' الإعدادي', '')
+                .replace(' الثانوي', '')
+                .trim();
+              if (!rawGrade) return 'الصف';
+              if (rawGrade.includes('_scientific')) return `${rawGrade.replace('_scientific', '').trim()} - الشعبة العلمية`;
+              if (rawGrade.includes('_literary')) return `${rawGrade.replace('_literary', '').trim()} - الشعبة الأدبية`;
+              if (rawGrade.includes('_modern_medical')) return `${rawGrade.replace('_modern_medical', '').trim()} - مسار الطب وعلوم الحياة`;
+              if (rawGrade.includes('_modern_engineering')) return `${rawGrade.replace('_modern_engineering', '').trim()} - مسار الهندسة وعلوم الحاسب`;
+              if (rawGrade.includes('_modern_business')) return `${rawGrade.replace('_modern_business', '').trim()} - مسار الأعمال`;
+              if (rawGrade.includes('_modern_arts')) return `${rawGrade.replace('_modern_arts', '').trim()} - مسار الآداب والفنون`;
+              return rawGrade;
+            })();
+
+            const mercySubtitleText = formatNumberDigits(
+              `${mercyStageLabel} - ${mercyGradeLabel} - الفصل الدراسي الثانى 2026 - 2027`
+            );
+
+            return (
             <div
               className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
               onClick={handleCloseMercyModal}
@@ -533,6 +584,9 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                       <h3 className="text-xl sm:text-2xl font-black text-emerald-950 drop-shadow-sm">
                         اعدادات رفع درجات الطلاب - الرأفة
                       </h3>
+                      <p className="text-xs sm:text-sm font-extrabold text-emerald-800 mt-1.5">
+                        {mercySubtitleText}
+                      </p>
                       <div
                         className="h-1 w-full bg-[linear-gradient(90deg,#059669,#6ee7b7,#ffffff,#6ee7b7,#059669)] bg-[length:200%_100%] animate-shine shadow-[0_0_8px_rgba(16,185,129,0.4)] rounded-full mt-3"
                         style={{ animationDuration: '5s' }}
@@ -723,30 +777,6 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                               }).length
                             : 0;
 
-                        const stageLabel = (() => {
-                          if (stage === 'primary' || !stage) return 'المرحلة الابتدائية';
-                          if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
-                          if (stage === 'middle' || stage === 'prep') return 'المرحلة الإعدادية';
-                          if (stage === 'secondary') {
-                            const isSecondSec =
-                              selectedGrade === 'الصف الثاني' ||
-                              selectedGrade?.includes('الثاني') ||
-                              selectedGrade?.toLowerCase().includes('2nd');
-                            return isSecondSec ? 'المرحلة الثانوية' : 'المرحلة الثانوية - البكالوريا';
-                          }
-                          if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
-                          if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
-                          if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
-                          if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
-                          return stage;
-                        })();
-
-                        const gradeLabel = (selectedGrade || '')
-                          .replace(' الابتدائي', '')
-                          .replace(' الإعدادي', '')
-                          .replace(' الثانوي', '')
-                          .trim();
-
                         return (
                           <div className="bg-white/90 border-2 border-emerald-700 rounded-2xl p-3.5 mb-2 shadow-sm text-center flex flex-col items-center justify-center gap-1">
                             <div className="text-xs sm:text-sm font-black text-emerald-950 flex items-center justify-center gap-1.5 whitespace-nowrap">
@@ -756,11 +786,18 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                               </span>
                             </div>
                             <div className="text-xs font-bold text-slate-600">
-                              {formatNumberDigits(`${stageLabel} - ${gradeLabel || 'الصف'} - الفصل الدراسي الثانى`)}
+                              {mercySubtitleText}
                             </div>
                           </div>
                         );
                       })()}
+                    </div>
+
+                    <div className="w-full flex items-center justify-center gap-2.5 px-4 py-3 mt-1 mb-1 rounded-xl bg-amber-50/95 border-2 border-amber-500 text-amber-900 shadow-sm">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                      <span className="font-black text-xs sm:text-sm text-center">
+                        هذه الإعدادات مخصصة للصف الحالى فقط - الفصل الدراسى الثانى
+                      </span>
                     </div>
 
                     {/* أيقونة X باللون الأحمر في أسفل منتصف النافذة للإغلاق */}
@@ -783,7 +820,8 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                 </div>
               </motion.div>
             </div>
-          )}
+            );
+          })()}
         </div>
       </AnimatePresence>
     </PortalModal>

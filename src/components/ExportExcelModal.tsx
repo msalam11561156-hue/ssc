@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, X, Check } from 'lucide-react';
-import { StudentData } from '../types';
+import { StudentData, EducationType } from '../types';
+import { isInternationalSchool } from '../i18n';
 import * as XLSX from 'xlsx';
 
 interface ExportExcelModalProps {
@@ -9,12 +10,15 @@ interface ExportExcelModalProps {
   students: StudentData[];
   stage?: string;
   selectedGrade?: string;
+  educationType?: EducationType;
 }
 
 export const ExportExcelModal: React.FC<ExportExcelModalProps> = ({
   isOpen,
   onClose,
   students,
+  stage,
+  educationType,
 }) => {
   const [selectedColsFirst, setSelectedColsFirst] = useState<string[]>([]);
   const [selectedColsSecond, setSelectedColsSecond] = useState<string[]>([]);
@@ -22,8 +26,15 @@ export const ExportExcelModal: React.FC<ExportExcelModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Placeholder columns - in reality these should be dynamic
-  const columns = ['الاسم', 'رقم الجلوس', 'الرقم القومي', 'الديانة', 'حالة القيد'];
+  const isInternational = isInternationalSchool(educationType);
+  const columns = [
+    'الاسم',
+    'رقم الجلوس',
+    'الرقم القومي',
+    'الديانة',
+    'حالة القيد',
+    ...(isInternational && stage !== 'kindergarten' ? ['حالة الإعفاء'] : []),
+  ];
 
   const handleExport = () => {
     setIsExporting(true);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Clock, CheckCircle2, X } from 'lucide-react';
-import brandShield from '../assets/images/brand_shield.png';
+import { getBrandShieldSync } from '../utils/offlineAssetCache';
 
 interface BackupReminderModalProps {
   isOpen: boolean;
@@ -55,7 +55,18 @@ export const BackupReminderModal: React.FC<BackupReminderModalProps> = ({
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center relative z-10">
-                <img src={brandShield} alt="Shield" className="w-7 h-7 object-contain" />
+                <img
+                  src={getBrandShieldSync()}
+                  alt="Shield"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.fallbackTried) {
+                      img.dataset.fallbackTried = '1';
+                      img.src = '/brand_shield.png';
+                    }
+                  }}
+                  className="w-7 h-7 object-contain"
+                />
               </div>
               <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 z-20 shadow-sm border border-slate-900">
                 <Bell className="w-3 h-3 text-slate-900 animate-bounce" />

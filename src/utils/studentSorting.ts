@@ -48,6 +48,11 @@ export function sortStudents(
         const valB = b.studentStatus ? (b.studentStatus === 'دمج' ? 'دمج' : 'عادى') : (b.enrollmentStatus || '');
         const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en');
         if (cmp !== 0) return cmp * modifier;
+      } else if (criteria.id === 'exemptionStatus') {
+        const valA = a.exemptionStatus || '';
+        const valB = b.exemptionStatus || '';
+        const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en');
+        if (cmp !== 0) return cmp * modifier;
       } else if (criteria.id === 'enrollmentType') {
         const valA = a.enrollmentType || '';
         const valB = b.enrollmentType || '';

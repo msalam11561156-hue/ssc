@@ -20,7 +20,7 @@ import {
   ParsedBackupResult,
 } from '../utils/backupRestore';
 import { playClickSound } from '../utils/sound';
-import brandShield from '../assets/images/brand_shield.png';
+import { getBrandShieldSync } from '../utils/offlineAssetCache';
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
@@ -143,7 +143,18 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
           <div className="flex items-center gap-3">
             <div className="relative group">
               <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-inner relative z-10">
-                <img src={brandShield} alt="Shield" className="w-8 h-8 object-contain drop-shadow-sm" />
+                <img
+                  src={getBrandShieldSync()}
+                  alt="Shield"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.fallbackTried) {
+                      img.dataset.fallbackTried = '1';
+                      img.src = '/brand_shield.png';
+                    }
+                  }}
+                  className="w-8 h-8 object-contain drop-shadow-sm"
+                />
               </div>
               <div className="absolute inset-0 bg-white/40 blur-xl rounded-full scale-0 group-hover:scale-110 transition-transform duration-500 -z-0" />
             </div>

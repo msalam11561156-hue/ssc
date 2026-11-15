@@ -8,18 +8,37 @@ import splashModernControlUrl from '../assets/images/smart_control_room_modern.j
 import splashGoldShieldUrl from '../assets/images/smart_control_gold_shield.jfif';
 import splashCloudDashboardUrl from '../assets/images/smart_control_cloud_dashboard.jfif';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
+import brandShieldUrl from '../assets/images/brand_shield.png';
 
 const memoryCache = new Map<string, string>();
+const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v1';
 
 /**
- * تحويل رابط أو Blob إلى Data URL مشفر بصيغة Base64
+ * تحويل رابط أو Blob إلى Data URL مشفر بصيغة Base64 مع التحقق من صحة نوع الصورة
  */
 async function fetchToDataUrl(url: string): Promise<string> {
   const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch image (${res.status}): ${url}`);
+  }
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  if (contentType && !contentType.startsWith('image/')) {
+    throw new Error(`Invalid image MIME type (${contentType}) for: ${url}`);
+  }
   const blob = await res.blob();
+  if (!blob.size || (blob.type && !blob.type.startsWith('image/'))) {
+    throw new Error(`Invalid image blob for: ${url}`);
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (typeof result === 'string' && result.startsWith('data:image/')) {
+        resolve(result);
+      } else {
+        reject(new Error(`Invalid data URL generated for: ${url}`));
+      }
+    };
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
@@ -141,6 +160,43 @@ export async function getCachedAdPrivilegeExample(): Promise<string> {
   }
 }
 
+export function getBrandShieldSync(): string {
+  return memoryCache.get(BRAND_SHIELD_CACHE_KEY) || brandShieldUrl;
+}
+
+/**
+ * جلب وحفظ شعار الدرع الذهبي (Brand Shield) محلياً على جهاز العميل في IndexedDB
+ * مع الرجوع التلقائي لمسار /brand_shield.png لضمان ظهوره الدائم في كافة القوائم
+ */
+export async function getCachedBrandShield(): Promise<string> {
+  if (memoryCache.has(BRAND_SHIELD_CACHE_KEY)) {
+    return memoryCache.get(BRAND_SHIELD_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(BRAND_SHIELD_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(BRAND_SHIELD_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for brand shield:', e);
+  }
+
+  for (const candidateUrl of [brandShieldUrl, '/brand_shield.png']) {
+    try {
+      const dataUrl = await fetchToDataUrl(candidateUrl);
+      memoryCache.set(BRAND_SHIELD_CACHE_KEY, dataUrl);
+      idbSet(BRAND_SHIELD_CACHE_KEY, dataUrl).catch(() => {});
+      return dataUrl;
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return '/brand_shield.png';
+}
+
 /**
  * حفظ وتخزين جميع قوالب الشهادات، صور وخلفيات شاشة البداية، والأيقونات على جهاز العميل مسبقاً (Pre-cache)
  * يتم استدعاؤها فور تشغيل التطبيق لضمان الأداء الفائق وعدم فقدان أي ملف
@@ -148,6 +204,9 @@ export async function getCachedAdPrivilegeExample(): Promise<string> {
 export async function preloadAndCacheOfflineAssets(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    // 0. حفظ شعار الدرع الذهبي في IndexedDB
+    const brandShieldPromise = getCachedBrandShield().catch(() => {});
+
     // 1. حفظ قوالب الشهادات في IndexedDB
     const certsPromise = Promise.allSettled([
       getCachedCertificateTemplate('royal'),
@@ -175,6 +234,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
           '/',
           '/index.html',
           '/manifest.webmanifest',
+          '/brand_shield.png',
           '/appicon.ico',
           '/favicon.ico',
           '/favicon.svg',
@@ -194,7 +254,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       }).catch(() => {});
     }
 
-    await Promise.allSettled([certsPromise, splashPromise, adExamplePromise]);
+    await Promise.allSettled([brandShieldPromise, certsPromise, splashPromise, adExamplePromise]);
   } catch (e) {
     console.warn('Preload offline assets warning:', e);
   }

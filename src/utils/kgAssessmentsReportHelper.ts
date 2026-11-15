@@ -2,6 +2,7 @@ import { StudentData } from '../types';
 import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme } from './exportPdf';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 import { getActiveFooterTagline } from './adFilter';
+import { filterDeletedSubjects } from './deletedSubjects';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 import kgBadgeBlueUrl from '../assets/images/kg_eval_blue.png';
@@ -379,6 +380,8 @@ export async function exportKgStudentEvaluationsReportPdf(
       }
     } catch {}
   }
+
+  subjects = filterDeletedSubjects(subjects, stage, selectedGrade);
 
   // دالة استبدال مسميات المواد بمجالات قياس نواتج التعلم الوزارية المقررة لرياض الأطفال
   const getKgReportSubjectName = (key: string, label: string, domain?: string): string => {

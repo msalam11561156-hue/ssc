@@ -26,13 +26,14 @@ import {
   Trophy
 } from 'lucide-react';
 import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
+import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSubjects';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
 import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
 import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { AdvancedStatsModal } from './AdvancedStatsModal';
-import { StudentData, Language, EducationalStage, DetailedAssessmentItem } from '../types';
+import { StudentData, Language, EducationalStage, DetailedAssessmentItem, EducationType } from '../types';
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { RowBgTheme, getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { ensureCellVisible } from '../utils/cellNavigation';
@@ -90,6 +91,7 @@ interface DetailedAssessmentsGradesScreenProps {
   systemType?: 'regular' | 'homeschool' | string;
   secondarySystem?: 'old' | 'modern';
   isTrialMode?: boolean;
+  educationType?: EducationType;
 }
 
 const PortalModal = ({ children }: { children: React.ReactNode }) => {
@@ -207,6 +209,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   systemType = 'regular',
   secondarySystem,
   isTrialMode = false,
+  educationType,
 }) => {
   const sortBy = externalSortBy || [];
   const isMiddle = stage === 'middle' || (stage as string) === 'prep';
@@ -409,12 +412,17 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   // Determine subjects for the selected stage and grade
   const subjects: SubjectInfo[] = useMemo(() => {
     let resultList: SubjectInfo[] = [];
+    const deletedKeys = getDeletedSubjectKeys(stage, selectedGrade);
+    let hasSavedColsArray = false;
 
     // Check if custom cols are saved in localStorage
     const savedColsStr = localStorage.getItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
     if (savedColsStr) {
       try {
         const parsed = JSON.parse(savedColsStr);
+        if (Array.isArray(parsed)) {
+          hasSavedColsArray = true;
+        }
         if (Array.isArray(parsed) && parsed.length > 0) {
           resultList = parsed.map((c: any) => {
             const noWritten = c.hasWrittenExam === false || isSubjectWithoutWrittenExam({ key: c.key, label: c.label || c.name || c.key });
@@ -432,7 +440,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       }
     }
 
-    if (resultList.length === 0) {
+    if (resultList.length === 0 && !(hasSavedColsArray && deletedKeys.length > 0)) {
       if (stage === 'kindergarten') {
         const cfg = getSubjectsConfigForStageGrade(stage, selectedGrade);
         if (cfg.customCols && cfg.customCols.length > 0) {
@@ -568,6 +576,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           ];
 
       nonWrittenTemplates.forEach(t => {
+        if (deletedKeys.includes(t.key)) return;
         const idx = resultList.findIndex(s => s.key === t.key || s.label === t.label);
         if (idx === -1) {
           resultList.push(t);
@@ -578,7 +587,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       });
     }
 
-    return resultList;
+    return filterDeletedSubjects(resultList, stage, selectedGrade);
   }, [stage, selectedGrade, isMiddle, isSecondary, isMiddleOrSecondary]);
 
   // Ensure selectedSubjectKey is valid and restore last selected subject
@@ -1034,6 +1043,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         }
         if (filters.studentClass && s.studentClass !== filters.studentClass) return false;
         if (filters.enrollmentStatus && s.enrollmentStatus !== filters.enrollmentStatus) return false;
+        if (filters.exemptionStatus && s.exemptionStatus !== filters.exemptionStatus) return false;
         if (filters.enrollmentType && s.enrollmentType !== filters.enrollmentType) return false;
         if (filters.committeeNumber && s.committeeNumber !== filters.committeeNumber) return false;
         return true;
@@ -1630,6 +1640,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 lang={lang}
                 data={data}
                 numberLang={numberLang}
+                educationType={educationType}
                 className="shrink-0"
               />
               <button

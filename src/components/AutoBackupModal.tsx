@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, ShieldCheck, CheckCircle2, X, Bell } from 'lucide-react';
 import { playClickSound } from '../utils/sound';
-import brandShield from '../assets/images/brand_shield.png';
+import { getBrandShieldSync } from '../utils/offlineAssetCache';
 
 interface AutoBackupModalProps {
   isOpen: boolean;
@@ -61,7 +61,18 @@ export const AutoBackupModal: React.FC<AutoBackupModalProps> = ({ isOpen, onClos
           <div className="flex items-center gap-3">
             <div className="relative group">
               <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md relative z-10 border border-white/30 shadow-inner">
-                <img src={brandShield} alt="Shield" className="w-8 h-8 object-contain" />
+                <img
+                  src={getBrandShieldSync()}
+                  alt="Shield"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.fallbackTried) {
+                      img.dataset.fallbackTried = '1';
+                      img.src = '/brand_shield.png';
+                    }
+                  }}
+                  className="w-8 h-8 object-contain"
+                />
               </div>
               <div className="absolute inset-0 bg-white/30 blur-lg rounded-full scale-125 animate-pulse -z-0" />
             </div>

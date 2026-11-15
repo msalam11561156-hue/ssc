@@ -1,10 +1,11 @@
 import { StudentData, ExamScheduleItem } from '../types';
-import { applyEntityTerms } from '../i18n';
+import { applyEntityTerms, isInternationalSchool } from '../i18n';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal, formatToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
 import { sortStudents, SortCriterion } from './studentSorting';
 import { getActiveFooterTagline } from './adFilter';
 import { formatNumberDigits, NumberLang } from './numberLangHelper';
+import { getDeletedSubjectKeys, filterDeletedSubjects } from './deletedSubjects';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 
@@ -369,6 +370,7 @@ export interface ExportStudentsPdfOptions {
     nationalId: string;
     gender: string;
     enrollmentStatus: string;
+    exemptionStatus?: string;
     enrollmentType: string;
     religion: string;
     seatNumber?: string;
@@ -821,6 +823,8 @@ function drawSeatNumberCardModel1(
     controlHead: string;
     committeeHead: string;
     statusText: string;
+    exemptionText?: string;
+    showExemptionStatus?: boolean;
     enrollmentTypeText: string;
     religionText: string;
     seatNumText: string;
@@ -843,6 +847,8 @@ function drawSeatNumberCardModel1(
     controlHead,
     committeeHead,
     statusText,
+    exemptionText,
+    showExemptionStatus = false,
     enrollmentTypeText,
     religionText,
     seatNumText,
@@ -1048,17 +1054,20 @@ function drawSeatNumberCardModel1(
     ctx.drawImage(qrImage, qrBoxX + 6, rowY + 6, qrBoxSize - 12, rowH - 12);
   }
 
-  // 4 Metric Boxes
+  // Metric Boxes (4 normally, 5 when international school exemptionStatus is shown)
   const statBoxesW = mainW - qrBoxSize - 20;
   const boxGap = 12;
-  const singleBoxW = Math.floor((statBoxesW - 3 * boxGap) / 4);
 
   const stats = [
     { label: isEnglish ? 'COMMITTEE' : 'رقم اللجنة', val: displayedCommitteeNum },
     { label: isEnglish ? 'RELIGION' : 'الديانة', val: religionText || 'مسلم' },
     { label: isEnglish ? 'STATUS' : 'حالة القيد', val: statusText || 'مستجد' },
+    ...(showExemptionStatus
+      ? [{ label: isEnglish ? 'EXEMPTION' : 'حالة الإعفاء', val: exemptionText || '-' }]
+      : []),
     { label: isEnglish ? 'ENROLLMENT' : 'نوع القيد', val: enrollmentTypeText || 'قيد عادي' },
   ];
+  const singleBoxW = Math.floor((statBoxesW - (stats.length - 1) * boxGap) / stats.length);
 
   stats.forEach((st, sIdx) => {
     const sBoxX = mainLeftX + sIdx * (singleBoxW + boxGap);
@@ -1146,6 +1155,8 @@ function drawSeatNumberCard(
     controlHead: string;
     committeeHead: string;
     statusText: string;
+    exemptionText?: string;
+    showExemptionStatus?: boolean;
     enrollmentTypeText: string;
     religionText: string;
     seatNumText: string;
@@ -1913,7 +1924,8 @@ export function getSubjectsConfigForStageGrade(stage?: string, selectedGrade?: s
     }));
   }
 
-  let customCols = [...defaultSubjects];
+  const deletedKeys = getDeletedSubjectKeys(stage, selectedGrade);
+  let customCols = defaultSubjects.filter((c: any) => !deletedKeys.includes(c.key));
   let defaultSubjectsOverrides: Record<string, any> = {};
 
   try {
@@ -1921,7 +1933,7 @@ export function getSubjectsConfigForStageGrade(stage?: string, selectedGrade?: s
       const savedCols = localStorage.getItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
       if (savedCols) {
         let parsed = JSON.parse(savedCols);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && (parsed.length > 0 || deletedKeys.length > 0)) {
           if (isKindergarten) {
             parsed = parsed.filter(
               (c: any) =>
@@ -1942,6 +1954,7 @@ export function getSubjectsConfigForStageGrade(stage?: string, selectedGrade?: s
           }
 
           defaultSubjects.forEach((def) => {
+            if (deletedKeys.includes(def.key)) return;
             const idx = parsed.findIndex((c: any) => c.key === def.key);
             if (idx === -1) {
               parsed.push({
@@ -2000,6 +2013,8 @@ export function getSubjectsConfigForStageGrade(stage?: string, selectedGrade?: s
       defaultSubjectsOverrides[k] = { ...defaultSubjectsOverrides[k], label: 'المادة الإختيارية' };
     }
   });
+
+  customCols = filterDeletedSubjects(customCols, stage, selectedGrade);
 
   return { customCols, defaultSubjectsOverrides, isKindergarten };
 }
@@ -3319,10 +3334,12 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     title,
     reportType = 'students_data',
     numberLang,
+    systemType,
     customControlSheetOptions: propCustomOptions,
     rowTheme: propRowTheme,
     administration: propAdmin,
     schoolName: propSchoolName,
+    educationType: propEducationType,
     dataOfficer: propDataOfficer,
     controlHead: propControlHead,
     committeeHead: propCommitteeHead,
@@ -3597,10 +3614,14 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     ) ||
     Boolean(title && (title.includes('رياض أطفال') || title.includes('رياض الأطفال')));
 
+  const isInternational = isInternationalSchool(propEducationType);
+  const showExemptionStatus = isInternational && !isKindergartenStage;
+
   const effectiveLabels = {
     ...labels,
     studentName: isKindergartenStage ? (labels.studentName === 'اسم الطالب' ? 'اسم التلميذ' : (labels.studentName || 'اسم التلميذ')) : labels.studentName,
     enrollmentStatus: isKindergartenStage ? (labels.enrollmentStatus === 'حالة الطالب' ? 'حالة التلميذ' : (labels.enrollmentStatus || 'حالة التلميذ')) : labels.enrollmentStatus,
+    exemptionStatus: labels.exemptionStatus || 'حالة الإعفاء',
   };
 
   let subjectGradePassCount = 0;
@@ -3845,31 +3866,33 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   const marginY = isPortrait ? 28 : 32;
   const contentW = widthPx - marginX * 2;
 
-  let fallbackCommSize = 20;
-  let fallbackMergeLast = false;
-  try {
-    const committeeStorageKey = `${stage}_${selectedGrade}`;
-    const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-    if (byGradeRaw) {
-      const parsed = JSON.parse(byGradeRaw);
-      const semKey = `${committeeStorageKey}_${semester}`;
-      const gradeEntry = parsed?.[semKey] ?? parsed?.[committeeStorageKey];
-      if (gradeEntry) {
-        if (Number(gradeEntry.committeeSize) >= 1) {
-          fallbackCommSize = Number(gradeEntry.committeeSize);
-        }
-        if (typeof gradeEntry.mergeLastCommittee === 'boolean') {
-          fallbackMergeLast = gradeEntry.mergeLastCommittee;
+  const getCommitteeSettingsForGradeSem = (targetSem: string) => {
+    let commSize = 20;
+    let mergeLast = false;
+    try {
+      const sysSuffix = systemType && systemType !== 'regular' ? `_${systemType}` : '';
+      const committeeStorageKey = `${stage || 'default'}_${selectedGrade || 'default'}${sysSuffix}`;
+      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
+      if (byGradeRaw) {
+        const parsed = JSON.parse(byGradeRaw);
+        const gradeEntry =
+          parsed?.[`${committeeStorageKey}_${targetSem}`] ??
+          parsed?.[committeeStorageKey];
+        if (gradeEntry) {
+          if (Number(gradeEntry.committeeSize) >= 1) {
+            commSize = Number(gradeEntry.committeeSize);
+          }
+          if (typeof gradeEntry.mergeLastCommittee === 'boolean') {
+            mergeLast = gradeEntry.mergeLastCommittee;
+          }
         }
       }
-    }
-    if (fallbackCommSize === 20) {
-      const savedSize = Number(localStorage.getItem('sheet_control_committee_size'));
-      if (savedSize >= 1) fallbackCommSize = savedSize;
-      const savedMerge = localStorage.getItem('sheet_control_merge_last_committee');
-      if (savedMerge !== null) fallbackMergeLast = savedMerge === 'true';
-    }
-  } catch {}
+    } catch {}
+    return { commSize, mergeLast };
+  };
+
+  const { commSize: fallbackCommSize, mergeLast: fallbackMergeLast } =
+    getCommitteeSettingsForGradeSem(semester);
 
   const totalStudentsCount = students.length;
   const fullCommitteesCount = Math.floor(totalStudentsCount / fallbackCommSize);
@@ -3881,20 +3904,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     globalIdx: number,
     targetSem: string = semester
   ): string => {
-    let semCommSize = fallbackCommSize;
-    let semMergeLast = fallbackMergeLast;
-    try {
-      const committeeStorageKey = `${stage}_${selectedGrade}`;
-      const byGradeRaw = localStorage.getItem('sheet_control_committee_settings_by_grade');
-      if (byGradeRaw) {
-        const parsed = JSON.parse(byGradeRaw);
-        const targetEntry = parsed?.[`${committeeStorageKey}_${targetSem}`] ?? parsed?.[committeeStorageKey];
-        if (targetEntry) {
-          if (Number(targetEntry.committeeSize) >= 1) semCommSize = Number(targetEntry.committeeSize);
-          if (typeof targetEntry.mergeLastCommittee === 'boolean') semMergeLast = targetEntry.mergeLastCommittee;
-        }
-      }
-    } catch {}
+    const { commSize: semCommSize, mergeLast: semMergeLast } =
+      getCommitteeSettingsForGradeSem(targetSem);
 
     const totalStudents = students.length;
     const fullComms = Math.floor(totalStudents / semCommSize);
@@ -3982,6 +3993,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           nationalId: '',
           gender: '',
           enrollmentStatus: '',
+          exemptionStatus: '',
           enrollmentType: '',
           religion: '',
         },
@@ -4010,6 +4022,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 nationalId: '',
                 gender: '',
                 enrollmentStatus: '',
+                exemptionStatus: '',
                 enrollmentType: '',
                 religion: '',
               },
@@ -4297,14 +4310,17 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   if (reportType === 'calling_list') {
     columns = [
       { key: 'serial', header: effectiveLabels.serial, weight: 0.6, dir: 'ltr' },
-      { key: 'name', header: effectiveLabels.studentName, weight: 3.2, dir: 'rtl' },
+      { key: 'name', header: effectiveLabels.studentName, weight: showExemptionStatus ? 3.0 : 3.2, dir: 'rtl' },
       { key: 'seatNumber', header: effectiveLabels.seatNumber || 'رقم الجلوس', weight: 1.2, dir: 'ltr' },
       ...(!isKindergartenStage
         ? [{ key: 'committeeNumber', header: effectiveLabels.committeeNumber || 'رقم اللجنة', weight: 1.2, dir: 'ltr' as const }]
         : []),
-      { key: 'enrollmentStatus', header: effectiveLabels.enrollmentStatus, weight: 1.4, dir: 'rtl' },
+      { key: 'enrollmentStatus', header: effectiveLabels.enrollmentStatus, weight: showExemptionStatus ? 1.25 : 1.4, dir: 'rtl' },
+      ...(showExemptionStatus
+        ? [{ key: 'exemptionStatus', header: effectiveLabels.exemptionStatus, weight: 1.15, dir: 'rtl' as const }]
+        : []),
       { key: 'religion', header: effectiveLabels.religion, weight: 1.1, dir: 'rtl' },
-      { key: 'notes', header: 'ملاحظات', weight: 2.0, dir: 'rtl' },
+      { key: 'notes', header: 'ملاحظات', weight: showExemptionStatus ? 1.75 : 2.0, dir: 'rtl' },
     ];
   } else if (reportType === 'secret_numbers') {
     columns = [
@@ -4329,6 +4345,14 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         weight: isKindergartenStage ? 0.78 : 0.76,
         dir: 'rtl',
       },
+      ...(showExemptionStatus
+        ? [{
+            key: 'exemptionStatus',
+            header: effectiveLabels.exemptionStatus,
+            weight: 0.65,
+            dir: 'rtl' as const,
+          }]
+        : []),
       { key: 'religion', header: labels.religion, weight: 0.60, dir: 'rtl' },
     ];
     if (isKindergartenStage) {
@@ -4853,6 +4877,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         { key: 'nationalId', header: labels.nationalId, weight: 2.0, dir: 'ltr' },
         { key: 'gender', header: labels.gender, weight: 1.0, dir: 'rtl' },
         { key: 'enrollmentStatus', header: labels.enrollmentStatus, weight: 1.5, dir: 'rtl' },
+        ...(showExemptionStatus
+          ? [{ key: 'exemptionStatus', header: effectiveLabels.exemptionStatus, weight: 1.2, dir: 'rtl' as const }]
+          : []),
         { key: 'enrollmentType', header: labels.enrollmentType, weight: 1.5, dir: 'rtl' },
         { key: 'religion', header: labels.religion, weight: 1.1, dir: 'rtl' }
       );
@@ -5066,6 +5093,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   nationalId: '',
                   gender: 'male',
                   enrollmentStatus: '',
+                  exemptionStatus: '',
                   enrollmentType: 'قيد عادى',
                   religion: 'muslim',
                 } as StudentData,
@@ -5093,14 +5121,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         } catch {}
         const dateDisplay = `${day} - ${month} - ${year} م`;
 
-        let fallbackCommSize = 20;
-        let fallbackMergeLast = false;
-        try {
-          const savedSize = Number(localStorage.getItem('sheet_control_committee_size'));
-          if (savedSize >= 1) fallbackCommSize = savedSize;
-          const savedMerge = localStorage.getItem('sheet_control_merge_last_committee');
-          if (savedMerge !== null) fallbackMergeLast = savedMerge === 'true';
-        } catch {}
+        const { commSize: fallbackCommSize, mergeLast: fallbackMergeLast } =
+          getCommitteeSettingsForGradeSem(semester);
 
         const totalStudentsCount = students.length;
         const fullCommitteesCount = Math.floor(totalStudentsCount / fallbackCommSize);
@@ -5175,6 +5197,10 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               controlHead,
               committeeHead,
               statusText,
+              exemptionText: showExemptionStatus
+                ? (student.exemptionStatus === 'كلي' ? 'كلى' : student.exemptionStatus === 'تدريجي' ? 'تدريجى' : student.exemptionStatus || '-')
+                : undefined,
+              showExemptionStatus,
               enrollmentTypeText,
               religionText,
               seatNumText,
@@ -5405,6 +5431,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 nationalId: '',
                 gender: 'male',
                 enrollmentStatus: '',
+                exemptionStatus: '',
                 enrollmentType: 'قيد عادى',
                 religion: 'muslim',
               } as StudentData,
@@ -5439,14 +5466,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       }
       const dateDisplay = `${day} - ${month} - ${year} م`;
 
-      let fallbackCommSize = 20;
-      let fallbackMergeLast = false;
-      try {
-        const savedSize = Number(localStorage.getItem('sheet_control_committee_size'));
-        if (savedSize >= 1) fallbackCommSize = savedSize;
-        const savedMerge = localStorage.getItem('sheet_control_merge_last_committee');
-        if (savedMerge !== null) fallbackMergeLast = savedMerge === 'true';
-      } catch {}
+      const { commSize: fallbackCommSize, mergeLast: fallbackMergeLast } =
+        getCommitteeSettingsForGradeSem(semester);
 
       const totalStudentsCount = students.length;
       const fullCommitteesCount = Math.floor(totalStudentsCount / fallbackCommSize);
@@ -5529,6 +5550,14 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             controlHead: isEnglishCard ? controlHeadEn || controlHead : controlHead,
             committeeHead: isEnglishCard ? committeeHeadEn || committeeHead : committeeHead,
             statusText,
+            exemptionText: showExemptionStatus
+              ? (() => {
+                  const exRaw = student.exemptionStatus === 'كلي' ? 'كلى' : student.exemptionStatus === 'تدريجي' ? 'تدريجى' : (student.exemptionStatus || '');
+                  if (isEnglishCard) return exRaw === 'كلى' ? 'Full' : exRaw === 'تدريجى' ? 'Gradual' : '-';
+                  return exRaw || '-';
+                })()
+              : undefined,
+            showExemptionStatus,
             enrollmentTypeText,
             religionText,
             seatNumText,
@@ -5980,15 +6009,39 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         { label: 'باق ( دمج )', value: String(damgRepeating) },
       ];
 
+      const exemptionFullList = rawStudents.filter((s) => {
+        const val = (s.exemptionStatus || '').trim();
+        return val === 'كلى' || val === 'كلي';
+      });
+      const exemptionGradualList = rawStudents.filter((s) => {
+        const val = (s.exemptionStatus || '').trim();
+        return val === 'تدريجى' || val === 'تدريجي';
+      });
+      const exemptionUnspecifiedList = rawStudents.filter((s) => {
+        const val = (s.exemptionStatus || '').trim();
+        return val !== 'كلى' && val !== 'كلي' && val !== 'تدريجى' && val !== 'تدريجي';
+      });
+      const exemptionCols = [
+        { label: isKindergartenStage ? 'إجمالي التلاميذ' : 'إجمالي الطلاب', value: String(totalCount) },
+        { label: 'كلى ( إجمالي )', value: String(exemptionFullList.length) },
+        { label: 'كلى ( بنين )', value: String(exemptionFullList.filter((s) => s.gender === 'male').length) },
+        { label: 'كلى ( بنات )', value: String(exemptionFullList.filter((s) => s.gender === 'female').length) },
+        { label: 'تدريجى ( إجمالي )', value: String(exemptionGradualList.length) },
+        { label: 'تدريجى ( بنين )', value: String(exemptionGradualList.filter((s) => s.gender === 'male').length) },
+        { label: 'تدريجى ( بنات )', value: String(exemptionGradualList.filter((s) => s.gender === 'female').length) },
+        { label: 'غير محدد', value: String(exemptionUnspecifiedList.length) },
+      ];
+
       if (pageIdx === 0) {
         const drawStatsBlock = (
           topY: number,
           blockTitle: string,
-          cols: { label: string; value: string }[]
+          cols: { label: string; value: string }[],
+          compact = false
         ) => {
-          const titleH = 74;
-          const headH = 72;
-          const valH = 78;
+          const titleH = compact ? 58 : 74;
+          const headH = compact ? 56 : 72;
+          const valH = compact ? 62 : 78;
           const totalBlockH = titleH + headH + valH;
           const cW = Math.floor(contentW / cols.length);
           const cWidths = cols.map((_, i) =>
@@ -6008,7 +6061,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
           ctx.direction = 'rtl';
           ctx.fillStyle = '#000000';
-          ctx.font = 'bold 23px "Cairo", sans-serif';
+          ctx.font = `bold ${compact ? 21 : 23}px "Cairo", sans-serif`;
           drawCenteredText(ctx, blockTitle, marginX + contentW / 2, topY + titleH / 2, contentW - 24);
 
           const hY = topY + titleH;
@@ -6035,9 +6088,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
             ctx.direction = 'rtl';
             ctx.fillStyle = '#0f172a';
-            let hFont = 20;
+            let hFont = compact ? 18 : 20;
             ctx.font = `bold ${hFont}px "Cairo", sans-serif`;
-            while (hFont > 12 && ctx.measureText(colItem.label).width > w - 10) {
+            while (hFont > 11 && ctx.measureText(colItem.label).width > w - 10) {
               hFont -= 0.5;
               ctx.font = `bold ${hFont}px "Cairo", sans-serif`;
             }
@@ -6049,7 +6102,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
             ctx.direction = 'ltr';
             ctx.fillStyle = '#0f172a';
-            ctx.font = 'bold 24px "Cairo", monospace';
+            ctx.font = `bold ${compact ? 22 : 24}px "Cairo", monospace`;
             drawCenteredText(ctx, colItem.value, x + w / 2, vY + valH / 2, w - 8);
 
             curX -= w;
@@ -6064,13 +6117,18 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           return topY + totalBlockH;
         };
 
-        let currentBlockY = bannerY + bannerH + 34;
-        const blockGap = 69;
+        const useCompactBlocks = showExemptionStatus;
+        let currentBlockY = bannerY + bannerH + (useCompactBlocks ? 22 : 34);
+        const blockGap = useCompactBlocks ? 32 : 69;
         currentBlockY =
-          drawStatsBlock(currentBlockY, isKindergartenStage ? 'الإحصائيات العامة للتلاميذ' : 'الإحصائيات العامة للطلاب', generalCols) + blockGap;
+          drawStatsBlock(currentBlockY, isKindergartenStage ? 'الإحصائيات العامة للتلاميذ' : 'الإحصائيات العامة للطلاب', generalCols, useCompactBlocks) + blockGap;
         currentBlockY =
-          drawStatsBlock(currentBlockY, 'إحصائيات حالة القيد', statusCols) + blockGap;
-        drawStatsBlock(currentBlockY, isKindergartenStage ? 'إحصائيات تلاميذ الدمج' : 'إحصائيات طلاب الدمج', damgCols);
+          drawStatsBlock(currentBlockY, 'إحصائيات حالة القيد', statusCols, useCompactBlocks) + blockGap;
+        if (showExemptionStatus) {
+          currentBlockY =
+            drawStatsBlock(currentBlockY, 'إحصائيات حالة الإعفاء', exemptionCols, useCompactBlocks) + blockGap;
+        }
+        drawStatsBlock(currentBlockY, isKindergartenStage ? 'إحصائيات تلاميذ الدمج' : 'إحصائيات طلاب الدمج', damgCols, useCompactBlocks);
       } else {
         // Page 2: Vertical table for إحصائيات نوعية القيد (14 rows: 1 header + 13 data rows, 3 columns: نوعية القيد, العدد, ملاحظات)
         const vTableTopY = bannerY + bannerH + 16;
@@ -6181,6 +6239,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
       let newOrTransCnt = 0;
       let repeatingCnt = 0;
+      let exemptionFullCnt = 0;
+      let exemptionGradualCnt = 0;
       let damgCnt = 0;
       let regularTypeCnt = 0;
       let transferTypeCnt = 0;
@@ -6198,6 +6258,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         } else {
           newOrTransCnt++;
         }
+        const exVal = (s.exemptionStatus || '').trim();
+        if (exVal === 'كلى' || exVal === 'كلي') exemptionFullCnt++;
+        else if (exVal === 'تدريجى' || exVal === 'تدريجي') exemptionGradualCnt++;
         if (isStudentDamg(s)) {
           damgCnt++;
         }
@@ -7044,6 +7107,12 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   lightColor: '#818cf8',
                 },
                 { label: 'باق', count: repeatingCnt, color: '#dc2626', lightColor: '#f87171' },
+                ...(showExemptionStatus
+                  ? [
+                      { label: 'إعفاء كلى', count: exemptionFullCnt, color: '#0284c7', lightColor: '#38bdf8' },
+                      { label: 'إعفاء تدريجى', count: exemptionGradualCnt, color: '#14b8a6', lightColor: '#5eead4' },
+                    ]
+                  : []),
               ]
             : []),
           { label: isKindergartenStage ? 'تلاميذ الدمج' : 'طلاب الدمج', count: damgCnt, color: '#7c3aed', lightColor: '#a78bfa' },
@@ -8147,6 +8216,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             (col.key === 'nationalId' ||
               col.key === 'gender' ||
               col.key === 'enrollmentStatus' ||
+              col.key === 'exemptionStatus' ||
               col.key === 'religion');
           const hFontScale = isCompactControlCol
             ? 0.6 * 1.25 * 1.2
@@ -8377,6 +8447,13 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               student.gender
             );
 
+        const exemptionText =
+          student.exemptionStatus === 'كلي'
+            ? 'كلى'
+            : student.exemptionStatus === 'تدريجي'
+            ? 'تدريجى'
+            : student.exemptionStatus || '';
+
         const enrollmentTypeText =
           student.enrollmentType === 'تحويل من مدرسة أخرى'
             ? 'تحويلات'
@@ -8507,6 +8584,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           nationalId: student.nationalId || '',
           gender: isBlankRow ? '' : genderText,
           enrollmentStatus: isBlankRow ? '' : statusText,
+          exemptionStatus: isBlankRow ? '' : exemptionText,
           enrollmentType: isBlankRow ? '' : enrollmentTypeText,
           religion: isBlankRow ? '' : religionText,
           seatNumber: isBlankRow ? '' : seatNumText,
@@ -9512,6 +9590,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               isControlSheet &&
               (col.key === 'gender' ||
                 col.key === 'enrollmentStatus' ||
+                col.key === 'exemptionStatus' ||
                 col.key === 'religion');
             const isCompactControlCol =
               isControlSheet &&
@@ -9559,12 +9638,12 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 ? 11.5
                 : 11) * kgSem2TableFontScale;
             const cellMaxW = isCompactControlCol
-              ? colW - (isNonKgControlSheet ? 8 : col.key === 'enrollmentStatus' ? 14 : 8)
+              ? colW - (isNonKgControlSheet ? 8 : (col.key === 'enrollmentStatus' || col.key === 'exemptionStatus') ? 14 : 8)
               : maxCellTextW;
             ctx.font = `bold ${fitFontSize}px ${fontFamily}`;
             if (isKindergartenStage && val.includes('برامج علاجية')) {
               fitFontSize = rowFontSize * cellFontScale * kgSem2TableFontScale;
-            } else if (!isDemographicCol && (!isKgCompactControlCol || col.key === 'enrollmentStatus')) {
+            } else if (!isDemographicCol && (!isKgCompactControlCol || col.key === 'enrollmentStatus' || col.key === 'exemptionStatus')) {
               while (fitFontSize > minCellFont && ctx.measureText(val).width > cellMaxW) {
                 fitFontSize -= 0.5;
                 ctx.font = `bold ${fitFontSize}px ${fontFamily}`;
@@ -9711,6 +9790,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
       let newOrTransComm = 0;
       let repeatingComm = 0;
+      let exemptionFullComm = 0;
+      let exemptionGradualComm = 0;
       let damgComm = 0;
 
       statsItems.forEach((i) => {
@@ -9732,6 +9813,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         } else {
           newOrTransComm++;
         }
+        const exVal = (i.student.exemptionStatus || '').trim();
+        if (exVal === 'كلى' || exVal === 'كلي') exemptionFullComm++;
+        else if (exVal === 'تدريجى' || exVal === 'تدريجي') exemptionGradualComm++;
       });
 
       const totalLabel =
@@ -9815,6 +9899,12 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           ? [
               { label: isFirstGrade ? 'مستجد' : 'منقول', value: String(newOrTransComm) },
               { label: 'باق', value: String(repeatingComm) },
+              ...(showExemptionStatus
+                ? [
+                    { label: 'إعفاء كلى', value: String(exemptionFullComm) },
+                    { label: 'إعفاء تدريجى', value: String(exemptionGradualComm) },
+                  ]
+                : []),
             ]
           : []),
         ...(isTopTenReport ? [] : [{ label: 'دمج', value: String(damgComm) }]),
@@ -9902,7 +9992,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         ctx.strokeRect(x, statsHeaderY, w, statsHeaderRowH);
         ctx.direction = 'rtl';
         ctx.fillStyle = '#0f172a';
-        ctx.font = `bold ${isSubjectReport ? 18 : 21}px "Cairo", sans-serif`;
+        ctx.font = `bold ${isSubjectReport ? 17 : statsCols.length >= 10 ? 18 : 21}px "Cairo", sans-serif`;
         drawCenteredText(ctx, sc.label, x + w / 2, statsHeaderY + statsHeaderRowH / 2, w - 10);
 
         // Value cell

@@ -1123,7 +1123,7 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80"
+                className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80 max-h-[88vh] overflow-y-auto custom-scrollbar"
               >
                 <BrandHeader variant="gold" />
                 {menuItems.map((item) => {
@@ -1141,7 +1141,7 @@ export default function App() {
                           setIsMenuOpen(false);
                         }
                       }}
-                      className={`w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white transition-all ${
+                      className={`w-full shrink-0 flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white transition-all ${
                         isDisabled
                           ? 'opacity-40 cursor-not-allowed bg-slate-700/60 shadow-none hover:translate-y-0'
                           : `hover:-translate-y-0.5 active:translate-y-0 ${item.color}`
@@ -1574,6 +1574,7 @@ export default function App() {
                       semester={schoolData.semester || 'first'}
                       title={getScreenTitle()}
                       stage={schoolData.stage}
+                      educationType={schoolData.educationType}
                       systemType={schoolData.systemType}
                       selectedGrade={gradeWithDivision}
                       administration={schoolData.administration}
@@ -1672,6 +1673,7 @@ export default function App() {
                   return (
                     <AssessmentsGradesScreen
                       stage={schoolData.stage}
+                      educationType={schoolData.educationType}
                       selectedGrade={gradeWithDivision}
                       lastDetailedSubjectKey={currentDetailedSubject}
                       key={`assessments-${schoolData.educationType}-${schoolData.stage}-${gradeWithDivision}-${schoolData.semester}`}
@@ -1722,6 +1724,7 @@ export default function App() {
                   return (
                     <WrittenExamsGradesScreen
                       stage={schoolData.stage}
+                      educationType={schoolData.educationType}
                       systemType={schoolData.systemType}
                       selectedGrade={gradeWithDivision}
                       key={`written-exams-${schoolData.educationType}-${schoolData.stage}-${gradeWithDivision}-${schoolData.systemType || 'regular'}-${schoolData.semester}`}
@@ -1769,6 +1772,7 @@ export default function App() {
                     <DetailedAssessmentsGradesScreen
                       key={`detailed-assessments-${schoolData.educationType}-${schoolData.stage}-${gradeWithDivision}-${schoolData.semester}`}
                       stage={schoolData.stage}
+                      educationType={schoolData.educationType}
                       selectedGrade={gradeWithDivision}
                       secondarySystem={schoolData.secondarySystem}
                       currentSubjectKey={currentDetailedSubject}

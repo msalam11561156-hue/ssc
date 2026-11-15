@@ -1,4 +1,5 @@
 import { idbGet, idbSet } from './idbStorage';
+import { hydrateDeletedSubjectsFromStorage } from './deletedSubjects';
 
 /**
  * معرف التطبيق الثابت والفريد (Fixed App Bundle Identifier / GUID)
@@ -96,6 +97,8 @@ export async function checkAndPerformInPlaceUpgrade(): Promise<UpgradeReport> {
     localStorage.setItem('smart_control_app_guid', APP_GUID);
     localStorage.setItem('smart_control_bundle_id', APP_BUNDLE_ID);
   }
+
+  await hydrateDeletedSubjectsFromStorage();
 
   return {
     isFirstInstall: false,

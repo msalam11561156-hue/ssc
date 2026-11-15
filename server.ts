@@ -301,11 +301,21 @@ async function startServer() {
       },
       appType: 'spa',
     });
+    app.use((req, res, next) => {
+      if (
+        req.method === 'GET' &&
+        req.path.startsWith('/assets/') &&
+        req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?|webp|jfif)$/i)
+      ) {
+        return res.status(404).end();
+      }
+      return next();
+    });
     app.use(vite.middlewares);
     app.use('*', async (req, res, next) => {
       if (req.method !== 'GET') return next();
       // Do not serve index.html for static asset requests (scripts, styles, images, audio, etc.)
-      if (req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?)$/i)) {
+      if (req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?|webp|jfif)$/i)) {
         return res.status(404).end();
       }
       try {
@@ -319,7 +329,10 @@ async function startServer() {
   } else {
     const distPath = path.join(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
+    app.get('*', (req, res) => {
+      if (req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?|webp|jfif)$/i)) {
+        return res.status(404).end();
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

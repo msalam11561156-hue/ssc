@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Filter, X, Check, Users, Shield, GraduationCap, School, RotateCcw, Sparkles } from 'lucide-react';
-import { Language, StudentData } from '../types';
-import { translations } from '../i18n';
+import { Language, StudentData, EducationType } from '../types';
+import { translations, isInternationalSchool } from '../i18n';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 
 export interface FilterState {
@@ -12,6 +12,7 @@ export interface FilterState {
   studentClass?: string;
   studentStatus?: string;
   enrollmentStatus?: string;
+  exemptionStatus?: string;
   committeeNumber?: string;
 }
 
@@ -22,6 +23,8 @@ interface FilterButtonMenuProps {
   data: StudentData[];
   numberLang: NumberLang;
   isKindergarten?: boolean;
+  isInternational?: boolean;
+  educationType?: EducationType;
   className?: string;
 }
 
@@ -104,10 +107,13 @@ export const FilterButtonMenu: React.FC<FilterButtonMenuProps> = ({
   data,
   numberLang,
   isKindergarten = false,
+  isInternational: propIsInternational,
+  educationType,
   className = '',
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const t = translations[lang];
+  const isInternational = propIsInternational !== undefined ? propIsInternational : isInternationalSchool(educationType);
 
   const uniqueClasses = useMemo(() => {
     return Array.from(new Set(data.map((s) => s.studentClass).filter(Boolean))).sort() as string[];
@@ -273,6 +279,25 @@ export const FilterButtonMenu: React.FC<FilterButtonMenuProps> = ({
                     currentVal={filters.enrollmentStatus}
                     onSelect={(v: string) => updateFilter('enrollmentStatus', v)}
                     options={uniqueEnrollmentStatuses.map((c) => ({ value: c, label: c }))}
+                    lang={lang}
+                  />
+                )}
+
+                {/* Exemption Status (International schools only) */}
+                {isInternational && !isKindergarten && (
+                  <FilterSection
+                    title={(t as any).exemptionStatus || 'حالة الإعفاء'}
+                    icon={Shield}
+                    gradientBg="bg-gradient-to-br from-sky-500/10 via-cyan-500/5 to-teal-500/10"
+                    borderColor="hover:border-sky-500"
+                    iconGradient="bg-gradient-to-r from-sky-500 to-cyan-600"
+                    activeBtnGradient="bg-gradient-to-r from-sky-600 to-cyan-600"
+                    currentVal={filters.exemptionStatus}
+                    onSelect={(v: string) => updateFilter('exemptionStatus', v)}
+                    options={[
+                      { value: 'كلى', label: 'كلى' },
+                      { value: 'تدريجى', label: 'تدريجى' },
+                    ]}
                     lang={lang}
                   />
                 )}

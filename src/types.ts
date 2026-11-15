@@ -77,6 +77,7 @@ export interface StudentData {
   nationalId: string;
   gender: string;
   enrollmentStatus: string;
+  exemptionStatus?: string;
   enrollmentType?: string;
   studentStatus?: string;
   religion: string;

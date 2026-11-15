@@ -2,6 +2,7 @@ import { DetailedAssessmentItem, StudentData } from '../types';
 import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme, getSubjectsConfigForStageGrade } from './exportPdf';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
+import { getDeletedSubjectKeys, filterDeletedSubjects } from './deletedSubjects';
 import qrCodeUrl from '../assets/images/asd11.jpg';
 import { getActiveFooterTagline } from './adFilter';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
@@ -1414,6 +1415,8 @@ export async function exportDetailedAssessmentsCertificatesPdf(
     } catch {}
   }
 
+  baseSubjects = filterDeletedSubjects(baseSubjects, stage, selectedGrade);
+
   // فى المرحلة الإعدادية والمرحلة الثانوية - منازل فقط: استبعاد المواد التى ليس لها امتحان تحريرى
   if (isMiddleHomeschool || (stage === 'secondary' && isHomeschoolResolved)) {
     baseSubjects = baseSubjects.filter((s) => {
@@ -1426,7 +1429,8 @@ export async function exportDetailedAssessmentsCertificatesPdf(
   let addedSubjects = baseSubjects.filter(s => s.isAddedToTotal !== false);
   let nonAddedSubjects = baseSubjects.filter(s => s.isAddedToTotal === false);
 
-  if (addedSubjects.length === 0 && nonAddedSubjects.length === 0) {
+  const deletedKeysForGrade = getDeletedSubjectKeys(stage, selectedGrade);
+  if (addedSubjects.length === 0 && nonAddedSubjects.length === 0 && deletedKeysForGrade.length === 0 && !savedColsStr) {
     addedSubjects = [
       { key: 'arabic', label: 'اللغة العربية' },
       { key: 'math', label: 'الرياضيات' },
@@ -3054,6 +3058,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
     } catch {}
   }
 
+  baseSubjects = filterDeletedSubjects(baseSubjects, stage, selectedGrade);
+
   // فى المرحلة الإعدادية والمرحلة الثانوية - منازل فقط: استبعاد المواد التى ليس لها امتحان تحريرى
   if (isMiddleHomeschool || (stage === 'secondary' && isHomeschoolResolved)) {
     baseSubjects = baseSubjects.filter((s) => {
@@ -3066,7 +3072,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
   let addedSubjects = baseSubjects.filter((s) => s.isAddedToTotal !== false);
   let nonAddedSubjects = baseSubjects.filter((s) => s.isAddedToTotal === false);
 
-  if (addedSubjects.length === 0 && nonAddedSubjects.length === 0) {
+  const deletedKeysForGrade2 = getDeletedSubjectKeys(stage, selectedGrade);
+  if (addedSubjects.length === 0 && nonAddedSubjects.length === 0 && deletedKeysForGrade2.length === 0 && !savedColsStr && !propCustomCols) {
     addedSubjects = [
       { key: 'arabic', label: 'اللغة العربية' },
       { key: 'math', label: 'الرياضيات' },

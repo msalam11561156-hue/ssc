@@ -6,6 +6,7 @@ import {initButtonSoundEffect} from './utils/sound';
 import { registerSW } from 'virtual:pwa-register';
 import { preloadAndCacheOfflineAssets } from './utils/offlineAssetCache';
 import { checkAndPerformInPlaceUpgrade } from './utils/upgradeManager';
+import { hydrateDeletedSubjectsFromStorage } from './utils/deletedSubjects';
 
 // التحديث في المكان (In-Place Upgrade) التلقائي وتسجيل الخدمة لضمان العمل بدون إنترنت
 const updateSW = registerSW({
@@ -38,6 +39,7 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 // فحص وحماية ترقية البيانات بدون أي فقدان
 checkAndPerformInPlaceUpgrade().catch(() => {});
+hydrateDeletedSubjectsFromStorage().catch(() => {});
 
 initButtonSoundEffect();
 preloadAndCacheOfflineAssets();

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone } from 'lucide-react';
-import { Language, StudentData, AssessmentGrades } from '../types';
+import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
 import { GradingSettingsModal } from './GradingSettingsModal';
@@ -19,6 +19,8 @@ import { SeatNumbersModal } from './SeatNumbersModal';
 import { CustomControlSheetModal } from './CustomControlSheetModal';
 import { getStoredSubjectEn, saveStoredSubjectEn, capitalizeEachWord } from '../utils/subjectLanguage';
 import { SortButtonMenu } from './SortButtonMenu';
+import { getDeletedSubjectKeys, markSubjectDeleted, clearDeletedSubjects, filterDeletedSubjects } from '../utils/deletedSubjects';
+import { getDefaultSubjectCols } from '../utils/defaultSubjects';
 import { sortStudents } from '../utils/studentSorting';
 import { KG_LEARNING_DOMAINS } from '../utils/kgAssessmentsReportHelper';
 import { TopTenCertificatesModal } from './TopTenCertificatesModal';
@@ -45,6 +47,7 @@ interface WrittenExamsGradesScreenProps {
   sortBy?: { id: string; direction: 'asc' | 'desc' }[];
   onSortChange?: (newSort: { id: string; direction: 'asc' | 'desc' }[]) => void;
   isTrialMode?: boolean;
+  educationType?: EducationType;
 }
 
 const PortalModal = ({ children }: { children: React.ReactNode }) => {
@@ -68,6 +71,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   sortBy: externalSortBy,
   onSortChange,
   isTrialMode = false,
+  educationType,
 }) => {
   const t = translations[lang];
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
@@ -410,11 +414,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_default_overrides`);
       localStorage.setItem(`secondary_cols_cleared_v1_${selectedGrade}`, 'true');
-      return mappedDefaults;
+      return filterDeletedSubjects(mappedDefaults, stage, selectedGrade);
     }
 
     if (saved) {
-      let parsed = JSON.parse(saved);
+      let parsed = filterDeletedSubjects<any>(JSON.parse(saved), stage, selectedGrade);
+      const deletedKeys = getDeletedSubjectKeys(stage, selectedGrade);
       if (stage === 'secondary') {
         if (isSecondary1) {
           const defaultSec1 = [
@@ -431,6 +436,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             { key: 'activity', label: 'النشاط', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' as const }
           ];
           defaultSec1.forEach(def => {
+            if (deletedKeys.includes(def.key)) return;
             const idx = parsed.findIndex((c: any) => c.key === def.key);
             if (idx === -1) {
               parsed.push(def);
@@ -472,6 +478,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             { key: 'educational_vocational_activity', label: 'النشاط التربوى والمهنى', isAddedToTotal: false, maxGrade: 100, actualMaxGrade: 20, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' as const }
           ];
           defaultSec2.forEach(def => {
+            if (deletedKeys.includes(def.key)) return;
             const idx = parsed.findIndex((c: any) => c.key === def.key);
             if (idx === -1) {
               parsed.push(def);
@@ -493,7 +500,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             }
           });
         }
-        return parsed;
+        return filterDeletedSubjects(parsed, stage, selectedGrade);
       }
       if (isKindergarten) {
         parsed = parsed.filter((c: any) => c.key !== 'discover' && c.key !== 'math' && c.key !== 'religion' && c.label?.trim() !== 'الرياضيات' && !c.label?.includes('رياضيات') && !c.label?.includes('ديني') && !c.label?.includes('دين'));
@@ -504,6 +511,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'pe', label: 'التربية البدنية والصحية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 }
         ];
         defaultKg.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -528,7 +536,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           hasWrittenExam: false,
           minPassPercentage: c.minPassPercentage !== undefined ? c.minPassPercentage : 50
         }));
-        return parsed;
+        return filterDeletedSubjects(parsed, stage, selectedGrade);
       }
 
       if (isPrimary1To3) {
@@ -542,6 +550,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'tokkatsu', label: 'أنشطة التوكاتسو', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'pass_fail' as const }
         ];
         defaultP13.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -561,10 +570,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             };
           }
         });
-        return parsed.map((c: any) => ({
+        return filterDeletedSubjects(parsed.map((c: any) => ({
           ...c,
           minTotalPassPercentage: c.minTotalPassPercentage !== undefined ? c.minTotalPassPercentage : ((c.key === 'religion' || (c.label && c.label.includes('دين'))) ? 70 : 50)
-        }));
+        })), stage, selectedGrade);
       }
 
       if (isPrimary4To6) {
@@ -583,6 +592,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'music', label: 'التربية الموسيقية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'pass_fail' as const }
         ];
         defaultP46.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -602,10 +612,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             };
           }
         });
-        return parsed.map((c: any) => ({
+        return filterDeletedSubjects(parsed.map((c: any) => ({
           ...c,
           minTotalPassPercentage: c.minTotalPassPercentage !== undefined ? c.minTotalPassPercentage : ((c.key === 'religion' || (c.label && c.label.includes('دين'))) ? 70 : 50)
-        }));
+        })), stage, selectedGrade);
       }
 
       if (isMiddle) {
@@ -639,6 +649,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'activity2', label: 'النشاط الثانى', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'grades' as const }
         ];
         defaultMiddle.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -659,16 +670,16 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             };
           }
         });
-        return parsed.map((c: any) => ({
+        return filterDeletedSubjects(parsed.map((c: any) => ({
           ...c,
           maxWrittenGrade: isMiddleHomeschoolInit ? (c.hasWrittenExam !== false ? 100 : 0) : c.maxWrittenGrade,
           maxAssessmentsGrade: isMiddleHomeschoolInit ? 0 : c.maxAssessmentsGrade,
           minPassPercentage: (c.hasWrittenExam !== false && (c.minPassPercentage === undefined || c.minPassPercentage === 10 || c.minPassPercentage === 7.2 || c.minPassPercentage === 70)) ? 30 : c.minPassPercentage,
           minTotalPassPercentage: c.minTotalPassPercentage !== undefined ? c.minTotalPassPercentage : ((c.key === 'religion' || (c.label && c.label.includes('دين'))) ? 70 : 50)
-        }));
+        })), stage, selectedGrade);
       }
 
-      if (!parsed.some((c: any) => c.key === 'arabic') && mappedDefaults.some(c => c.key === 'arabic')) {
+      if (!deletedKeys.includes('arabic') && !parsed.some((c: any) => c.key === 'arabic') && mappedDefaults.some(c => c.key === 'arabic')) {
         parsed.unshift(mappedDefaults.find(c => c.key === 'arabic'));
       } else {
         const arIndex = parsed.findIndex((c: any) => c.key === 'arabic');
@@ -676,7 +687,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
            parsed[arIndex] = { ...parsed[arIndex], ...mappedDefaults.find(c => c.key === 'arabic') };
         }
       }
-      if (!parsed.some((c: any) => c.key === 'english') && mappedDefaults.some(c => c.key === 'english')) {
+      if (!deletedKeys.includes('english') && !parsed.some((c: any) => c.key === 'english') && mappedDefaults.some(c => c.key === 'english')) {
         const engIndex = parsed.findIndex((c: any) => c.key === 'arabic') + 1;
         parsed.splice(engIndex, 0, mappedDefaults.find(c => c.key === 'english'));
       } else {
@@ -685,15 +696,29 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
            parsed[enIndex] = { ...parsed[enIndex], ...mappedDefaults.find(c => c.key === 'english') };
         }
       }
-      return parsed;
+      return filterDeletedSubjects(parsed, stage, selectedGrade);
     }
 
-    return mappedDefaults;
+    return filterDeletedSubjects(mappedDefaults, stage, selectedGrade);
   });
 
   useEffect(() => {
-    localStorage.setItem(`${stage}_${selectedGrade}_assessments_custom_cols`, JSON.stringify(customCols)); // Update shared columns
-  }, [customCols, stage, selectedGrade]);
+    const sanitizedCols = filterDeletedSubjects(customCols, stage, selectedGrade);
+    const isHs = systemType === 'homeschool' || Boolean(title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')));
+    const isMidOrSec = stage === 'middle' || stage === 'prep' || stage === 'secondary' || Boolean(title && (title.includes('المرحلة الإعدادية') || title.includes('المرحلة الثانوية') || title.includes('ثانوي')));
+    if (isHs && isMidOrSec && localStorage.getItem(`${stage}_${selectedGrade}_homeschool_assessments_custom_cols`) !== null) {
+      localStorage.setItem(`${stage}_${selectedGrade}_homeschool_assessments_custom_cols`, JSON.stringify(sanitizedCols));
+    }
+    localStorage.setItem(`${stage}_${selectedGrade}_assessments_custom_cols`, JSON.stringify(sanitizedCols)); // Update shared columns
+  }, [customCols, stage, selectedGrade, systemType, title]);
+
+  useEffect(() => {
+    const handleDeletedHydrated = () => {
+      setCustomCols(prev => filterDeletedSubjects(prev, stage, selectedGrade));
+    };
+    window.addEventListener('deleted-subjects-hydrated', handleDeletedHydrated);
+    return () => window.removeEventListener('deleted-subjects-hydrated', handleDeletedHydrated);
+  }, [stage, selectedGrade]);
 
 
   const [defaultSubjectsOverrides, setDefaultSubjectsOverrides] = useState<{ [key: string]: { label?: string, labelEn?: string, maxAssessmentsGrade?: number, maxWrittenGrade?: number, minPassPercentage?: number, minTotalPassPercentage?: number, maxGrade?: number, actualMaxGrade?: number, isAddedToTotal?: boolean, hasWrittenExam?: boolean, learningOutcomesType?: 'pass_fail' | 'grades' } }>(() => {
@@ -800,7 +825,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_default_overrides`);
       localStorage.setItem(`secondary_cols_cleared_v1_${selectedGrade}`, 'true');
-      setCustomCols(isSecondary1 ? defaultSecondary1 : (isSecondary2Scientific ? defaultSecondary2Scientific : (isSecondary2Literary ? defaultSecondary2Literary : [])));
+      setCustomCols(filterDeletedSubjects(isSecondary1 ? defaultSecondary1 : (isSecondary2Scientific ? defaultSecondary2Scientific : (isSecondary2Literary ? defaultSecondary2Literary : [])), stage, selectedGrade));
       setDefaultSubjectsOverrides({});
       return;
     }
@@ -809,18 +834,21 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
       localStorage.removeItem(`${stage}_${selectedGrade}_assessments_default_overrides`);
       localStorage.setItem(kgWrittenClearedKey, 'true');
-      setCustomCols([
+      setCustomCols(filterDeletedSubjects([
         { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
         { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
         { key: 'multidisciplinary', label: 'متعدد التخصصات', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
         { key: 'pe', label: 'التربية البدنية والصحية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 }
-      ]);
+      ], stage, selectedGrade));
       setDefaultSubjectsOverrides({});
       return;
     }
-    const savedCustomCols = localStorage.getItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
+    const deletedKeys = getDeletedSubjectKeys(stage, selectedGrade);
+    const isHomeschoolEffect = systemType === 'homeschool' || Boolean(title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')));
+    const isMidOrSecEffect = stage === 'middle' || stage === 'prep' || stage === 'secondary' || Boolean(title && (title.includes('المرحلة الإعدادية') || title.includes('المرحلة الثانوية') || title.includes('ثانوي')));
+    const savedCustomCols = (isHomeschoolEffect && isMidOrSecEffect ? localStorage.getItem(`${stage}_${selectedGrade}_homeschool_assessments_custom_cols`) : null) || localStorage.getItem(`${stage}_${selectedGrade}_assessments_custom_cols`);
     if (savedCustomCols) {
-      let parsed = JSON.parse(savedCustomCols);
+      let parsed = filterDeletedSubjects<any>(JSON.parse(savedCustomCols), stage, selectedGrade);
       if (stage === 'kindergarten') {
         parsed = parsed.filter((c: any) => c.key !== 'discover' && c.key !== 'math' && c.key !== 'religion' && c.label?.trim() !== 'الرياضيات' && !c.label?.includes('رياضيات') && !c.label?.includes('ديني') && !c.label?.includes('دين'));
         const defaultKg = [
@@ -830,6 +858,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'pe', label: 'التربية البدنية والصحية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 }
         ];
         defaultKg.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -865,6 +894,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'tokkatsu', label: 'أنشطة التوكاتسو', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'pass_fail' as const }
         ];
         defaultP13.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -899,6 +929,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'music', label: 'التربية الموسيقية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'pass_fail' as const }
         ];
         defaultP46.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -935,6 +966,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'activity2', label: 'النشاط الثانى', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, learningOutcomesType: 'grades' as const }
         ];
         defaultMiddle.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -955,6 +987,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         });
       } else if (isSecondary1) {
         defaultSecondary1.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -977,6 +1010,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       } else if (isSecondary2Scientific || isSecondary2Literary) {
         const targetDefaults = isSecondary2Literary ? defaultSecondary2Literary : defaultSecondary2Scientific;
         targetDefaults.forEach(def => {
+          if (deletedKeys.includes(def.key)) return;
           const idx = parsed.findIndex((c: any) => c.key === def.key);
           if (idx === -1) {
             parsed.push(def);
@@ -998,30 +1032,31 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           }
         });
       }
-      setCustomCols(parsed.map((c: any) => ({
+      setCustomCols(filterDeletedSubjects(parsed.map((c: any) => ({
         ...c,
         minPassPercentage: (stage !== 'kindergarten' && c.hasWrittenExam !== false && (c.minPassPercentage === undefined || c.minPassPercentage === 10 || c.minPassPercentage === 7.2 || c.minPassPercentage === 70)) ? (stage === 'secondary' ? 25 : 30) : c.minPassPercentage,
         minTotalPassPercentage: c.minTotalPassPercentage !== undefined ? c.minTotalPassPercentage : ((c.key === 'religion' || (c.label && c.label.includes('دين'))) ? 70 : 50)
-      })));
+      })), stage, selectedGrade));
     } else {
+      let nextFallbackCols: any[] = [];
       if (stage === 'kindergarten') {
-        setCustomCols([
+        nextFallbackCols = [
           { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
           { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
           { key: 'multidisciplinary', label: 'متعدد التخصصات', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
           { key: 'pe', label: 'التربية البدنية والصحية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 }
-        ]);
+        ];
       } else if (isP13) {
-        setCustomCols([
+        nextFallbackCols = [
           { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'math', label: 'الرياضيات', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'religion', label: 'التربية الدينية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 70, learningOutcomesType: 'pass_fail' },
           { key: 'pe', label: 'التربية الرياضية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'pass_fail' },
           { key: 'tokkatsu', label: 'أنشطة التوكاتسو', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'pass_fail' }
-        ]);
+        ];
       } else if (isP46) {
-        setCustomCols([
+        nextFallbackCols = [
           { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'math', label: 'الرياضيات', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 40, maxWrittenGrade: 60, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
@@ -1033,9 +1068,9 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'pe', label: 'التربية الرياضية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'pass_fail' },
           { key: 'fields', label: 'المجالات', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'pass_fail' },
           { key: 'music', label: 'التربية الموسيقية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'pass_fail' }
-        ]);
+        ];
       } else if (isMiddle) {
-        setCustomCols([
+        nextFallbackCols = [
           { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'math', label: 'الرياضيات', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 30, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
@@ -1048,18 +1083,15 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           { key: 'pe', label: 'التربية الرياضية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'activity1', label: 'النشاط الأول', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
           { key: 'activity2', label: 'النشاط الثانى', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' }
-        ]);
+        ];
       } else if (isSecondary1) {
-        setCustomCols(defaultSecondary1);
+        nextFallbackCols = defaultSecondary1;
       } else if (isSecondary2Scientific) {
-        setCustomCols(defaultSecondary2Scientific);
+        nextFallbackCols = defaultSecondary2Scientific;
       } else if (isSecondary2Literary) {
-        setCustomCols(defaultSecondary2Literary);
-      } else if (stage === 'secondary') {
-        setCustomCols([]);
-      } else {
-        setCustomCols([]);
+        nextFallbackCols = defaultSecondary2Literary;
       }
+      setCustomCols(filterDeletedSubjects(nextFallbackCols, stage, selectedGrade));
     }
     const savedOverrides = localStorage.getItem(`${stage}_${selectedGrade}_assessments_default_overrides`);
     if (savedOverrides) {
@@ -1224,6 +1256,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   const [newFieldKgDomain, setNewFieldKgDomain] = useState<string>(KG_LEARNING_DOMAINS[0]);
   const [isDeleteFieldModalOpen, setIsDeleteFieldModalOpen] = useState(false);
   const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [isRestoreDefaultsModalOpen, setIsRestoreDefaultsModalOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1579,6 +1612,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       }
       if (filters.studentClass && student.studentClass !== filters.studentClass) return false;
       if (filters.enrollmentStatus && student.enrollmentStatus !== filters.enrollmentStatus) return false;
+      if (filters.exemptionStatus && student.exemptionStatus !== filters.exemptionStatus) return false;
       if (filters.enrollmentType && student.enrollmentType !== filters.enrollmentType) return false;
       if (filters.committeeNumber && student.committeeNumber !== filters.committeeNumber) return false;
 
@@ -1649,6 +1683,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       subjectLabel: subjectInfo?.label,
       screenSubtitle: (t as any).writtenExams || 'درجات الامتحان التحريري',
       stage,
+      educationType,
       selectedGrade,
       sortBy,
       students: filteredData,
@@ -1662,6 +1697,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         nationalId: t.nationalId,
         gender: t.gender,
         enrollmentStatus: isKindergarten ? 'حالة التلميذ' : t.enrollmentStatus,
+        exemptionStatus: (t as any).exemptionStatus || 'حالة الإعفاء',
         enrollmentType: (t as any).enrollmentType || 'نوعية القيد',
         religion: t.religion,
         seatNumber: (t as any).seatNumber || 'رقم الجلوس',
@@ -2495,7 +2531,6 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
 
   const deletableCols = [
     ...customCols.filter(c => {
-      if (c.key === 'arabic' || c.key === 'english') return false;
       if (isMiddleHomeschool) {
         const override = defaultSubjectsOverrides?.[c.key];
         const hasExam = override?.hasWrittenExam !== undefined ? override.hasWrittenExam : (c.hasWrittenExam !== undefined ? c.hasWrittenExam : true);
@@ -2683,6 +2718,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
               lang={lang}
               data={data}
               numberLang={numberLang}
+              educationType={educationType}
               className="shrink-0"
             />
             <button
@@ -2765,6 +2801,13 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           icon={<Trash2 className="w-4 h-4" />}
                           text={(t as any).deleteSubject || 'حذف مادة دراسية'}
                           bgGradient="bg-[linear-gradient(to_right,#f97316,#ef4444,#f97316)]"
+                        />
+
+                        <ActionMenuButton
+                          onClick={() => { setIsActionMenuOpen(false); setIsRestoreDefaultsModalOpen(true); }}
+                          icon={<RotateCcw className="w-4 h-4" />}
+                          text="إستعادة المواد الدراسية الافتراضية"
+                          bgGradient="bg-[linear-gradient(to_right,#0891b2,#06b6d4,#0891b2)]"
                         />
 
                         {/* أزرار الفصل الدراسي الأول تحت بعضها */}
@@ -5191,6 +5234,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                       <button 
                         onClick={() => {
                           if (fieldToDelete) {
+                            markSubjectDeleted(stage, selectedGrade, fieldToDelete);
                             setCustomCols(prev => prev.filter(c => c.key !== fieldToDelete));
                           }
                           setIsConfirmDeleteModalOpen(false);
@@ -5199,6 +5243,82 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                         className="relative w-full h-full px-5 py-3.5 rounded-[9px] font-bold text-white bg-[linear-gradient(45deg,#ef4444,#f43f5e,#ef4444)] bg-[length:200%_200%] animate-shine hover:opacity-90 transition-all shadow-md"
                       >
                         {(t as any).yes}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence></PortalModal>
+
+      <PortalModal><AnimatePresence>
+        {isRestoreDefaultsModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setIsRestoreDefaultsModalOpen(false)}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col text-center"
+              dir={lang === 'ar' ? 'rtl' : 'ltr'}
+            >
+              <div className="absolute inset-[-100%] animate-[spin_10s_linear_infinite] bg-[conic-gradient(from_0deg,#000000_0%,#ffffff_25%,#000000_50%,#ffffff_75%,#000000_100%)] pointer-events-none" />
+              <div className="relative bg-[linear-gradient(135deg,#ecfeff,#e0f2fe,#cffafe,#ecfeff)] bg-[length:300%_300%] animate-shine rounded-[26px] w-full h-full border border-white/60 relative z-10">
+                <div className="p-8">
+                  <div className="w-20 h-20 rounded-full bg-white/80 flex items-center justify-center mx-auto mb-6 text-cyan-600 shadow-inner border border-cyan-100 relative z-10">
+                    <RotateCcw className="w-10 h-10 drop-shadow-sm" />
+                  </div>
+                  <h3 className="text-2xl text-center font-bold text-slate-900 mb-3 drop-shadow-sm relative z-10">
+                    إستعادة المواد الدراسية الافتراضية
+                  </h3>
+                  <p className="text-sm font-semibold text-slate-700 mb-7 leading-relaxed relative z-10">
+                    سيتم استعادة جميع المواد الدراسية الافتراضية المحذوفة وإعادتها للترتيب والإعدادات الأصلية لهذا الصف مع الإبقاء على درجات الطلاب المسجلة.
+                  </p>
+                  <div className="flex justify-center gap-3 relative z-10">
+                    <div className="flex-1 relative p-[3px] rounded-xl overflow-hidden group">
+                      <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,#000_0%,#fff_50%,#000_100%)] pointer-events-none opacity-50" />
+                      <button
+                        type="button"
+                        onClick={() => setIsRestoreDefaultsModalOpen(false)}
+                        className="relative w-full h-full px-5 py-3.5 rounded-[9px] font-bold text-slate-700 bg-white/90 hover:bg-white transition-all shadow-sm"
+                      >
+                        {(t as any).cancel || 'إلغاء'}
+                      </button>
+                    </div>
+                    <div className="flex-1 relative p-[3px] rounded-xl overflow-hidden group">
+                      <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,#000_0%,#fff_50%,#000_100%)] pointer-events-none" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearDeletedSubjects(stage, selectedGrade);
+                          try {
+                            localStorage.removeItem(`${stage}_${selectedGrade}_assessments_default_overrides`);
+                          } catch {}
+                          setDefaultSubjectsOverrides({});
+                          const restoredDefaults = getDefaultSubjectCols({ stage, selectedGrade, systemType, title });
+                          const defaultKeys = new Set(restoredDefaults.map(c => c.key));
+                          setCustomCols(prev => {
+                            const extraCustom = prev.filter(c => !defaultKeys.has(c.key));
+                            const nextCols = [...restoredDefaults, ...extraCustom];
+                            try {
+                              localStorage.setItem(`${stage}_${selectedGrade}_assessments_custom_cols`, JSON.stringify(nextCols));
+                              const isHs = systemType === 'homeschool' || Boolean(title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')));
+                              const isMidOrSec = stage === 'middle' || stage === 'prep' || stage === 'secondary' || Boolean(title && (title.includes('المرحلة الإعدادية') || title.includes('المرحلة الثانوية') || title.includes('ثانوي')));
+                              if (isHs && isMidOrSec && localStorage.getItem(`${stage}_${selectedGrade}_homeschool_assessments_custom_cols`) !== null) {
+                                localStorage.setItem(`${stage}_${selectedGrade}_homeschool_assessments_custom_cols`, JSON.stringify(nextCols));
+                              }
+                            } catch {}
+                            return nextCols;
+                          });
+                          setIsRestoreDefaultsModalOpen(false);
+                        }}
+                        className="relative w-full h-full px-5 py-3.5 rounded-[9px] font-bold text-white bg-[linear-gradient(45deg,#0891b2,#06b6d4,#0891b2)] bg-[length:200%_200%] animate-shine hover:opacity-90 transition-all shadow-md"
+                      >
+                        {(t as any).yes || 'نعم'}
                       </button>
                     </div>
                   </div>
