@@ -797,6 +797,34 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     } catch {}
     return '';
   });
+  const [enableSkipMultiple1, setEnableSkipMultiple1] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('sheet_control_numbering_settings_by_grade');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const entry = parsed?.[numberingStorageKey] ?? parsed?.[committeeStorageKey];
+        if (entry && entry.secretNumSkipMultiple !== undefined) {
+          return entry.secretNumSkipMultiple !== '' && Number(entry.secretNumSkipMultiple) > 0;
+        }
+      }
+    } catch {}
+    return true;
+  });
+  const [enableSkipMultiple2, setEnableSkipMultiple2] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('sheet_control_numbering_settings_by_grade');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const entry = parsed?.[numberingStorageKey] ?? parsed?.[committeeStorageKey];
+        if (entry && entry.secretNumSkipMultiple2 !== undefined) {
+          return entry.secretNumSkipMultiple2 !== '' && Number(entry.secretNumSkipMultiple2) > 0;
+        }
+      }
+    } catch {}
+    return false;
+  });
+  const [lastValidSkip1, setLastValidSkip1] = useState<number>(5);
+  const [lastValidSkip2, setLastValidSkip2] = useState<number>(9);
 
   useEffect(() => {
     try {
@@ -808,10 +836,16 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           if (Number(entry.seatNumStart) >= 1) setSeatNumStart(Number(entry.seatNumStart));
           if (Number(entry.secretNumStart) >= 1) setSecretNumStart(Number(entry.secretNumStart));
           if (entry.secretNumSkipMultiple !== undefined) {
-            setSecretNumSkipMultiple(entry.secretNumSkipMultiple === '' ? '' : Number(entry.secretNumSkipMultiple));
+            const has1 = entry.secretNumSkipMultiple !== '' && Number(entry.secretNumSkipMultiple) > 0;
+            setEnableSkipMultiple1(has1);
+            setSecretNumSkipMultiple(has1 ? Number(entry.secretNumSkipMultiple) : '');
+            if (has1) setLastValidSkip1(Number(entry.secretNumSkipMultiple));
           }
           if (entry.secretNumSkipMultiple2 !== undefined) {
-            setSecretNumSkipMultiple2(entry.secretNumSkipMultiple2 === '' ? '' : Number(entry.secretNumSkipMultiple2));
+            const has2 = entry.secretNumSkipMultiple2 !== '' && Number(entry.secretNumSkipMultiple2) > 0;
+            setEnableSkipMultiple2(has2);
+            setSecretNumSkipMultiple2(has2 ? Number(entry.secretNumSkipMultiple2) : '');
+            if (has2) setLastValidSkip2(Number(entry.secretNumSkipMultiple2));
           }
         }
       }
@@ -827,12 +861,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         ...currentEntry,
         seatNumStart: seatNumStart >= 1 ? seatNumStart : 1,
         secretNumStart: secretNumStart >= 1 ? secretNumStart : 1,
-        secretNumSkipMultiple,
-        secretNumSkipMultiple2,
+        secretNumSkipMultiple: enableSkipMultiple1 ? secretNumSkipMultiple : '',
+        secretNumSkipMultiple2: enableSkipMultiple2 ? secretNumSkipMultiple2 : '',
       };
       localStorage.setItem('sheet_control_numbering_settings_by_grade', JSON.stringify(parsed));
     } catch {}
-  }, [seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2, numberingStorageKey]);
+  }, [seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2, enableSkipMultiple1, enableSkipMultiple2, numberingStorageKey]);
   
   const [internalSortBy, setInternalSortBy] = useState<{id: string, direction: 'asc' | 'desc'}[]>([]);
   const sortBy = externalSortBy !== undefined ? externalSortBy : internalSortBy;
@@ -1323,11 +1357,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         : (Number(semSaved.secretNumStart) >= 1 ? Number(semSaved.secretNumStart) : (secretNumStart >= 1 ? secretNumStart : 1));
 
       const rawSkip1 = sem === semester
-        ? secretNumSkipMultiple
-        : (semSaved.secretNumSkipMultiple !== undefined ? semSaved.secretNumSkipMultiple : secretNumSkipMultiple);
+        ? (enableSkipMultiple1 ? secretNumSkipMultiple : '')
+        : (semSaved.secretNumSkipMultiple !== undefined ? semSaved.secretNumSkipMultiple : (enableSkipMultiple1 ? secretNumSkipMultiple : ''));
       const rawSkip2 = sem === semester
-        ? secretNumSkipMultiple2
-        : (semSaved.secretNumSkipMultiple2 !== undefined ? semSaved.secretNumSkipMultiple2 : secretNumSkipMultiple2);
+        ? (enableSkipMultiple2 ? secretNumSkipMultiple2 : '')
+        : (semSaved.secretNumSkipMultiple2 !== undefined ? semSaved.secretNumSkipMultiple2 : (enableSkipMultiple2 ? secretNumSkipMultiple2 : ''));
 
       const skip1 = typeof rawSkip1 === 'number' && rawSkip1 > 0 ? rawSkip1 : (Number(rawSkip1) > 0 ? Number(rawSkip1) : null);
       const skip2 = typeof rawSkip2 === 'number' && rawSkip2 > 0 ? rawSkip2 : (Number(rawSkip2) > 0 ? Number(rawSkip2) : null);
@@ -1486,7 +1520,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       const updated = assignAutoSeatAndSecretNumbers(data, false);
       onChange(updated);
     }
-  }, [data, semester, showExamFields, isEditingData, seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2]);
+  }, [data, semester, showExamFields, isEditingData, seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2, enableSkipMultiple1, enableSkipMultiple2]);
 
   const handleNationalIdModalAdd = () => {
     const lines = nationalIdModalText
@@ -1576,8 +1610,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const handleGenerateSecretNumbers = () => {
     const updatedData = [...data];
     let currentNum = secretNumStart;
-    const skipNum1 = typeof secretNumSkipMultiple === 'number' && secretNumSkipMultiple > 0 ? secretNumSkipMultiple : null;
-    const skipNum2 = typeof secretNumSkipMultiple2 === 'number' && secretNumSkipMultiple2 > 0 ? secretNumSkipMultiple2 : null;
+    const skipNum1 = enableSkipMultiple1 && typeof secretNumSkipMultiple === 'number' && secretNumSkipMultiple > 0 ? secretNumSkipMultiple : null;
+    const skipNum2 = enableSkipMultiple2 && typeof secretNumSkipMultiple2 === 'number' && secretNumSkipMultiple2 > 0 ? secretNumSkipMultiple2 : null;
     
     filteredData.forEach(student => {
       const index = updatedData.findIndex(s => s.id === student.id);
@@ -1604,8 +1638,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       parsed[numberingStorageKey] = {
         ...(parsed[numberingStorageKey] || {}),
         secretNumStart: secretNumStart >= 1 ? secretNumStart : 1,
-        secretNumSkipMultiple,
-        secretNumSkipMultiple2,
+        secretNumSkipMultiple: enableSkipMultiple1 ? secretNumSkipMultiple : '',
+        secretNumSkipMultiple2: enableSkipMultiple2 ? secretNumSkipMultiple2 : '',
         userSetSecret: true,
       };
       localStorage.setItem('sheet_control_numbering_settings_by_grade', JSON.stringify(parsed));
@@ -5027,42 +5061,93 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
                   <div className="w-full max-w-xs relative flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-slate-800 font-bold text-center">
-                        {(t as any).skipMultiplesLabel}
+                      <label className="flex items-center justify-start gap-2.5 px-3 py-2 rounded-xl bg-white/80 border-2 border-slate-900 hover:bg-white transition-all cursor-pointer select-none shadow-xs">
+                        <input
+                          type="checkbox"
+                          checked={enableSkipMultiple1}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setEnableSkipMultiple1(isChecked);
+                            if (isChecked) {
+                              setSecretNumSkipMultiple(lastValidSkip1 > 0 ? lastValidSkip1 : 5);
+                            } else {
+                              if (typeof secretNumSkipMultiple === 'number' && secretNumSkipMultiple > 0) {
+                                setLastValidSkip1(secretNumSkipMultiple);
+                              }
+                              setSecretNumSkipMultiple('');
+                            }
+                          }}
+                          className="w-5 h-5 rounded border-2 border-slate-900 text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600 shrink-0"
+                        />
+                        <span className="text-slate-800 font-bold text-sm">
+                          {(t as any).skipMultiplesLabel}
+                        </span>
                       </label>
                       <input
                         type="number"
                         min="1"
-                        value={secretNumSkipMultiple}
+                        disabled={!enableSkipMultiple1}
+                        value={enableSkipMultiple1 ? secretNumSkipMultiple : ''}
                         onChange={(e) => {
                           const val = e.target.value === '' ? '' : parseInt(e.target.value);
                           if (typeof val === 'number' && val <= 0) return;
                           setSecretNumSkipMultiple(val);
+                          if (typeof val === 'number' && val > 0) setLastValidSkip1(val);
                           if (val !== '' && val === secretNumSkipMultiple2) {
                             setSecretNumSkipMultiple2('');
                           }
                         }}
                         placeholder={(t as any).skipMultiplesPlaceholder}
-                        className="w-full bg-white/80 backdrop-blur-sm border-2 border-slate-900 p-4 rounded-xl text-center font-bold text-3xl text-slate-800 outline-none focus:ring-4 ring-rose-500/40 focus:border-rose-700 transition-all shadow-inner"
+                        className={`w-full border-2 border-slate-900 p-4 rounded-xl text-center font-bold text-3xl transition-all shadow-inner ${
+                          enableSkipMultiple1
+                            ? 'bg-white/90 backdrop-blur-sm text-slate-800 outline-none focus:ring-4 ring-rose-500/40 focus:border-rose-700 cursor-text'
+                            : 'bg-slate-200/50 text-slate-400 border-slate-400 cursor-not-allowed opacity-50'
+                        }`}
                         dir="ltr"
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-slate-800 font-bold text-center">
-                        {(t as any).skipMultiplesLabel}
+                      <label className="flex items-center justify-start gap-2.5 px-3 py-2 rounded-xl bg-white/80 border-2 border-slate-900 hover:bg-white transition-all cursor-pointer select-none shadow-xs">
+                        <input
+                          type="checkbox"
+                          checked={enableSkipMultiple2}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setEnableSkipMultiple2(isChecked);
+                            if (isChecked) {
+                              const fallback = (lastValidSkip2 > 0 && lastValidSkip2 !== secretNumSkipMultiple) ? lastValidSkip2 : (secretNumSkipMultiple === 9 ? 7 : 9);
+                              setSecretNumSkipMultiple2(fallback);
+                            } else {
+                              if (typeof secretNumSkipMultiple2 === 'number' && secretNumSkipMultiple2 > 0) {
+                                setLastValidSkip2(secretNumSkipMultiple2);
+                              }
+                              setSecretNumSkipMultiple2('');
+                            }
+                          }}
+                          className="w-5 h-5 rounded border-2 border-slate-900 text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600 shrink-0"
+                        />
+                        <span className="text-slate-800 font-bold text-sm">
+                          {(t as any).skipMultiplesLabel}
+                        </span>
                       </label>
                       <input
                         type="number"
                         min="1"
-                        value={secretNumSkipMultiple2}
+                        disabled={!enableSkipMultiple2}
+                        value={enableSkipMultiple2 ? secretNumSkipMultiple2 : ''}
                         onChange={(e) => {
                           const val = e.target.value === '' ? '' : parseInt(e.target.value);
                           if (typeof val === 'number' && val <= 0) return;
                           if (val !== '' && val === secretNumSkipMultiple) return;
                           setSecretNumSkipMultiple2(val);
+                          if (typeof val === 'number' && val > 0) setLastValidSkip2(val);
                         }}
                         placeholder={(t as any).skipMultiplesPlaceholder}
-                        className="w-full bg-white/80 backdrop-blur-sm border-2 border-slate-900 p-4 rounded-xl text-center font-bold text-3xl text-slate-800 outline-none focus:ring-4 ring-rose-500/40 focus:border-rose-700 transition-all shadow-inner"
+                        className={`w-full border-2 border-slate-900 p-4 rounded-xl text-center font-bold text-3xl transition-all shadow-inner ${
+                          enableSkipMultiple2
+                            ? 'bg-white/90 backdrop-blur-sm text-slate-800 outline-none focus:ring-4 ring-rose-500/40 focus:border-rose-700 cursor-text'
+                            : 'bg-slate-200/50 text-slate-400 border-slate-400 cursor-not-allowed opacity-50'
+                        }`}
                         dir="ltr"
                       />
                     </div>
