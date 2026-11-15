@@ -4597,7 +4597,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <button
                     type="button"
                     onClick={handleApplyDefaultValues}
-                    className="flex-1 h-12 px-5 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-base flex items-center justify-center gap-2"
+                    className="flex-1 h-16 px-5 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-red-600 active:scale-95 text-base flex items-center justify-center gap-2"
                   >
                     <Check className="w-5 h-5 text-emerald-600" strokeWidth={3} />
                     إدراج
@@ -4605,7 +4605,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsDefaultValuesModalOpen(false)}
-                    className="flex-1 h-12 px-5 rounded-xl font-black text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 text-base flex items-center justify-center gap-2"
+                    className="flex-1 h-16 px-5 rounded-xl font-black text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-white shadow-md active:scale-95 text-base flex items-center justify-center gap-2"
                   >
                     <X className="w-5 h-5" strokeWidth={3} />
                     إلغاء الأمر
