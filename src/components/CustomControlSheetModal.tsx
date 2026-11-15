@@ -64,7 +64,7 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
                 إعدادات شيت كنترول مخصص
               </h3>
               <p className="text-xs text-sky-200 font-medium">
-                مطابق لحقول شيت كنترول الفصل الدراسي الثانى {selectedGrade ? `• ${formatNumberDigits(selectedGrade)}` : ''}
+                مطابق لحقول شيت كنترول {selectedGrade ? `• ${formatNumberDigits(selectedGrade)}` : ''}
               </p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
         {/* جسم النافذة والخيارات */}
         <div className="p-6 space-y-4 overflow-y-auto">
           <div className="bg-sky-50 border border-sky-200 rounded-2xl p-3 text-xs text-sky-900 leading-relaxed font-bold">
-            اختر البنود المراد تضمينها في شيت الكنترول المخصص (الحقول مطابقة تماماً لشيت كنترول الفصل الدراسي الثانى):
+            اختر البنود المراد تضمينها في شيت الكنترول المخصص.
           </div>
 
           <div className="space-y-3">
