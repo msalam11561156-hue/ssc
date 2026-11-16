@@ -1057,7 +1057,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen text-slate-900 font-sans ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
       <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}

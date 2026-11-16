@@ -5,9 +5,27 @@
   --font-sans: 'Cairo', ui-sans-serif, system-ui, sans-serif;
 }
 
+:root,
+html,
+body,
+#root {
+  color-scheme: light only !important;
+  forced-color-adjust: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 @layer base {
+  *,
+  *::before,
+  *::after {
+    color-scheme: light only;
+  }
+
   body {
     font-family: 'Cairo', sans-serif;
+    color-scheme: light only !important;
+    forced-color-adjust: none;
   }
 }
 
