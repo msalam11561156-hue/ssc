@@ -138,15 +138,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
 
           {/* Feature Highlights */}
           <div className="w-full grid grid-cols-3 gap-2 sm:gap-3 my-5">
-            <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
+            <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <Database className="w-5 h-5 text-cyan-400 shrink-0" />
               <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">حفظ سحابي تلقائي</span>
             </div>
-            <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
+            <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
               <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">حماية وخصوصية تامة</span>
             </div>
-            <div className="bg-slate-800/60 border border-slate-700/70 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
+            <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <Globe className="w-5 h-5 text-amber-400 shrink-0" />
               <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">الوصول من أى مكان</span>
             </div>
@@ -189,7 +189,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
                   />
                 </svg>
-                <span>تسجيل الدخول باستخدام Google</span>
+                <span>تسجيل الدخول باستخدام حسابك فى Google</span>
               </>
             )}
           </button>
@@ -206,7 +206,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             type="button"
             onClick={() => onContinueWithoutAccount?.()}
             disabled={isLoading}
-            className="w-full h-12 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-sm border border-slate-600/80 flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+            className="w-full h-12 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
           >
             <span>المتابعة بدون حساب</span>
           </button>
