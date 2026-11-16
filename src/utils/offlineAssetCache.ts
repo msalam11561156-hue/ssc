@@ -11,7 +11,7 @@ import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_exa
 import brandShieldUrl from '../assets/images/brand_shield.png';
 
 const memoryCache = new Map<string, string>();
-const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v1';
+const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
 
 /**
  * تحويل رابط أو Blob إلى Data URL مشفر بصيغة Base64 مع التحقق من صحة نوع الصورة

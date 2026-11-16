@@ -8,6 +8,46 @@
         window.$RefreshReg$ = window.$RefreshReg$ || function() {};
         window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
 
+        if (typeof window.WebSocket === 'function') {
+          var NativeWebSocket = window.WebSocket;
+          var PatchedWebSocket = function(url, protocols) {
+            var isViteWs =
+              protocols === 'vite-hmr' ||
+              protocols === 'vite-ping' ||
+              (Array.isArray(protocols) && (protocols.indexOf('vite-hmr') !== -1 || protocols.indexOf('vite-ping') !== -1));
+            if (isViteWs) {
+              return {
+                url: String(url || ''),
+                readyState: 1,
+                CONNECTING: 0,
+                OPEN: 1,
+                CLOSING: 2,
+                CLOSED: 3,
+                bufferedAmount: 0,
+                extensions: '',
+                protocol: Array.isArray(protocols) ? (protocols[0] || '') : (protocols || ''),
+                binaryType: 'blob',
+                onopen: null,
+                onclose: null,
+                onerror: null,
+                onmessage: null,
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                dispatchEvent: function() { return true; },
+                send: function() {},
+                close: function() {}
+              };
+            }
+            return protocols !== undefined ? new NativeWebSocket(url, protocols) : new NativeWebSocket(url);
+          };
+          PatchedWebSocket.prototype = NativeWebSocket.prototype;
+          PatchedWebSocket.CONNECTING = 0;
+          PatchedWebSocket.OPEN = 1;
+          PatchedWebSocket.CLOSING = 2;
+          PatchedWebSocket.CLOSED = 3;
+          window.WebSocket = PatchedWebSocket;
+        }
+
         window.onerror = function(msg, url, lineNo, columnNo, error) {
           var str = (String(msg || '') + ' ' + String(url || '') + ' ' + (error ? String(error.message || error.stack || '') : '')).toLowerCase();
           if (str.indexOf('websocket') !== -1 || str.indexOf('vite-hmr') !== -1 || str.indexOf('[vite] failed to connect') !== -1) {

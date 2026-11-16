@@ -11,7 +11,6 @@ import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfi
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { CloudOrLocalModal } from './CloudOrLocalModal';
-import { LoginModal } from './LoginModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
 import { AnimatedBackground } from './AnimatedBackground';
@@ -359,7 +358,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const isMobile = useIsMobilePhone();
 
   const [isCloudOrLocalModalOpen, setIsCloudOrLocalModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const handleOfficialClick = () => {
     if (isMobile) {
@@ -372,7 +370,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     setIsCloudOrLocalModalOpen(false);
     if (isPaidUnlocked()) {
       setIsOfficialUnlocked(true);
-      setIsLoginModalOpen(true);
+      onNext(false);
     } else {
       setIsPasswordModalOpen(true);
     }
@@ -386,12 +384,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     } else {
       setIsPasswordModalOpen(true);
     }
-  };
-
-  const handleLoginSuccess = (userData: { email: string; role: string; schoolName: string }) => {
-    setIsLoginModalOpen(false);
-    setIsOfficialUnlocked(true);
-    onNext(false);
   };
 
   const handleTrialClick = () => {
@@ -834,13 +826,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         onClose={() => setIsCloudOrLocalModalOpen(false)}
         onSelectCloud={handleSelectCloud}
         onSelectLocal={handleSelectLocal}
-        lang={lang}
-      />
-
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
         lang={lang}
       />
     </div>

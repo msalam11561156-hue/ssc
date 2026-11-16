@@ -310,6 +310,25 @@ async function startServer() {
       }
       return next();
     });
+    app.get('/@vite/client', async (_req, res, next) => {
+      try {
+        const result = await vite.transformRequest('/@vite/client');
+        if (result && typeof result.code === 'string') {
+          const patchedCode = result.code.replace(
+            /\btransport\.connect\(createHMRHandler\(handleMessage\)\);?/g,
+            '/* HMR WebSocket disabled */'
+          );
+          res.status(200).set({
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          }).end(patchedCode);
+          return;
+        }
+      } catch (e) {
+        // Fallback to vite.middlewares on error
+      }
+      return next();
+    });
     app.use(vite.middlewares);
     app.use('*', async (req, res, next) => {
       if (req.method !== 'GET') return next();

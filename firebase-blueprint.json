@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Non-PII public profile metadata for an authenticated Smart Control educator.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "role": {
+          "type": "string",
+          "enum": ["educator"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "photoURL", "role", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII document storing the authenticated user email strictly for owner access.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt", "updatedAt"]
+    },
+    "WorkspaceConfig": {
+      "title": "WorkspaceConfig",
+      "description": "School setup and stage-level control committee configuration owned by the user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "schoolData": {
+          "type": "object",
+          "description": "School metadata excluding binary/base64 images."
+        },
+        "controlDataByStage": {
+          "type": "object",
+          "description": "Control officers and active grade selection mapped by educational stage."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "schoolData", "controlDataByStage", "createdAt", "updatedAt"]
+    },
+    "StudentGroup": {
+      "title": "StudentGroup",
+      "description": "Parent metadata document for a specific stage/grade/semester student cohort.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "groupId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stageKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "studentCount": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "groupId", "stageKey", "studentCount", "createdAt", "updatedAt"]
+    },
+    "StudentRecord": {
+      "title": "StudentRecord",
+      "description": "Individual student record with personal control identifiers, assessments, and written exam grades.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "groupId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "stageKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "orderIndex": {
+          "type": "integer"
+        },
+        "studentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "nameEn": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "nationalId": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "gender": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "enrollmentStatus": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "exemptionStatus": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "enrollmentType": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "studentStatus": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "religion": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "seatNumber": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "secretNumber": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "committeeNumber": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "seatNumbers": {
+          "type": "object"
+        },
+        "secretNumbers": {
+          "type": "object"
+        },
+        "committeeNumbers": {
+          "type": "object"
+        },
+        "assessments": {
+          "type": "object"
+        },
+        "writtenExams": {
+          "type": "object"
+        },
+        "detailedAssessments": {
+          "type": "object"
+        },
+        "studentClass": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "groupId",
+        "stageKey",
+        "orderIndex",
+        "studentId",
+        "name",
+        "nationalId",
+        "gender",
+        "enrollmentStatus",
+        "religion",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublicProfile" },
+      "description": "Authenticated user public metadata (non-PII)."
+    },
+    "/users/{userId}/private/{infoId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Owner-only PII document storing user email address."
+    },
+    "/users/{userId}/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/WorkspaceConfig" },
+      "description": "User-scoped school settings and control committee configuration."
+    },
+    "/users/{userId}/studentGroups/{groupId}": {
+      "schema": { "$ref": "#/entities/StudentGroup" },
+      "description": "Parent cohort metadata for each stage/grade/division key."
+    },
+    "/users/{userId}/students/{studentDocId}": {
+      "schema": { "$ref": "#/entities/StudentRecord" },
+      "description": "Normalized individual student documents scoped to the owning user and studentGroup."
+    }
+  }
+}

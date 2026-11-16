@@ -33,6 +33,17 @@ import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTria
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
 import { idbSet, idbGet } from './utils/idbStorage';
 import { isMobilePhoneDevice } from './utils/deviceHelper';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { auth, testConnection } from './firebase';
+import { LoginScreen } from './components/LoginScreen';
+import {
+  upsertUserProfile,
+  subscribeToUserWorkspace,
+  saveWorkspaceToFirestore,
+  syncStudentsDataToFirestore,
+  clearOfficialWorkspaceInFirestore,
+  clearUserSyncCache,
+} from './utils/firebaseSync';
 
 const MathStatsIcon = ({ className = "w-6 h-6 md:w-8 md:h-8" }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -193,6 +204,16 @@ function loadOfficialStudentsData(): Record<string, StudentData[]> {
 }
 
 export default function App() {
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [continueWithoutAccount, setContinueWithoutAccount] = useState(false);
+  const [hasPassedLoginScreen, setHasPassedLoginScreen] = useState(false);
+  const [fatalError, setFatalError] = useState<Error | null>(null);
+  const wasLoggedOutRef = React.useRef(false);
+  const remoteWorkspaceReadyRef = React.useRef(false);
+  const isApplyingRemoteWorkspaceRef = React.useRef(false);
+  const isApplyingRemoteStudentsRef = React.useRef(false);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
@@ -444,10 +465,12 @@ export default function App() {
       setIsTrialMode(false);
       localStorage.setItem('sheet_control_is_trial', 'false');
 
-      // تحميل بيانات النسخة الرسمية (نظام نظيف ومُهيأ بدون درجات وبدون طلاب وبدون بيانات المدرسة)
-      setSchoolData(loadOfficialSchoolData());
-      setControlDataByStage(loadOfficialControlData());
-      setStudentsDataByStage(loadOfficialStudentsData());
+      if (isTrialMode) {
+        // تحميل بيانات النسخة الرسمية عند الانتقال من النسخة التجريبية فقط
+        setSchoolData(loadOfficialSchoolData());
+        setControlDataByStage(loadOfficialControlData());
+        setStudentsDataByStage(loadOfficialStudentsData());
+      }
 
       setStep(1);
       localStorage.setItem('sheet_control_step', '1');
@@ -654,6 +677,122 @@ export default function App() {
     }
   }, [controlDataByStage, isTrialMode]);
 
+  // اختبار الاتصال بقاعدة بيانات Firebase ومراقبة حالة تسجيل الدخول
+  useEffect(() => {
+    testConnection();
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          await upsertUserProfile(user);
+        } catch (err) {
+          if (err instanceof Error) {
+            setFatalError(err);
+          }
+        }
+        if (wasLoggedOutRef.current) {
+          wasLoggedOutRef.current = false;
+          setStep(0);
+          localStorage.setItem('sheet_control_step', '0');
+        }
+        setAuthUser(user);
+        setAuthReady(true);
+      } else {
+        wasLoggedOutRef.current = true;
+        remoteWorkspaceReadyRef.current = false;
+        clearUserSyncCache();
+        setAuthUser(null);
+        setAuthReady(true);
+      }
+    });
+    return () => unsubAuth();
+  }, []);
+
+  // الاستماع الفوري لبيانات المدرسة والطلاب من Firestore بعد تسجيل الدخول واجتياز شاشة الدخول فقط
+  useEffect(() => {
+    if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen) {
+      remoteWorkspaceReadyRef.current = false;
+      return;
+    }
+
+    const uid = authUser.uid;
+    let receivedWorkspaceSnap = false;
+    let receivedStudentsSnap = false;
+
+    const unsubscribe = subscribeToUserWorkspace(uid, {
+      onWorkspaceData: ({ exists, schoolData: remoteSchool, controlDataByStage: remoteControl }) => {
+        receivedWorkspaceSnap = true;
+        if (exists) {
+          isApplyingRemoteWorkspaceRef.current = true;
+          setSchoolData((prev) => ({
+            ...EMPTY_OFFICIAL_SCHOOL_DATA,
+            ...remoteSchool,
+            schoolLogo: prev.schoolLogo,
+          }));
+          if (remoteControl) {
+            setControlDataByStage(remoteControl);
+          }
+          setTimeout(() => {
+            isApplyingRemoteWorkspaceRef.current = false;
+          }, 0);
+        }
+        if (receivedWorkspaceSnap && receivedStudentsSnap) {
+          remoteWorkspaceReadyRef.current = true;
+        }
+      },
+      onStudentsData: (remoteStudents, hasRemoteDocs) => {
+        receivedStudentsSnap = true;
+        if (hasRemoteDocs) {
+          isApplyingRemoteStudentsRef.current = true;
+          setStudentsDataByStage(remoteStudents);
+          setTimeout(() => {
+            isApplyingRemoteStudentsRef.current = false;
+          }, 0);
+        }
+        if (receivedWorkspaceSnap && receivedStudentsSnap) {
+          remoteWorkspaceReadyRef.current = true;
+        }
+      },
+      onError: (err) => {
+        setFatalError(err);
+      },
+    });
+
+    return () => {
+      unsubscribe();
+      remoteWorkspaceReadyRef.current = false;
+    };
+  }, [authReady, authUser, isTrialMode, hasPassedLoginScreen]);
+
+  // مزامنة تلقائية لإعدادات المدرسة والكنترول إلى Firestore في الوضع الرسمي
+  useEffect(() => {
+    if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current) return;
+    if (isApplyingRemoteWorkspaceRef.current) return;
+
+    const uid = authUser.uid;
+    const timer = setTimeout(() => {
+      saveWorkspaceToFirestore(uid, schoolData, controlDataByStage).catch((err) => {
+        if (err instanceof Error) setFatalError(err);
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [schoolData, controlDataByStage, authReady, authUser, isTrialMode, hasPassedLoginScreen]);
+
+  // مزامنة تلقائية لبيانات الطلاب والدرجات إلى Firestore في الوضع الرسمي
+  useEffect(() => {
+    if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current) return;
+    if (isApplyingRemoteStudentsRef.current) return;
+
+    const uid = authUser.uid;
+    const timer = setTimeout(() => {
+      syncStudentsDataToFirestore(uid, studentsDataByStage).catch((err) => {
+        if (err instanceof Error) setFatalError(err);
+      });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [studentsDataByStage, authReady, authUser, isTrialMode, hasPassedLoginScreen]);
+
   // إدارة ترتيب المرحلة الحالية ومشاركته بين كافة شاشات المرحلة المختارة
   // (تحرير البيانات، التقييمات، التقييمات تفصيلاً، وتحرير الدرجات)
   const [stageSortOrders, setStageSortOrders] = useState<Record<string, { id: string; direction: 'asc' | 'desc' }[]>>(() => {
@@ -791,6 +930,12 @@ export default function App() {
     localStorage.removeItem('sheet_control_step5_prev');
     localStorage.setItem('sheet_control_step', '1');
 
+    if (authUser && !isTrialMode) {
+      clearOfficialWorkspaceInFirestore(authUser.uid).catch((err) => {
+        if (err instanceof Error) setFatalError(err);
+      });
+    }
+
     setSchoolData(EMPTY_OFFICIAL_SCHOOL_DATA);
     setControlDataByStage({});
     setStudentsDataByStage({});
@@ -799,6 +944,22 @@ export default function App() {
     setStep(1);
     setIsResetModalOpen(false);
     setIsMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    setIsMenuOpen(false);
+    try {
+      clearUserSyncCache(authUser?.uid);
+      if (authUser) {
+        await signOut(auth);
+      }
+      setContinueWithoutAccount(false);
+      setHasPassedLoginScreen(false);
+      setStep(0);
+      localStorage.setItem('sheet_control_step', '0');
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
   };
 
   const handleSaveBackup = async () => {
@@ -834,11 +995,28 @@ export default function App() {
     }
   };
 
-  const handleRestoreSuccess = (payload: BackupPayload) => {
+  const handleRestoreSuccess = async (payload: BackupPayload) => {
     if (payload.schoolData) setSchoolData(payload.schoolData);
     if (payload.controlDataByStage) setControlDataByStage(payload.controlDataByStage);
     if (payload.studentsDataByStage) setStudentsDataByStage(payload.studentsDataByStage);
     setIsRestoreModalOpen(false);
+    if (authUser && !isTrialMode) {
+      try {
+        await saveWorkspaceToFirestore(
+          authUser.uid,
+          payload.schoolData || schoolData,
+          payload.controlDataByStage || controlDataByStage
+        );
+        if (payload.studentsDataByStage) {
+          await syncStudentsDataToFirestore(authUser.uid, payload.studentsDataByStage);
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          setFatalError(err);
+          return;
+        }
+      }
+    }
     window.location.reload();
   };
 
@@ -906,7 +1084,7 @@ export default function App() {
         setIsAdModalOpen(true);
       },
     },
-    { id: 'logout', label: t.logout, icon: LogOut, color: 'bg-[#dc2626] shadow-[0_5px_15px_-3px_rgba(220,38,38,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(220,38,38,0.6)]' },
+    { id: 'logout', label: t.logout, icon: LogOut, color: 'bg-[#dc2626] shadow-[0_5px_15px_-3px_rgba(220,38,38,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(220,38,38,0.6)]', action: handleLogout },
   ];
 
 
@@ -1056,6 +1234,53 @@ export default function App() {
     }));
   };
 
+  if (fatalError) {
+    throw fatalError;
+  }
+
+  if (!hasPassedLoginScreen || (!authUser && !continueWithoutAccount)) {
+    return (
+      <LoginScreen
+        onSuccess={(user) => {
+          setAuthUser(user);
+          setAuthReady(true);
+          setContinueWithoutAccount(false);
+          setHasPassedLoginScreen(true);
+          setStep(0);
+          localStorage.setItem('sheet_control_step', '0');
+        }}
+        onContinueWithoutAccount={() => {
+          clearUserSyncCache(authUser?.uid);
+          if (auth.currentUser) {
+            signOut(auth).catch((err) => console.error('Guest switch sign out error:', err));
+          }
+          setAuthUser(null);
+          setAuthReady(true);
+          setContinueWithoutAccount(true);
+          setHasPassedLoginScreen(true);
+          setStep(0);
+          localStorage.setItem('sheet_control_step', '0');
+        }}
+      />
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <div
+        dir="rtl"
+        className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 relative overflow-hidden [color-scheme:light_only]"
+      >
+        <AnimatedBackground />
+        <div className="relative z-10 flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-700/80 rounded-[28px] p-8 shadow-2xl max-w-xs w-full">
+          <BrandHeader variant="gold" />
+          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold text-slate-200 text-center">جاري تهيئة الحساب والاتصال بقاعدة البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
@@ -1128,6 +1353,30 @@ export default function App() {
                 className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80 max-h-[88vh] overflow-y-auto custom-scrollbar"
               >
                 <BrandHeader variant="gold" />
+                {authUser && (
+                  <div className="flex items-center gap-3 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-3 text-right">
+                    {authUser.photoURL ? (
+                      <img
+                        src={authUser.photoURL}
+                        alt={authUser.displayName || 'User'}
+                        className="w-10 h-10 rounded-full border border-amber-400/70 shrink-0 object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center shrink-0">
+                        {(authUser.displayName || authUser.email || 'U').slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-white truncate">
+                        {authUser.displayName || 'مستخدم Smart Control'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate" dir="ltr">
+                        {authUser.email}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
                   return (
