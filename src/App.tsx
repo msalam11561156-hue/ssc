@@ -258,8 +258,10 @@ export default function App() {
       return 1; // Default to main screen if official but no step saved
     }
 
+    const validSteps = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     const savedStep = localStorage.getItem('sheet_control_step');
-    return savedStep ? parseInt(savedStep, 10) : 0;
+    const parsedStep = savedStep ? parseInt(savedStep, 10) : 0;
+    return validSteps.has(parsedStep) ? parsedStep : 0;
   });
 
   const [editMode, setEditMode] = useState<'data' | 'grades'>(() => {
@@ -1818,7 +1820,18 @@ export default function App() {
                     />
                   );
                 default:
-                  return null;
+                  return (
+                    <SplashScreen
+                      key="splash-fallback"
+                      onNext={handleStartApp}
+                      lang={lang}
+                      isTrialExpired={trialInfo.isExpired}
+                      isDayExpired={trialInfo.isDayExpired}
+                      trialRemainingDayMs={trialInfo.remainingDayMs}
+                      trialCurrentDayNumber={trialInfo.currentDayNumber}
+                      trialRemainingDaysCount={trialInfo.remainingDaysCount}
+                    />
+                  );
               }
             })()}
           </AnimatePresence>

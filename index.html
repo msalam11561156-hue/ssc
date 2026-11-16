@@ -9,15 +9,15 @@
         window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
 
         window.onerror = function(msg, url, lineNo, columnNo, error) {
-          var str = String(msg || '') + ' ' + String(url || '') + ' ' + (error ? String(error.message || error.stack || '') : '');
-          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
+          var str = (String(msg || '') + ' ' + String(url || '') + ' ' + (error ? String(error.message || error.stack || '') : '')).toLowerCase();
+          if (str.indexOf('websocket') !== -1 || str.indexOf('vite-hmr') !== -1 || str.indexOf('[vite] failed to connect') !== -1) {
             return true;
           }
         };
 
         window.addEventListener('error', function(e) {
-          var str = String(e && e.message ? e.message : '') + ' ' + (e && e.error && e.error.message ? String(e.error.message) : '');
-          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
+          var str = (String(e && e.message ? e.message : '') + ' ' + (e && e.error && e.error.message ? String(e.error.message) : '')).toLowerCase();
+          if (str.indexOf('websocket') !== -1 || str.indexOf('vite-hmr') !== -1 || str.indexOf('[vite] failed to connect') !== -1) {
             e.preventDefault();
             e.stopPropagation();
             return true;
@@ -25,8 +25,8 @@
         }, true);
 
         window.addEventListener('unhandledrejection', function(e) {
-          var str = String(e && e.reason ? (e.reason.message || e.reason) : '');
-          if (str.indexOf('send') !== -1 || str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('hmr') !== -1) {
+          var str = String(e && e.reason ? (e.reason.message || e.reason) : '').toLowerCase();
+          if (str.indexOf('websocket') !== -1 || str.indexOf('vite-hmr') !== -1 || str.indexOf('[vite] failed to connect') !== -1) {
             e.preventDefault();
             e.stopPropagation();
           }
@@ -37,8 +37,8 @@
           for (var i = 0; i < arguments.length; i++) {
             var arg = arguments[i];
             if (arg) {
-              var text = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg));
-              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('send') !== -1 || text.indexOf('@vite/client') !== -1) {
+              var text = (typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg))).toLowerCase();
+              if (text.indexOf('websocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('@vite/client') !== -1 || text.indexOf('[vite] failed to connect') !== -1) {
                 return;
               }
             }
@@ -51,8 +51,8 @@
           for (var i = 0; i < arguments.length; i++) {
             var arg = arguments[i];
             if (arg) {
-              var text = typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg));
-              if (text.indexOf('WebSocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('send') !== -1) {
+              var text = (typeof arg === 'string' ? arg : (arg && (arg.message || arg.stack) ? (arg.message || arg.stack) : String(arg))).toLowerCase();
+              if (text.indexOf('websocket') !== -1 || text.indexOf('vite-hmr') !== -1 || text.indexOf('[vite] failed to connect') !== -1) {
                 return;
               }
             }

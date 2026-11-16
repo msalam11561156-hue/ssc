@@ -42,11 +42,8 @@ app.get('/manifest.webmanifest', (_req, res) => {
   return res.status(404).type('text/plain').send('Manifest not found');
 });
 
-// Serve static assets from public/ and dist/
+// Serve static assets from public/
 app.use(express.static(publicPath));
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-}
 
 const DATA_DIR = path.join(__dirname, '.data');
 const TRIAL_FILE = path.join(DATA_DIR, 'trial_devices.json');
@@ -297,7 +294,9 @@ async function startServer() {
     const vite = await createServer({
       server: { 
         middlewareMode: true,
-        hmr: { server: httpServer },
+        hmr: false,
+        ws: false,
+        watch: process.env.DISABLE_HMR === 'true' ? null : undefined,
       },
       appType: 'spa',
     });

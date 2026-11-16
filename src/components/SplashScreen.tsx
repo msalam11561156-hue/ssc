@@ -10,6 +10,8 @@ import goldShieldBg from '../assets/images/smart_control_gold_shield.jfif';
 import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
+import { CloudOrLocalModal } from './CloudOrLocalModal';
+import { LoginModal } from './LoginModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
 import { AnimatedBackground } from './AnimatedBackground';
@@ -226,13 +228,6 @@ const EgyptianSchoolsTitleEffect: React.FC = () => (
           <stop offset="75%" stopColor="#fbbf24" stopOpacity="0.85" />
           <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
         </linearGradient>
-
-        <radialGradient id="starCoreRadial" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="25%" stopColor="#fef08a" stopOpacity="0.95" />
-          <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.65" />
-          <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
-        </radialGradient>
       </defs>
 
       {/* Traveling light streak along the text horizontal midline */}
@@ -254,34 +249,6 @@ const EgyptianSchoolsTitleEffect: React.FC = () => (
           repeatCount="indefinite"
         />
       </line>
-
-      {/* Primary Radiant Diamond Starburst traveling across the words */}
-      <g>
-        <animate
-          attributeName="transform"
-          type="translate"
-          values="685 65; 25 65; 685 65"
-          dur="6.5s"
-          repeatCount="indefinite"
-          calcMode="spline"
-          keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
-        />
-
-        {/* Outer radial glow */}
-        <circle r="38" fill="url(#starCoreRadial)" opacity="0.9" />
-        <circle r="15" fill="#fbbf24" filter="url(#egyptTitleGlow)" opacity="0.95" />
-        <circle r="6" fill="#ffffff" filter="url(#egyptTitleGlow)" />
-
-
-
-        {/* Golden diagonal sparkle */}
-        <polygon
-          points="0,-20 3.5,-4 20,0 3.5,4 0,20 -3.5,4 -20,0 -3.5,-4"
-          fill="#fef08a"
-          opacity="0.9"
-          transform="rotate(45)"
-        />
-      </g>
     </svg>
 
     {/* 4. Diagonal Metallic Light-Sheen Sweep across the letters */}
@@ -366,7 +333,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
   const [goldShieldImg, setGoldShieldImg] = useState(goldShieldBg);
   const [cloudDashboardImg, setCloudDashboardImg] = useState(cloudDashboardBg);
-  const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/ASD56565_2b16dafd.jfif');
+  const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/asdew_be15ae4d.jfif');
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
@@ -391,16 +358,40 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   const isMobile = useIsMobilePhone();
 
+  const [isCloudOrLocalModalOpen, setIsCloudOrLocalModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
   const handleOfficialClick = () => {
     if (isMobile) {
       return;
     }
+    setIsCloudOrLocalModalOpen(true);
+  };
+
+  const handleSelectCloud = () => {
+    setIsCloudOrLocalModalOpen(false);
+    if (isPaidUnlocked()) {
+      setIsOfficialUnlocked(true);
+      setIsLoginModalOpen(true);
+    } else {
+      setIsPasswordModalOpen(true);
+    }
+  };
+
+  const handleSelectLocal = () => {
+    setIsCloudOrLocalModalOpen(false);
     if (isPaidUnlocked()) {
       setIsOfficialUnlocked(true);
       onNext(false);
     } else {
       setIsPasswordModalOpen(true);
     }
+  };
+
+  const handleLoginSuccess = (userData: { email: string; role: string; schoolName: string }) => {
+    setIsLoginModalOpen(false);
+    setIsOfficialUnlocked(true);
+    onNext(false);
   };
 
   const handleTrialClick = () => {
@@ -583,7 +574,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               />
             </div>
 
-            {/* 7. New Screenshot (الصورة السابعة - المرفقة) */}
+            {/* 7. Last Gallery Image (الصورة السابعة والأخيرة - مع زيادة الوضوح والجودة والدقة) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
                 activeBgIndex === 6 ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -592,8 +583,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={screenshotImg}
-                  alt="New Screenshot"
-                  className="w-full h-full object-fill pointer-events-none select-none"
+                  alt="Smart Control Best for Egyptian Schools"
+                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
                   style={{ imageRendering: 'high-quality' }}
                 />
                 <EgyptianSchoolsTitleEffect />
@@ -836,6 +827,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         onSuccess={handleUnlockSuccess}
+      />
+
+      <CloudOrLocalModal
+        isOpen={isCloudOrLocalModalOpen}
+        onClose={() => setIsCloudOrLocalModalOpen(false)}
+        onSelectCloud={handleSelectCloud}
+        onSelectLocal={handleSelectLocal}
+        lang={lang}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        lang={lang}
       />
     </div>
   );

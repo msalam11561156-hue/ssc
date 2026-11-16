@@ -88,8 +88,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Bypass API calls to server
-  if (url.pathname.startsWith('/api/')) {
+  // Bypass API calls and Vite dev server internal routes
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/@vite/') ||
+    url.pathname.startsWith('/@react-refresh') ||
+    url.pathname.startsWith('/@id/') ||
+    url.pathname.startsWith('/@fs/') ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/')
+  ) {
     return;
   }
 
