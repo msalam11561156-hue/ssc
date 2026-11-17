@@ -77,7 +77,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
                 <div>
                   <h4 className="text-sm font-bold text-cyan-300 mb-1">من شريط عنوان المتصفح ( Chrome - Edge )</h4>
                   <p className="text-xs text-slate-300 leading-normal">
-                    انظر أعلى المتصفح في أقصى يمين أو يسار شريط العنوان ستجد أيقونة تثبيت <span className="text-amber-300 font-bold">- شاشة صغيرة عليها سهم</span>، اضغط عليها ثم اضغط <span className="text-emerald-400 font-bold">تثبيت</span>
+                    انظر أعلى المتصفح في أقصى يمين أو يسار شريط العنوان ستجد أيقونة تثبيت <span className="text-amber-300 font-bold">- شاشة صغيرة عليها سهم -</span> اضغط عليها ثم اضغط <span className="text-emerald-400 font-bold">تثبيت</span>
                   </p>
                 </div>
               </div>
@@ -89,7 +89,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
                 <div>
                   <h4 className="text-sm font-bold text-amber-300 mb-1">من قائمة إعدادات المتصفح ( ⋮ )</h4>
                   <p className="text-xs text-slate-300 leading-normal">
-                    اضغط على زر القائمة الثلاثية <span className="text-amber-300 font-bold">( ⋮ )</span> في أعلى يمين المتصفح، ثم اختر <span className="text-cyan-300 font-bold">تثبيت SMART CONTROL 0.1</span> أو <span className="text-cyan-300 font-bold">حفظ ومشاركة</span> &gt; <span className="text-cyan-300 font-bold">تثبيت التطبيق</span>.
+                    اضغط على زر القائمة الثلاثية <span className="text-amber-300 font-bold">( ⋮ )</span> في أعلى يمين المتصفح ثم اختر <span className="text-cyan-300 font-bold">تثبيت SMART CONTROL 0.1</span> أو <span className="text-cyan-300 font-bold">حفظ ومشاركة</span> &gt; <span className="text-cyan-300 font-bold">تثبيت التطبيق</span> .
                   </p>
                 </div>
               </div>
