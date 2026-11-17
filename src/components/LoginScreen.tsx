@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { signInWithPopup, signInWithRedirect, getRedirectResult, User } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, User } from 'firebase/auth';
 import { ShieldCheck, AlertCircle, Database, Globe } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { AnimatedBackground } from './AnimatedBackground';
@@ -15,6 +15,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -90,6 +94,44 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
     }
   };
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setErrorMsg(null);
+    if (!emailInput.trim() || !passwordInput.trim()) {
+      setErrorMsg('يرجى إدخال البريد الإلكتروني (أو اسم المستخدم) وكلمة المرور.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const emailVal = emailInput.includes('@') ? emailInput : `${emailInput.trim()}@smartcontrol.edu`;
+      let result;
+      if (isRegisterMode) {
+        result = await createUserWithEmailAndPassword(auth, emailVal, passwordInput);
+      } else {
+        result = await signInWithEmailAndPassword(auth, emailVal, passwordInput);
+      }
+      if (onSuccess && result.user) {
+        onSuccess(result.user);
+      }
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code || '';
+      if (code === 'auth/operation-not-allowed') {
+        setErrorMsg('خدمة البريد وكلمة المرور غير مفعلة في لوحة تحكم Firebase. يرجى تفعيلها من Authentication > Sign-in method.');
+      } else if (code === 'auth/email-already-in-use') {
+        setErrorMsg('البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.');
+      } else if (code === 'auth/weak-password') {
+        setErrorMsg('كلمة المرور ضعيفة جداً. يرجى استخدام 6 أحرف على الأقل.');
+      } else if (code === 'auth/invalid-email' || code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setErrorMsg('بيانات الدخول غير صحيحة. يرجى التحقق من البريد وكلمة المرور.');
+      } else {
+        setErrorMsg('تعذر إتمام العملية. يرجى المحاولة مرة أخرى.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       dir="rtl"
@@ -142,8 +184,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           </motion.div>
 
           {/* App Brand Title */}
-          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400 drop-shadow-sm">
-            SMART CONTROL
+          <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400 drop-shadow-sm">
+            SMART CONTROL 0.1
           </h1>
 
           {/* Luminous Divider */}
@@ -163,9 +205,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               </span>
             </div>
           </h2>
-          <div className="mobile-ticker mt-2">
-            <p className="mobile-ticker-inner text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              سجل الدخول بحساب جوجل الخاص بك للانتقال إلى الشاشة الافتتاحية والولوج إلى شاشات التطبيق الأخرى.
+          <div className="my-3">
+            <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] animate-pulse">
+              2027 - 2026
+            </span>
+          </div>
+          <div className="mobile-ticker mt-1">
+            <p className="mobile-ticker-inner text-xs sm:text-sm text-slate-300 font-bold tracking-wide">
+              للمدارس ( الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة - الدولية )
             </p>
           </div>
 
@@ -190,52 +237,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             </div>
           )}
 
-          {/* Google Sign-In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-            className="w-full h-14 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-base shadow-[0_10px_30px_-5px_rgba(255,255,255,0.3)] border-2 border-amber-400/70 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-slate-800 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  fill="#4285F4"
-                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
-                />
-              </svg>
-            )}
-          </button>
-
-          {/* Divider Between Login Buttons */}
-          <div className="w-full flex items-center gap-3 my-3.5">
-            <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-slate-600 to-slate-500" />
-            <span className="text-xs font-bold text-slate-400">أو</span>
-            <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-slate-600 to-slate-500" />
-          </div>
-
           {/* Continue Without Account Button */}
           <button
             type="button"
             onClick={() => onContinueWithoutAccount?.()}
             disabled={isLoading}
-            className="w-full h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+            className="w-full h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer mt-4"
           >
-            <span>المتابعة بدون حساب</span>
+            <span>متابعة</span>
           </button>
         </div>
       </motion.div>
