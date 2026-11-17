@@ -160,146 +160,115 @@ const PrecisionLightOverlay: React.FC = () => (
   </svg>
 );
 
-const EgyptianSchoolsTitleEffect: React.FC = () => (
-  <div 
-    className="absolute z-10 pointer-events-none select-none overflow-visible"
-    style={{
-      left: '27.8%',
-      top: '41.3%',
-      width: '51.8%',
-      height: '17.2%',
-    }}
-  >
-    {/* 1. Luminous ambient glow breathing through the banner */}
-    <motion.div
-      animate={{
-        opacity: [0.3, 0.8, 0.3],
-        scaleY: [0.94, 1.06, 0.94],
-      }}
-      transition={{
-        duration: 3,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-      className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent blur-md mix-blend-screen"
-    />
-
-    {/* 2. Sleek high-tech golden & cyan laser borders on top and bottom of the banner */}
-    <div className="absolute top-0 inset-x-0 h-[2px] overflow-hidden">
-      <motion.div
-        animate={{ x: ['-100%', '100%'] }}
-        transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}
-        className="w-full h-full bg-gradient-to-r from-transparent via-[#38bdf8] to-[#fbbf24] shadow-[0_0_8px_#38bdf8]"
-      />
-    </div>
-    <div className="absolute bottom-0 inset-x-0 h-[2px] overflow-hidden">
-      <motion.div
-        animate={{ x: ['100%', '-100%'] }}
-        transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}
-        className="w-full h-full bg-gradient-to-r from-transparent via-[#fbbf24] to-[#38bdf8] shadow-[0_0_8px_#fbbf24]"
-      />
-    </div>
-
-    {/* 3. SVG Light Beam & Traveling Starburst Lens Flares across the text */}
-    <svg
-      viewBox="0 0 710 130"
-      className="absolute inset-0 w-full h-full overflow-visible"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <filter id="egyptTitleGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1" />
-          <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur2" />
-          <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur3" />
-          <feMerge>
-            <feMergeNode in="blur3" />
-            <feMergeNode in="blur2" />
-            <feMergeNode in="blur1" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        <linearGradient id="laserBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
-          <stop offset="25%" stopColor="#38bdf8" stopOpacity="0.8" />
-          <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="75%" stopColor="#fbbf24" stopOpacity="0.85" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {/* Traveling light streak along the text horizontal midline */}
-      <line
-        x1="25"
-        y1="65"
-        x2="685"
-        y2="65"
-        stroke="url(#laserBeamGrad)"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        filter="url(#egyptTitleGlow)"
-        strokeDasharray="200 700"
-      >
-        <animate
-          attributeName="stroke-dashoffset"
-          values="700; -700"
-          dur="3.4s"
-          repeatCount="indefinite"
-        />
-      </line>
-    </svg>
-
-    {/* 4. Diagonal Metallic Light-Sheen Sweep across the letters */}
+const MeetingRoomSmartEffect: React.FC = () => (
+  <div className="absolute inset-0 z-10 pointer-events-none select-none overflow-hidden">
+    {/* 1. توهج ونبض ضوئي فائق النعومة على الشاشة التفاعلية الذكية (Interactive Smart Screen) */}
     <div 
-      className="absolute inset-0 flex items-center justify-center mix-blend-overlay pointer-events-none overflow-hidden"
+      className="absolute overflow-hidden rounded-sm"
+      style={{
+        left: '56.3%',
+        top: '12.6%',
+        width: '43.2%',
+        height: '35.4%',
+      }}
     >
+      {/* وميض تنفسي خفيف على إطار الشاشة لإبراز تفاعلية العرض */}
       <motion.div
         animate={{
-          x: ['-140%', '140%'],
+          opacity: [0.15, 0.45, 0.15],
+        }}
+        transition={{
+          duration: 3.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute inset-0 border border-cyan-400/30 shadow-[inset_0_0_18px_rgba(56,189,248,0.18)]"
+      />
+
+      {/* خط مسح ضوئي تقني خافت يمر بسلاسة عبر لوحة المؤشرات البيانية */}
+      <motion.div
+        animate={{
+          x: ['-120%', '160%'],
+        }}
+        transition={{
+          duration: 4.8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          repeatDelay: 1.8,
+        }}
+        className="absolute inset-y-0 w-28 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent skew-x-[-18deg] mix-blend-screen pointer-events-none"
+      />
+    </div>
+
+    {/* 2. بريق وهالة ذهبية أنيقة على شعار الدرع وسهم الكنترول الذكي في اللوحة الجدارية */}
+    <div
+      className="absolute overflow-visible"
+      style={{
+        left: '38.9%',
+        top: '17.6%',
+        width: '16.2%',
+        height: '18.3%',
+      }}
+    >
+      {/* هالة ذهبية دافئة ناعمة تنبض خلف الدرع */}
+      <motion.div
+        animate={{
+          opacity: [0.25, 0.65, 0.25],
+          scale: [0.94, 1.06, 0.94],
         }}
         transition={{
           duration: 3.2,
           repeat: Infinity,
           ease: 'easeInOut',
-          repeatDelay: 0.6,
         }}
-        className="w-1/3 h-full bg-gradient-to-r from-transparent via-white/85 to-transparent skew-x-[-25deg] blur-[1.5px]"
+        className="absolute inset-2 rounded-full bg-amber-400/25 blur-md mix-blend-screen"
       />
-    </div>
 
-    {/* 5. Floating Micro-Sparkle Particles rising gently from the text */}
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[
-        { left: '18%', top: '25%', delay: '0s', dur: '2.5s', size: 6 },
-        { left: '36%', top: '70%', delay: '0.9s', dur: '2.8s', size: 8 },
-        { left: '54%', top: '20%', delay: '1.5s', dur: '2.3s', size: 7 },
-        { left: '72%', top: '65%', delay: '0.4s', dur: '3.1s', size: 9 },
-        { left: '88%', top: '30%', delay: '1.8s', dur: '2.7s', size: 6 },
-      ].map((sparkle, idx) => (
+      {/* لمعة ضوئية عابرة تمشي على السهم والدرع الذهبي */}
+      <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          key={idx}
           animate={{
-            y: [0, -18, -35],
-            opacity: [0, 1, 0],
-            scale: [0.5, 1.3, 0.3],
+            x: ['-130%', '150%'],
           }}
           transition={{
+            duration: 3.6,
             repeat: Infinity,
-            duration: parseFloat(sparkle.dur),
-            delay: parseFloat(sparkle.delay),
             ease: 'easeInOut',
+            repeatDelay: 2.2,
           }}
-          style={{
-            position: 'absolute',
-            left: sparkle.left,
-            top: sparkle.top,
-            width: `${sparkle.size}px`,
-            height: `${sparkle.size}px`,
-          }}
-          className="rounded-full bg-gradient-to-br from-white via-amber-300 to-cyan-400 shadow-[0_0_10px_#38bdf8]"
+          className="absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-amber-200/50 to-transparent skew-x-[-25deg] mix-blend-overlay"
         />
-      ))}
+      </div>
+
+      {/* ومضة نجمية لامعة وراقية تظهر كل فترة على رأس السهم الصاعد */}
+      <motion.div
+        animate={{
+          scale: [0, 1.25, 0],
+          opacity: [0, 1, 0],
+          rotate: [0, 90, 180],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          repeatDelay: 3.2,
+        }}
+        style={{
+          position: 'absolute',
+          left: '73%',
+          top: '18%',
+        }}
+        className="w-4 h-4 flex items-center justify-center pointer-events-none"
+      >
+        <div className="w-full h-[1.5px] bg-white rounded-full shadow-[0_0_8px_#fbbf24]" />
+        <div className="h-full w-[1.5px] bg-white rounded-full shadow-[0_0_8px_#fbbf24] absolute" />
+      </motion.div>
     </div>
+
+    {/* 3. لمسة إضاءة سينمائية علوية وسفلية تزيد تباين وعمق المشهد بدون التأثير على الوجوه */}
+    <div 
+      className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-cyan-950/15 pointer-events-none"
+    />
   </div>
 );
 
@@ -331,7 +300,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
   const [goldShieldImg, setGoldShieldImg] = useState(goldShieldBg);
   const [cloudDashboardImg, setCloudDashboardImg] = useState(cloudDashboardBg);
-  const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/asdew_be15ae4d.jfif');
+  const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/asd126_e7a9cb22.jfif');
   const [activeBgIndex, setActiveBgIndex] = useState(0);
 
   useEffect(() => {
@@ -548,7 +517,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               />
             </div>
 
-            {/* 7. Last Gallery Image (الصورة السابعة والأخيرة - مع زيادة الوضوح والجودة والدقة) */}
+            {/* 7. Last Gallery Image (الصورة السابعة والأخيرة - قاعة الاجتماعات وشاشة الكنترول التفاعلية الذكية) */}
             <div 
               className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
                 activeBgIndex === 6 ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -557,11 +526,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={screenshotImg}
-                  alt="Smart Control Best for Egyptian Schools"
-                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
+                  alt="Smart Control Examination Management Meeting"
+                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.10] saturate-[1.08] brightness-[1.02]"
                   style={{ imageRendering: 'high-quality' }}
                 />
-                <EgyptianSchoolsTitleEffect />
+                <MeetingRoomSmartEffect />
               </div>
             </div>
 

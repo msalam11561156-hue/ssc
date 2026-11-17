@@ -88,7 +88,7 @@ export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_cont
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v15`;
+  const cacheKey = `offline_splash_bg_${type}_v17`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -116,7 +116,7 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
       : type === 'gold_shield'
       ? splashGoldShieldUrl
       : type === 'screenshot'
-      ? '/assets/aistudio/asdew_be15ae4d.jfif'
+      ? '/assets/aistudio/asd126_e7a9cb22.jfif'
       : splashCloudDashboardUrl;
 
   try {
