@@ -72,7 +72,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           await signInWithRedirect(auth, googleProvider);
           return;
         } catch {
-          setErrorMsg('المتصفح منع فتح نافذة تسجيل الدخول. يرجى السماح بالنوافذ المنبثقة أو استخدام زر "المتابعة بدون حساب".');
+          setErrorMsg('المتصفح منع فتح نافذة تسجيل الدخول. يرجى السماح بالنوافذ المنبثقة أو استخدام المتابعة بدون حساب.');
         }
       } else if (code === 'auth/network-request-failed') {
         setErrorMsg('تعذر الاتصال بالإنترنت. يرجى التحقق من الشبكة والمحاولة مرة أخرى.');
@@ -82,7 +82,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           await signInWithRedirect(auth, googleProvider);
           return;
         } catch {
-          setErrorMsg('تعذر إتمام تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى أو استخدام "المتابعة بدون حساب".');
+          setErrorMsg('تعذر إتمام تسجيل الدخول حالياً. يرجى المحاولة مرة أخرى أو استخدام المتابعة بدون حساب.');
         }
       }
     } finally {
