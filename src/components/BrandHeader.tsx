@@ -66,7 +66,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ variant = 'black' }) =
       </motion.div>
 
       <h3 className={`text-2xl font-black uppercase tracking-widest text-center drop-shadow-sm ${textStyles}`}>
-        SMART CONTROL
+        SMART CONTROL 0.1
       </h3>
       
       {/* Animated Horizontal Line */}

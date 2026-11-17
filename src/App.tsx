@@ -1369,7 +1369,7 @@ export default function App() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-white truncate">
-                        {authUser.displayName || 'مستخدم Smart Control'}
+                        {authUser.displayName || 'مستخدم Smart Control 0.1'}
                       </p>
                       <p className="text-[11px] text-slate-400 truncate" dir="ltr">
                         {authUser.email}
@@ -1536,7 +1536,7 @@ export default function App() {
                   <Bell className="w-5 h-5 animate-bounce" />
                 </div>
                 <div className="flex-1">
-                  <h5 className="font-black text-[10px] text-blue-700 uppercase tracking-widest mb-0.5">SMART CONTROL</h5>
+                  <h5 className="font-black text-[10px] text-blue-700 uppercase tracking-widest mb-0.5">SMART CONTROL 0.1</h5>
                   <h6 className="font-bold text-sm text-slate-900 leading-tight">إشعار حفظ النسخة الاحتياطية</h6>
                   <p className="text-xs text-slate-700 mt-1 leading-relaxed">
                     نذكرك بحفظ نسخة احتياطية من بيانات التطبيق

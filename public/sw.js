@@ -1,4 +1,4 @@
-// Smart Control - Ultra Reliable Offline Service Worker
+// Smart Control 0.1 - Ultra Reliable Offline Service Worker
 const CACHE_NAME = 'smart-control-offline-v5';
 const STATIC_CACHE_NAME = 'smart-control-static-v5';
 

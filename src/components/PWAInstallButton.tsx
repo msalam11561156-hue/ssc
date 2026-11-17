@@ -62,7 +62,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
             </div>
 
             <h3 className="text-xl font-black text-amber-300 mb-2 text-center">
-              طريقة تثبيت تطبيق Smart Control على جهازك
+              طريقة تثبيت تطبيق Smart Control 0.1 على جهازك
             </h3>
 
             <p className="text-sm text-slate-300 text-center mb-6 leading-relaxed font-medium">
@@ -89,7 +89,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ lang = 'ar',
                 <div>
                   <h4 className="text-sm font-bold text-amber-300 mb-1">من قائمة إعدادات المتصفح (⋮)</h4>
                   <p className="text-xs text-slate-300 leading-normal">
-                    اضغط على زر القائمة الثلاثية <span className="text-amber-300 font-bold">(⋮)</span> في أعلى يمين المتصفح، ثم اختر <span className="text-cyan-300 font-bold">"تثبيت Smart Control..."</span> أو <span className="text-cyan-300 font-bold">"حفظ و مشاركة" &gt; "تثبيت التطبيق"</span>.
+                    اضغط على زر القائمة الثلاثية <span className="text-amber-300 font-bold">(⋮)</span> في أعلى يمين المتصفح، ثم اختر <span className="text-cyan-300 font-bold">"تثبيت Smart Control 0.1..."</span> أو <span className="text-cyan-300 font-bold">"حفظ و مشاركة" &gt; "تثبيت التطبيق"</span>.
                   </p>
                 </div>
               </div>

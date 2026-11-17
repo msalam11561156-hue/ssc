@@ -229,7 +229,7 @@ export async function upsertUserProfile(user: User): Promise<void> {
   const userRef = doc(db, 'users', uid);
   const privateRef = doc(db, 'users', uid, 'private', 'info');
 
-  const displayName = clampStr(user.displayName || 'مستخدم Smart Control', 120);
+  const displayName = clampStr(user.displayName || 'مستخدم Smart Control 0.1', 120);
   const photoURL = clampStr(user.photoURL || '', 500);
   const email = clampStr(user.email || '', 254);
 

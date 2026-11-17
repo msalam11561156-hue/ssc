@@ -17,7 +17,7 @@ if (import.meta.env.PROD) {
       updateSW(true);
     },
     onOfflineReady() {
-      console.log('[PWA] Smart Control ready to work offline');
+      console.log('[PWA] Smart Control 0.1 ready to work offline');
     },
     onRegisterError(err) {
       console.warn('[PWA] Service worker registration error:', err);

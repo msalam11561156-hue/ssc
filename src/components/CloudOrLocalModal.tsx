@@ -164,7 +164,7 @@ export const CloudOrLocalModal: React.FC<CloudOrLocalModalProps> = ({
 
           {/* Footer note */}
           <div className="text-center text-xs text-slate-500 mt-2 z-10">
-            Smart Control Examination Management System • Secure & Reliable
+            Smart Control 0.1 Examination Management System • Secure & Reliable
           </div>
         </motion.div>
       </div>
