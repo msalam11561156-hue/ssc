@@ -10,7 +10,6 @@ import goldShieldBg from '../assets/images/smart_control_gold_shield.jfif';
 import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfif';
 import { getCachedSplashBackground } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
-import { CloudOrLocalModal } from './CloudOrLocalModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
 import { AnimatedBackground } from './AnimatedBackground';
@@ -357,27 +356,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   const isMobile = useIsMobilePhone();
 
-  const [isCloudOrLocalModalOpen, setIsCloudOrLocalModalOpen] = useState(false);
-
   const handleOfficialClick = () => {
     if (isMobile) {
       return;
     }
-    setIsCloudOrLocalModalOpen(true);
-  };
-
-  const handleSelectCloud = () => {
-    setIsCloudOrLocalModalOpen(false);
-    if (isPaidUnlocked()) {
-      setIsOfficialUnlocked(true);
-      onNext(false);
-    } else {
-      setIsPasswordModalOpen(true);
-    }
-  };
-
-  const handleSelectLocal = () => {
-    setIsCloudOrLocalModalOpen(false);
     if (isPaidUnlocked()) {
       setIsOfficialUnlocked(true);
       onNext(false);
@@ -785,9 +767,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               </h3>
 
               <p className="text-sm text-slate-700 leading-relaxed mb-4 font-semibold">
-                عفواً، انتهت النسخة التجريبية.
-                <br />
-                يرجى التفعيل للنسخة الرسمية لمتابعة العمل واستخدام كافة مزايا التطبيق.
+                عفواً ... انتهت النسخة التجريبية.
               </p>
 
               <div className="w-full flex flex-col gap-2.5 mt-2">
@@ -819,14 +799,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         onSuccess={handleUnlockSuccess}
-      />
-
-      <CloudOrLocalModal
-        isOpen={isCloudOrLocalModalOpen}
-        onClose={() => setIsCloudOrLocalModalOpen(false)}
-        onSelectCloud={handleSelectCloud}
-        onSelectLocal={handleSelectLocal}
-        lang={lang}
       />
     </div>
   );
