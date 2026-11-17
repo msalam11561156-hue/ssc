@@ -140,15 +140,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           <div className="w-full grid grid-cols-3 gap-2 sm:gap-3 my-5">
             <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <Database className="w-5 h-5 text-cyan-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">حفظ سحابي تلقائي</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">حفظ سحابي تلقائي</span>
             </div>
             <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">حماية وخصوصية تامة</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">حماية وخصوصية تامة</span>
             </div>
             <div className="bg-slate-800/60 border border-white/85 rounded-2xl px-2 py-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5">
               <Globe className="w-5 h-5 text-amber-400 shrink-0" />
-              <span className="text-[11px] sm:text-xs font-bold text-slate-200 leading-tight">الوصول من أى مكان</span>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">الوصول من أى مكان</span>
             </div>
           </div>
 
