@@ -6,6 +6,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    assetsInclude: ['**/*.jfif'],
     plugins: [
       react(), 
       tailwindcss(),
@@ -27,6 +28,7 @@ export default defineConfig(() => {
           'brand_shield.png',
           'assets/images/splash_brand_bg.jpg', 
           'assets/images/splash_control_illustration.jpg',
+          'assets/aistudio/asd126_e7a9cb22.jfif',
           'sounds/click.wav'
         ],
         manifest: {

@@ -42,8 +42,31 @@ app.get('/manifest.webmanifest', (_req, res) => {
   return res.status(404).type('text/plain').send('Manifest not found');
 });
 
+const staticAssetOptions = {
+  setHeaders: (res: express.Response, filePath: string) => {
+    if (filePath.toLowerCase().endsWith('.jfif')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    }
+  },
+};
+
+// Force image/jpeg MIME type for .jfif images in all routes
+app.use((req, res, next) => {
+  if (req.path.toLowerCase().endsWith('.jfif')) {
+    const origSetHeader = res.setHeader.bind(res);
+    res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+      if (name.toLowerCase() === 'content-type' && (!value || value === 'application/octet-stream')) {
+        return origSetHeader(name, 'image/jpeg');
+      }
+      return origSetHeader(name, value);
+    }) as typeof res.setHeader;
+    res.setHeader('Content-Type', 'image/jpeg');
+  }
+  next();
+});
+
 // Serve static assets from public/
-app.use(express.static(publicPath));
+app.use(express.static(publicPath, staticAssetOptions));
 
 const DATA_DIR = path.join(__dirname, '.data');
 const TRIAL_FILE = path.join(DATA_DIR, 'trial_devices.json');
@@ -346,7 +369,7 @@ async function startServer() {
     });
   } else {
     const distPath = path.join(__dirname, 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, staticAssetOptions));
     app.get('*', (req, res) => {
       if (req.path.match(/\.(js|mjs|css|json|webmanifest|png|jpg|jpeg|gif|svg|ico|wav|woff2?|webp|jfif)$/i)) {
         return res.status(404).end();

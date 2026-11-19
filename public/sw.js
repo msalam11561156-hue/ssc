@@ -1,6 +1,6 @@
 // Smart Control 0.1 - Ultra Reliable Offline Service Worker
-const CACHE_NAME = 'smart-control-offline-v5';
-const STATIC_CACHE_NAME = 'smart-control-static-v5';
+const CACHE_NAME = 'smart-control-offline-v6';
+const STATIC_CACHE_NAME = 'smart-control-static-v6';
 
 const CORE_ASSETS = [
   '/',
@@ -17,6 +17,7 @@ const CORE_ASSETS = [
   '/sounds/click.wav',
   '/assets/images/splash_brand_bg.jpg',
   '/assets/images/splash_control_illustration.jpg',
+  '/assets/aistudio/asd126_e7a9cb22.jfif',
 ];
 
 const IMAGE_EXT_REGEX = /\.(png|jpg|jpeg|gif|svg|webp|jfif|ico)$/i;
@@ -33,7 +34,8 @@ function isValidStaticResponse(request, url, response) {
   }
 
   if (request.destination === 'image' || IMAGE_EXT_REGEX.test(url.pathname)) {
-    return contentType === '' || contentType.startsWith('image/');
+    const isJfif = url.pathname.toLowerCase().endsWith('.jfif');
+    return contentType === '' || contentType.startsWith('image/') || (isJfif && contentType === 'application/octet-stream');
   }
   if (request.destination === 'script' || SCRIPT_EXT_REGEX.test(url.pathname)) {
     return contentType === '' || contentType.includes('javascript') || contentType.includes('ecmascript');

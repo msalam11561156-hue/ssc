@@ -5,10 +5,11 @@ import { translations } from '../i18n';
 import defaultIllustrationBg from '../assets/images/control_illustration_1786475473814.jpg';
 import defaultBrandBg from '../assets/images/splash_brand_bg.jpg';
 import modernControlBg from '../assets/images/smart_control_room_modern.jpg';
-import blueShieldBg from '../assets/images/blue_shield_bg.jfif';
-import goldShieldBg from '../assets/images/smart_control_gold_shield.jfif';
-import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jfif';
-import { getCachedSplashBackground } from '../utils/offlineAssetCache';
+import blueShieldBg from '../assets/images/blue_shield_bg.jpg';
+import goldShieldBg from '../assets/images/smart_control_gold_shield.jpg';
+import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jpg';
+import screenshotBg from '../assets/images/meeting_room_smart.jpg';
+import { getCachedSplashBackground, SplashType } from '../utils/offlineAssetCache';
 import { PasswordModal } from './PasswordModal';
 import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
@@ -300,28 +301,84 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [modernControlImg, setModernControlImg] = useState(modernControlBg);
   const [goldShieldImg, setGoldShieldImg] = useState(goldShieldBg);
   const [cloudDashboardImg, setCloudDashboardImg] = useState(cloudDashboardBg);
-  const [screenshotImg, setScreenshotImg] = useState('/assets/aistudio/asd126_e7a9cb22.jfif');
+  const [screenshotImg, setScreenshotImg] = useState(screenshotBg);
   const [activeBgIndex, setActiveBgIndex] = useState(0);
+  const [failedSlides, setFailedSlides] = useState<Record<number, boolean>>({});
+  const totalSlides = 7;
+
+  const findNextHealthySlide = React.useCallback(
+    (fromIndex: number, step: 1 | -1, failedMap: Record<number, boolean> = failedSlides): number => {
+      for (let offset = 1; offset <= totalSlides; offset++) {
+        const candidate = (fromIndex + step * offset + totalSlides) % totalSlides;
+        if (!failedMap[candidate]) {
+          return candidate;
+        }
+      }
+      return fromIndex;
+    },
+    [failedSlides]
+  );
+
+  const handleSlideImageError = (
+    slideIndex: number,
+    splashType: SplashType,
+    fallbackSrc: string,
+    currentSrc: string,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (!currentSrc.startsWith('data:image/')) {
+      getCachedSplashBackground(splashType)
+        .then((cachedUrl) => {
+          if (cachedUrl && cachedUrl !== currentSrc) {
+            setter(cachedUrl);
+          } else if (currentSrc !== fallbackSrc) {
+            setter(fallbackSrc);
+          } else if (currentSrc !== defaultBrandBg) {
+            setter(defaultBrandBg);
+          } else {
+            setFailedSlides((prev) => {
+              if (prev[slideIndex]) return prev;
+              const nextMap = { ...prev, [slideIndex]: true };
+              setActiveBgIndex((curr) => (curr === slideIndex ? findNextHealthySlide(slideIndex, 1, nextMap) : curr));
+              return nextMap;
+            });
+          }
+        })
+        .catch(() => {
+          if (currentSrc !== fallbackSrc) {
+            setter(fallbackSrc);
+          }
+        });
+      return;
+    }
+    if (currentSrc !== fallbackSrc && currentSrc !== defaultBrandBg) {
+      setter(fallbackSrc);
+      return;
+    }
+    if (currentSrc !== defaultBrandBg) {
+      setter(defaultBrandBg);
+      return;
+    }
+    setFailedSlides((prev) => {
+      if (prev[slideIndex]) return prev;
+      const nextMap = { ...prev, [slideIndex]: true };
+      setActiveBgIndex((curr) => (curr === slideIndex ? findNextHealthySlide(slideIndex, 1, nextMap) : curr));
+      return nextMap;
+    });
+  };
 
   useEffect(() => {
     setIsOfficialUnlocked(isPaidUnlocked());
+  }, []);
 
-    // جلب وحفظ الصور على جهاز العميل في IndexedDB
-    getCachedSplashBackground('blue_shield').then((url) => { if (url) setBlueShieldImg(url); });
-    getCachedSplashBackground('illustration').then((url) => { if (url) setIllustrationImg(url); });
-    getCachedSplashBackground('brand').then((url) => { if (url) setBrandImg(url); });
-    getCachedSplashBackground('modern_control').then((url) => { if (url) setModernControlImg(url); });
-    getCachedSplashBackground('gold_shield').then((url) => { if (url) setGoldShieldImg(url); });
-    getCachedSplashBackground('cloud_dashboard').then((url) => { if (url) setCloudDashboardImg(url); });
-    getCachedSplashBackground('screenshot').then((url) => { if (url) setScreenshotImg(url); });
-
-    // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور السبع
-    const interval = setInterval(() => {
-      setActiveBgIndex((prev) => (prev + 1) % 7);
+  // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور السبع
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setActiveBgIndex((prev) => findNextHealthySlide(prev, 1));
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeBgIndex, findNextHealthySlide]);
 
   const isMobile = useIsMobilePhone();
 
@@ -429,14 +486,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           />
             {/* 1. Blue Shield Image (الصورة الأولى - الدرع الأزرق وشعار SMART CONTROL) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 0 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={blueShieldImg}
                   alt="Smart Control Blue Shield"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(0, 'blue_shield', blueShieldBg, blueShieldImg, setBlueShieldImg)}
                   className="w-full h-full object-fill pointer-events-none select-none"
                 />
                 <PrecisionLightOverlay />
@@ -445,59 +505,73 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
             {/* 2. Illustration Image (الصورة الثانية - التوضيحية لنظام الكنترول الذكي) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 1 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
-              <img
-                src={illustrationImg}
-                alt="Smart Control Illustration"
-                className="w-full h-full object-fill pointer-events-none select-none"
-              />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={illustrationImg}
+                  alt="Smart Control Illustration"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(1, 'illustration', defaultIllustrationBg, illustrationImg, setIllustrationImg)}
+                  className="w-full h-full object-fill pointer-events-none select-none"
+                />
+              </div>
             </div>
 
             {/* 3. Brand Shield Image (الصورة الثالثة - صورة الشعار الأرجوانية/المخملية) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 2 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 2 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={brandImg}
                   alt="Smart Control Logo"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(2, 'brand', defaultBrandBg, brandImg, setBrandImg)}
                   className="w-full h-full object-fill pointer-events-none select-none"
                 />
                 <PrecisionLightOverlay />
               </div>
             </div>
 
-            {/* 4. Modern Control Room Image (الصورة الرابعة - غرفة الكنترول الذكية الحديثة مع زيادة الوضوح والدقة) */}
+            {/* 4. Modern Control Room Image (الصورة الرابعة - غرفة الكنترول الذكية الحديثة) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 3 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
-              <img
-                src={modernControlImg}
-                alt="Modern Smart Control Room"
-                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
-                style={{ imageRendering: 'high-quality' }}
-              />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={modernControlImg}
+                  alt="Modern Smart Control Room"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(3, 'modern_control', modernControlBg, modernControlImg, setModernControlImg)}
+                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.12] saturate-[1.08] brightness-[1.03]"
+                />
+              </div>
             </div>
 
             {/* 5. Gold Shield Image (الصورة الخامسة - الدرع الذهبي وشعار SMART CONTROL Examination Management) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 4 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 4 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={goldShieldImg}
                   alt="Smart Control Gold Shield Examination Management"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(4, 'gold_shield', goldShieldBg, goldShieldImg, setGoldShieldImg)}
                   className="w-full h-full object-fill pointer-events-none select-none contrast-[1.08] brightness-[1.02]"
-                  style={{ imageRendering: 'high-quality' }}
                 />
                 <PrecisionLightOverlay />
               </div>
@@ -505,37 +579,43 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
             {/* 6. Cloud Dashboard Image (الصورة السادسة - التحول الرقمي من إكسيل إلى الكنترول السحابي الذكي) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 5 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 5 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
-              <img
-                src={cloudDashboardImg}
-                alt="Smart Control Cloud Dashboard vs Excel"
-                className="w-full h-full object-fill pointer-events-none select-none contrast-[1.08] saturate-[1.05] brightness-[1.02]"
-                style={{ imageRendering: 'high-quality' }}
-              />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={cloudDashboardImg}
+                  alt="Smart Control Cloud Dashboard vs Excel"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(5, 'cloud_dashboard', cloudDashboardBg, cloudDashboardImg, setCloudDashboardImg)}
+                  className="w-full h-full object-fill pointer-events-none select-none contrast-[1.08] saturate-[1.05] brightness-[1.02]"
+                />
+              </div>
             </div>
 
             {/* 7. Last Gallery Image (الصورة السابعة والأخيرة - قاعة الاجتماعات وشاشة الكنترول التفاعلية الذكية) */}
             <div 
-              className={`absolute inset-0 z-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
-                activeBgIndex === 6 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              className={`absolute inset-0 flex items-center justify-center overflow-hidden transition-opacity duration-1000 ${
+                activeBgIndex === 6 ? 'opacity-100 z-[2]' : 'opacity-0 z-[1] pointer-events-none'
               }`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
                   src={screenshotImg}
                   alt="Smart Control Examination Management Meeting"
+                  loading="eager"
+                  decoding="async"
+                  onError={() => handleSlideImageError(6, 'screenshot', screenshotBg, screenshotImg, setScreenshotImg)}
                   className="w-full h-full object-fill pointer-events-none select-none contrast-[1.10] saturate-[1.08] brightness-[1.02]"
-                  style={{ imageRendering: 'high-quality' }}
                 />
                 <MeetingRoomSmartEffect />
               </div>
             </div>
 
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
-            <div className="absolute inset-0 z-0 bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />
+            <div className="absolute inset-0 z-[3] bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
         </motion.div>
 

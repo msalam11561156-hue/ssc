@@ -1,34 +1,82 @@
 import { idbGet, idbSet } from './idbStorage';
 import topTenCertTemplateUrl from '../assets/images/top_ten_cert_template.webp';
 import royalCertTemplateUrl from '../assets/images/top_ten_cert_royal.jpg';
-import splashBlueShieldUrl from '../assets/images/blue_shield_bg.jfif';
+import splashBlueShieldUrl from '../assets/images/blue_shield_bg.jpg';
 import splashIllustrationUrl from '../assets/images/control_illustration_1786475473814.jpg';
 import splashBrandBgUrl from '../assets/images/splash_brand_bg.jpg';
 import splashModernControlUrl from '../assets/images/smart_control_room_modern.jpg';
-import splashGoldShieldUrl from '../assets/images/smart_control_gold_shield.jfif';
-import splashCloudDashboardUrl from '../assets/images/smart_control_cloud_dashboard.jfif';
+import splashGoldShieldUrl from '../assets/images/smart_control_gold_shield.jpg';
+import splashCloudDashboardUrl from '../assets/images/smart_control_cloud_dashboard.jpg';
+import splashScreenshotUrl from '../assets/images/meeting_room_smart.jpg';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 import brandShieldUrl from '../assets/images/brand_shield.png';
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
 
+async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
+  if (blob.type && blob.type.toLowerCase().startsWith('image/')) {
+    return blob.type.toLowerCase();
+  }
+  try {
+    const header = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+    if (header.length >= 2 && header[0] === 0xff && header[1] === 0xd8) {
+      return 'image/jpeg';
+    }
+    if (header.length >= 4 && header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47) {
+      return 'image/png';
+    }
+    if (
+      header.length >= 12 &&
+      header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+      header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50
+    ) {
+      return 'image/webp';
+    }
+    if (header.length >= 4 && header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x38) {
+      return 'image/gif';
+    }
+  } catch {
+    // Fallback to extension check
+  }
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  if (cleanUrl.endsWith('.jfif') || cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) {
+    return 'image/jpeg';
+  }
+  return null;
+}
+
 /**
  * تحويل رابط أو Blob إلى Data URL مشفر بصيغة Base64 مع التحقق من صحة نوع الصورة
  */
 async function fetchToDataUrl(url: string): Promise<string> {
+  if (url.startsWith('data:image/')) {
+    return url;
+  }
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch image (${res.status}): ${url}`);
   }
   const contentType = (res.headers.get('content-type') || '').toLowerCase();
-  if (contentType && !contentType.startsWith('image/')) {
+  const isJfif = url.split('?')[0].toLowerCase().endsWith('.jfif');
+  if (contentType.includes('text/html')) {
+    throw new Error(`Unexpected HTML response instead of image for: ${url}`);
+  }
+  if (contentType && !contentType.startsWith('image/') && !(isJfif && contentType.includes('application/octet-stream'))) {
     throw new Error(`Invalid image MIME type (${contentType}) for: ${url}`);
   }
-  const blob = await res.blob();
-  if (!blob.size || (blob.type && !blob.type.startsWith('image/'))) {
+  const rawBlob = await res.blob();
+  if (!rawBlob.size) {
+    throw new Error(`Empty image blob for: ${url}`);
+  }
+  const detectedMime = await detectImageMimeFromBlob(rawBlob, url);
+  if (!detectedMime) {
     throw new Error(`Invalid image blob for: ${url}`);
   }
+  const typedBlob = rawBlob.type.toLowerCase().startsWith('image/')
+    ? rawBlob
+    : new Blob([rawBlob], { type: detectedMime });
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -40,7 +88,7 @@ async function fetchToDataUrl(url: string): Promise<string> {
       }
     };
     reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    reader.readAsDataURL(typedBlob);
   });
 }
 
@@ -88,7 +136,7 @@ export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_cont
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v17`;
+  const cacheKey = `offline_splash_bg_${type}_v19`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -116,7 +164,7 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
       : type === 'gold_shield'
       ? splashGoldShieldUrl
       : type === 'screenshot'
-      ? '/assets/aistudio/asd126_e7a9cb22.jfif'
+      ? splashScreenshotUrl
       : splashCloudDashboardUrl;
 
   try {

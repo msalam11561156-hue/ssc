@@ -28,6 +28,8 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
 import { FooterSettingsModal } from './components/FooterSettingsModal';
 import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
+import { SponsorAdCard } from './components/SponsorAdCard';
+import { SponsorSettingsModal, SponsorScheduleInterval } from './components/SponsorSettingsModal';
 import { createBackupPayload, saveBackupToFile, BackupPayload, MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
@@ -224,6 +226,18 @@ export default function App() {
   const [isFooterSettingsModalOpen, setIsFooterSettingsModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [customAdText, setCustomAdText] = useState(() => localStorage.getItem('sheet_control_ad_text') || '');
+  const [isSponsorAdOpen, setIsSponsorAdOpen] = useState(false);
+  const [isSponsorSettingsModalOpen, setIsSponsorSettingsModalOpen] = useState(false);
+  const [sponsorInterval, setSponsorInterval] = useState<SponsorScheduleInterval>(() => {
+    const saved = localStorage.getItem('sheet_control_sponsor_interval');
+    if (saved === '1m' || saved === '10m' || saved === '30m' || saved === '60m') return saved;
+    return '60m';
+  });
+  const [sponsorTimerCycle, setSponsorTimerCycle] = useState(0);
+
+  const handleCloseSponsorAd = React.useCallback(() => {
+    setIsSponsorAdOpen(false);
+  }, []);
 
   const handleSaveAdText = (slots: { text: string; grade: string }[]) => {
     setCustomAdText(slots.length > 0 ? slots[0].text : '');
@@ -309,6 +323,41 @@ export default function App() {
     if (initialTrial.isExpired || initialTrial.isDayExpired) return false;
     return localStorage.getItem('sheet_control_is_trial') === 'true';
   });
+
+  const handleSaveSponsorInterval = (newInterval: SponsorScheduleInterval) => {
+    setSponsorInterval(newInterval);
+    localStorage.setItem('sheet_control_sponsor_interval', newInterval);
+    setSponsorTimerCycle((prev) => prev + 1);
+    setBackupToast({
+      visible: true,
+      message: 'تم حفظ توقيت ظهور نافذة هذا البرنامج برعاية بنجاح.',
+    });
+    setTimeout(() => setBackupToast(null), 4000);
+  };
+
+  const isOnSplashScreen = step === 0;
+  useEffect(() => {
+    if (!hasPassedLoginScreen || (!authUser && !continueWithoutAccount) || isOnSplashScreen || isSponsorAdOpen) {
+      return;
+    }
+
+    const ms =
+      sponsorInterval === '1m'
+        ? 60 * 1000
+        : sponsorInterval === '10m'
+        ? 10 * 60 * 1000
+        : sponsorInterval === '30m'
+        ? 30 * 60 * 1000
+        : 60 * 60 * 1000;
+
+    const timer = window.setTimeout(() => {
+      setIsSponsorAdOpen(true);
+    }, ms);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [sponsorInterval, sponsorTimerCycle, hasPassedLoginScreen, authUser, continueWithoutAccount, isOnSplashScreen, isSponsorAdOpen]);
 
   // احتساب وقت العمل الفعلي للنسخة التجريبية (ساعة واحدة يومياً لمدة 4 أيام كحد أقصى)
   useEffect(() => {
@@ -1064,6 +1113,7 @@ export default function App() {
       }
       setContinueWithoutAccount(false);
       setHasPassedLoginScreen(false);
+      setIsSponsorAdOpen(false);
       setStep(0);
       localStorage.setItem('sheet_control_step', '0');
     } catch (err) {
@@ -1192,6 +1242,17 @@ export default function App() {
       action: () => {
         setIsMenuOpen(false);
         setIsAdModalOpen(true);
+      },
+    },
+    { 
+      id: 'sponsorSettings', 
+      label: 'اعدادات نافذة هذا البرنامج برعاية', 
+      icon: Clock, 
+      marquee: true,
+      color: 'bg-amber-600 shadow-[0_5px_15px_-3px_rgba(217,119,6,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(217,119,6,0.6)]',
+      action: () => {
+        setIsMenuOpen(false);
+        setIsSponsorSettingsModalOpen(true);
       },
     },
     { id: 'logout', label: t.logout, icon: LogOut, color: 'bg-[#dc2626] shadow-[0_5px_15px_-3px_rgba(220,38,38,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(220,38,38,0.6)]', action: handleLogout },
@@ -1489,6 +1550,7 @@ export default function App() {
                 )}
                 {menuItems.map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
+                  const isMarquee = Boolean((item as any).marquee);
                   return (
                     <button
                       key={item.id}
@@ -1502,14 +1564,36 @@ export default function App() {
                           setIsMenuOpen(false);
                         }
                       }}
-                      className={`w-full shrink-0 flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white transition-all ${
+                      className={`w-full shrink-0 flex items-center justify-center gap-3 rounded-xl text-white transition-all ${
+                        isMarquee ? 'py-4 px-2 overflow-hidden' : 'py-4 px-6'
+                      } ${
                         isDisabled
                           ? 'opacity-40 cursor-not-allowed bg-slate-700/60 shadow-none hover:translate-y-0'
                           : `hover:-translate-y-0.5 active:translate-y-0 ${item.color}`
                       }`}
                     >
-                      <item.icon className="w-6 h-6" />
-                      <span className="font-bold text-lg">{item.label}</span>
+                      {isMarquee ? (
+                        <div
+                          className="w-full overflow-hidden flex items-center relative [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]"
+                          dir="ltr"
+                        >
+                          <div className="animate-btn-marquee-ltr marquee-continuous items-center" dir="rtl">
+                            <div className="flex items-center gap-2.5 shrink-0 px-8 whitespace-nowrap">
+                              <item.icon className="w-6 h-6 shrink-0" />
+                              <span className="font-bold text-lg whitespace-nowrap">{item.label}</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 shrink-0 px-8 whitespace-nowrap" aria-hidden="true">
+                              <item.icon className="w-6 h-6 shrink-0" />
+                              <span className="font-bold text-lg whitespace-nowrap">{item.label}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <item.icon className="w-6 h-6" />
+                          <span className="font-bold text-lg">{item.label}</span>
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -1629,6 +1713,25 @@ export default function App() {
             />
           )}
         </AnimatePresence>
+
+        {/* Sponsor Window Timing Settings Dialog */}
+        <AnimatePresence>
+          {isSponsorSettingsModalOpen && (
+            <SponsorSettingsModal
+              isOpen={isSponsorSettingsModalOpen}
+              onClose={() => setIsSponsorSettingsModalOpen(false)}
+              currentInterval={sponsorInterval}
+              onSave={handleSaveSponsorInterval}
+              onPreview={() => setIsSponsorAdOpen(true)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* 75% Viewport 10-Second Sponsorship Ad Card */}
+        <SponsorAdCard
+          isOpen={isSponsorAdOpen}
+          onClose={handleCloseSponsorAd}
+        />
 
         {/* Windows-style Backup Reminder Toast */}
         <AnimatePresence>
