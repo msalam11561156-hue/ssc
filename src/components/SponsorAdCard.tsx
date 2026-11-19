@@ -76,10 +76,9 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
         <motion.div
           key="sponsor-overlay"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 font-arabic"
+          animate={{ opacity: 1, transition: { duration: 1.4, ease: 'easeInOut' } }}
+          exit={{ opacity: 0, transition: { duration: 2.8, ease: [0.4, 0, 0.6, 1] } }}
+          className="fixed inset-0 z-[220] flex items-center justify-center overflow-hidden bg-slate-950/75 backdrop-blur-md p-4 font-arabic [perspective:1400px]"
           dir="rtl"
           role="dialog"
           aria-modal="true"
@@ -87,11 +86,45 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
         >
           {/* إطار خارجي متحرك الألوان بارتفاع 85vh (زيادة 10% عن 75vh) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 8 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-[75vw] h-[85vh] min-h-[420px] p-[3px] rounded-[26px] overflow-hidden shadow-[0_32px_95px_-20px_rgba(2,6,23,0.95)]"
+            initial={{
+              opacity: 0,
+              scale: 0.14,
+              x: '-26vw',
+              y: '-34vh',
+              rotate: -360,
+              rotateX: 55,
+              rotateY: -90,
+            }}
+            animate={{
+              opacity: [0, 0.78, 1, 1],
+              scale: [0.14, 0.58, 1.05, 1],
+              x: ['-26vw', '10vw', '-3vw', 0],
+              y: ['-34vh', '12vh', '-4vh', 0],
+              rotate: [-360, -140, 14, 0],
+              rotateX: [55, -18, 6, 0],
+              rotateY: [-90, 28, -8, 0],
+              transition: {
+                duration: 2.8,
+                times: [0, 0.42, 0.78, 1],
+                ease: [0.22, 1, 0.36, 1],
+              },
+            }}
+            exit={{
+              opacity: [1, 1, 0.78, 0],
+              scale: [1, 1.05, 0.52, 0.12],
+              x: [0, '-4vw', '14vw', '28vw'],
+              y: [0, '-5vh', '14vh', '-34vh'],
+              rotate: [0, -14, 150, 360],
+              rotateX: [0, 8, -22, 55],
+              rotateY: [0, -10, 35, 90],
+              transition: {
+                duration: 2.8,
+                times: [0, 0.22, 0.58, 1],
+                ease: [0.4, 0, 0.2, 1],
+              },
+            }}
+            style={{ transformStyle: 'preserve-3d' }}
+            className="relative w-[75vw] h-[85vh] min-h-[420px] p-[3px] rounded-[26px] overflow-hidden shadow-[0_32px_95px_-20px_rgba(2,6,23,0.95)] will-change-transform"
           >
             {/* حركة دوران ألوان الإطار */}
             <motion.div
