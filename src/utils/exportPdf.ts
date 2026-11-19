@@ -209,6 +209,7 @@ export type PdfReportType =
   | 'control_sheet'
   | 'blank_control_sheet'
   | 'custom_control_sheet'
+  | 'control_sheet_actual_and_percentage'
   | 'kg_student_evaluations_report'
   | 'kg_parent_notice'
   | 'student_semester_grades_certificate'
@@ -3578,6 +3579,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     reportType === 'mercy_grades_students' ||
     reportType === 'control_sheet' ||
     reportType === 'custom_control_sheet' ||
+    reportType === 'control_sheet_actual_and_percentage' ||
     isSubjectReport;
 
   let targetEvalSem: 'first' | 'second' =
@@ -3842,7 +3844,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   }
 
   const isBlankControlSheet = reportType === 'blank_control_sheet';
-  const isControlSheet = reportType === 'control_sheet' || isBlankControlSheet || isCustomControlSheet;
+  const isActualAndPctControlSheet = reportType === 'control_sheet_actual_and_percentage';
+  const isControlSheet = reportType === 'control_sheet' || isBlankControlSheet || isCustomControlSheet || isActualAndPctControlSheet;
   const customOpts = propCustomOptions;
   const includeMainData = isCustomControlSheet ? (customOpts?.includeMainData ?? true) : true;
   const includeStudentData = isCustomControlSheet ? (customOpts?.includeStudentData ?? true) : !isBlankControlSheet;
@@ -4087,6 +4090,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     splitActualKey?: string;
     maxGradeText?: string;
     splitKeys?: string[];
+    splitSubWidths?: number[];
     weight: number;
     dir?: 'ltr' | 'rtl';
   }[] = [];
@@ -4107,6 +4111,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     minWrittenPass: number;
     hasWritten: boolean;
     isAdded: boolean;
+    isPassFailSubject: boolean;
   }[] = [];
   const controlSheetNonAddedSubjects: {
     key: string;
@@ -4120,6 +4125,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     minWrittenPass: number;
     hasWritten: boolean;
     isAdded: boolean;
+    isPassFailSubject: boolean;
   }[] = [];
   let controlSheetAddedTotalMax = 0;
 
@@ -4285,6 +4291,20 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               : (stage === 'secondary' && selectedGrade?.includes('الثاني')
                   ? (c.key === 'arabic' ? 80 : 60)
                   : (maxVal))); // Fallback or stage-specific actual max
+      const isPassFailSubject =
+        !csIsKg &&
+        ((ovr?.learningOutcomesType !== undefined
+          ? ovr.learningOutcomesType === 'pass_fail'
+          : c.learningOutcomesType === 'pass_fail') ||
+          (c.learningOutcomesType === undefined &&
+            ovr?.learningOutcomesType === undefined &&
+            ((stage !== 'secondary' && c.key === 'pe') ||
+              c.key === 'tokkatsu' ||
+              (stage === 'primary' &&
+                (c.key === 'religion' ||
+                  c.key === 'art' ||
+                  c.key === 'fields' ||
+                  c.key === 'music')))));
       const item = {
         key: c.key,
         label,
@@ -4297,6 +4317,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         minWrittenPass,
         hasWritten,
         isAdded,
+        isPassFailSubject,
       };
       if (isAdded) {
         controlSheetAddedSubjects.push(item);
@@ -4438,7 +4459,27 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       controlSheetAddedSubjects.forEach((sub) => {
       const effectiveHasWritten = isMiddleHomeschool ? false : sub.hasWritten;
       if (isNonKgControlSheet) {
-        if (semester === 'second') {
+        if (isActualAndPctControlSheet) {
+          columns.push({
+            key: `subj_${sub.key}`,
+            header: sub.label,
+            subHeader: 'فعلية | نسبة | تقدير',
+            splitSubHeaders: ['الدرجة الفعلية', 'النسبة المئوية', 'التقدير'],
+            splitMaxGrades: [
+              String(sub.actualMaxVal ?? sub.maxVal),
+              '',
+              '',
+            ],
+            splitActualKey: `subj_actual_${sub.key}`,
+            splitKeys: [
+              `subj_actual_${sub.key}`,
+              `subj_pct_${sub.key}`,
+              `subj_eval_${sub.key}`,
+            ],
+            weight: 1.85,
+            dir: 'ltr',
+          });
+        } else if (semester === 'second') {
           if (effectiveHasWritten) {
             columns.push({
               key: `subj_${sub.key}`,
@@ -4646,7 +4687,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       {
         key: 'evaluation',
         header: isKindergartenStage ? 'التقييم' : 'التقدير',
-        weight: isKindergartenStage ? 0.65 : 0.95,
+        weight: isActualAndPctControlSheet ? 1.15 : isKindergartenStage ? 0.65 : 0.95,
         dir: 'rtl',
       },
       { key: 'studentRank', header: isKindergartenStage ? 'ترتيب التلميذ' : 'ترتيب الطالب', weight: 0.88, dir: 'rtl' }
@@ -4664,7 +4705,27 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   controlSheetNonAddedSubjects.forEach((sub) => {
     const effectiveHasWritten = isMiddleHomeschool ? false : sub.hasWritten;
     if (isNonKgControlSheet) {
-      if (semester === 'second' && effectiveHasWritten) {
+      if (isActualAndPctControlSheet) {
+        columns.push({
+          key: `subj_${sub.key}`,
+          header: sub.label,
+          subHeader: 'فعلية | نسبة | تقدير',
+          splitSubHeaders: ['الدرجة الفعلية', 'النسبة المئوية', 'التقدير'],
+          splitMaxGrades: [
+            String(sub.actualMaxVal ?? sub.maxVal),
+            '',
+            '',
+          ],
+          splitActualKey: `subj_actual_${sub.key}`,
+          splitKeys: [
+            `subj_actual_${sub.key}`,
+            `subj_pct_${sub.key}`,
+            `subj_eval_${sub.key}`,
+          ],
+          weight: 1.85,
+          dir: 'ltr',
+        });
+      } else if (semester === 'second' && effectiveHasWritten) {
         columns.push({
           key: `subj_${sub.key}`,
           header: sub.label,
@@ -5027,6 +5088,116 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       });
       const reTotal = colWidths.reduce((s, w) => s + w, 0);
       colWidths[colWidths.length - 1] += contentW - reTotal;
+    }
+  }
+
+  if (isActualAndPctControlSheet) {
+    const measCanvas = document.createElement('canvas');
+    const mCtx = measCanvas.getContext('2d');
+    if (mCtx) {
+      const subjEvalFontSize = 11.5;
+      const subjPctFontSize = 11.5;
+      const subjActFontSize = 12.5;
+      const overallEvalFontSize = 16;
+
+      const measureExactTextW = (lbl: string) => {
+        const m = mCtx.measureText(lbl);
+        return Math.max(m.width, (m.actualBoundingBoxLeft ?? 0) + (m.actualBoundingBoxRight ?? 0));
+      };
+
+      mCtx.font = `bold ${subjEvalFontSize}px "Cairo", sans-serif`;
+      const evalLabels = ['دون المستوى', 'جيد جداً', 'لم يجتاز', 'مقبول', 'ممتاز', 'اجتاز', 'جيد'];
+      const maxEvalLabelW = Math.max(...evalLabels.map(measureExactTextW));
+      const reqEvalSubW = Math.ceil(maxEvalLabelW) + 14;
+
+      mCtx.font = `bold ${subjPctFontSize}px "Cairo", sans-serif`;
+      const reqPctSubW = Math.ceil(measureExactTextW('100.0 %')) + 8;
+
+      mCtx.font = `bold ${subjActFontSize}px "Cairo", sans-serif`;
+      const reqActSubW = Math.ceil(measureExactTextW('100')) + 8;
+
+      const reqSubjColW = reqActSubW + reqPctSubW + reqEvalSubW;
+
+      mCtx.font = `bold ${overallEvalFontSize}px "Cairo", sans-serif`;
+      const maxOverallEvalW = Math.max(...evalLabels.map(measureExactTextW));
+      const reqOverallEvalW = Math.ceil(maxOverallEvalW) + 16;
+
+      const getColMinW = (k: string): number => {
+        if (k === 'serial') return 26;
+        if (k === 'name') return 145;
+        if (k === 'nationalId') return 72;
+        if (k === 'gender' || k === 'religion') return 32;
+        if (k === 'enrollmentStatus' || k === 'exemptionStatus') return 42;
+        if (k.startsWith('seatNumber_') || k.startsWith('secretNumber_') || k.startsWith('committeeNumber_')) return 36;
+        if (k === 'seatNumber' || k === 'secretNumber' || k === 'committeeNumber') return 42;
+        if (k === 'addedTotal' || k === 'percentage' || k === 'studentRank' || k === 'finalResult') return 48;
+        if (k === 'evaluation') return reqOverallEvalW;
+        if (k.startsWith('subj_')) return reqSubjColW;
+        return 35;
+      };
+
+      const targetSpecs: { idx: number; desiredW: number }[] = [];
+      const evalColIdx = columns.findIndex((c) => c.key === 'evaluation');
+      if (evalColIdx >= 0 && colWidths[evalColIdx] < reqOverallEvalW) {
+        targetSpecs.push({ idx: evalColIdx, desiredW: reqOverallEvalW });
+      }
+      columns.forEach((col, idx) => {
+        if (col.splitSubHeaders && col.splitSubHeaders.length === 3 && col.key.startsWith('subj_') && colWidths[idx] < reqSubjColW) {
+          targetSpecs.push({ idx, desiredW: reqSubjColW });
+        }
+      });
+
+      const totalNeeded = targetSpecs.reduce((s, ts) => s + (ts.desiredW - colWidths[ts.idx]), 0);
+      if (totalNeeded > 0) {
+        const donorIndices = columns
+          .map((c, i) => i)
+          .filter((i) => {
+            const k = columns[i].key;
+            if (isBlankSepKey(k) || k.startsWith('subj_') || k === 'evaluation') return false;
+            return colWidths[i] > getColMinW(k);
+          });
+        const totalSlack = donorIndices.reduce((s, i) => s + Math.max(0, colWidths[i] - getColMinW(columns[i].key)), 0);
+        if (totalSlack > 0) {
+          const takeTotal = Math.min(totalNeeded, totalSlack);
+          let taken = 0;
+          donorIndices.forEach((di, dIdx) => {
+            const slack = Math.max(0, colWidths[di] - getColMinW(columns[di].key));
+            const take =
+              dIdx === donorIndices.length - 1
+                ? Math.min(slack, takeTotal - taken)
+                : Math.min(slack, Math.floor((slack / totalSlack) * takeTotal));
+            colWidths[di] -= take;
+            taken += take;
+          });
+
+          let given = 0;
+          targetSpecs.forEach((ts, tIdx) => {
+            const need = ts.desiredW - colWidths[ts.idx];
+            const add =
+              tIdx === targetSpecs.length - 1
+                ? taken - given
+                : Math.min(need, Math.floor((need / totalNeeded) * taken));
+            colWidths[ts.idx] += add;
+            given += add;
+          });
+        }
+      }
+
+      const reTotal = colWidths.reduce((s, w) => s + w, 0);
+      if (reTotal !== contentW && colWidths.length > 0) {
+        colWidths[colWidths.length - 1] += contentW - reTotal;
+      }
+
+      columns.forEach((col, idx) => {
+        if (col.splitSubHeaders && col.splitSubHeaders.length === 3 && col.key.startsWith('subj_')) {
+          const colW = colWidths[idx];
+          const w2 = Math.min(colW - 44, Math.max(reqEvalSubW, Math.round(colW * 0.48)));
+          const remW = colW - w2;
+          const w0 = Math.floor(remW * 0.42);
+          const w1 = remW - w0;
+          col.splitSubWidths = [w0, w1, w2];
+        }
+      });
     }
   }
 
@@ -5796,6 +5967,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         } else {
           bannerTitle = `شيت كنترول - ${formattedControlTitle}`;
         }
+      } else if (isActualAndPctControlSheet) {
+        bannerTitle = `شيت كنترول بالدرجة الفعلية والنسبة المئوية والتقدير - ${formattedControlTitle}`;
       } else {
         bannerTitle =
           isNonKgControlSheet && semester === 'second'
@@ -7180,7 +7353,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     } else {
     // 3. Table (headerRowH increased by 30%: 52 -> 68)
     const hasKgColorLegend = isControlSheet && isKindergartenStage;
-    const hasNonKgSem2Legend = isNonKgControlSheet && semester === 'second';
+    const hasNonKgSem2Legend = isNonKgControlSheet && semester === 'second' && !isActualAndPctControlSheet;
     const kgLegendY = bannerY + bannerH + 8;
     const kgLegendH = 36;
     if (hasKgColorLegend) {
@@ -7594,7 +7767,11 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           let labelRowH = botH;
           let maxRowH = 0;
 
-          if (isNonKgSem2) {
+          if (isActualAndPctControlSheet) {
+            semGroupRowH = 0;
+            maxRowH = 40;
+            labelRowH = botH - maxRowH;
+          } else if (isNonKgSem2) {
             semGroupRowH = hasSemGroups ? 30 : 0;
             // الحفاظ على صف («تقييمات - تحريرى») بارتفاع ثابت 55px لضمان عدم تماس النص العمودي مع الحدود بقدر مناسب جداً
             const nonKgSem2SubBoxH = 55;
@@ -7650,6 +7827,38 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   : idx === 3
                   ? curSubRightX - (cellX + actualW)
                   : bW;
+              const x = curSubRightX - w;
+              curSubRightX -= w;
+              return {
+                text,
+                semGroup: col.splitSemGroups?.[idx] || '',
+                maxText: col.splitMaxGrades?.[idx] || '',
+                x,
+                w,
+              };
+            });
+          } else if (col.splitSubWidths && col.splitSubWidths.length === nSub) {
+            let curSubRightX = cellX + colW;
+            subBoxes = col.splitSubHeaders.map((text, idx) => {
+              const w = col.splitSubWidths![idx];
+              const x = curSubRightX - w;
+              curSubRightX -= w;
+              return {
+                text,
+                semGroup: col.splitSemGroups?.[idx] || '',
+                maxText: col.splitMaxGrades?.[idx] || '',
+                x,
+                w,
+              };
+            });
+          } else if (isActualAndPctControlSheet && nSub === 3) {
+            const w0 = Math.floor(colW * 0.28);
+            const w1 = Math.floor(colW * 0.34);
+            const w2 = colW - w0 - w1;
+            const customWidths = [w0, w1, w2];
+            let curSubRightX = cellX + colW;
+            subBoxes = col.splitSubHeaders.map((text, idx) => {
+              const w = customWidths[idx];
               const x = curSubRightX - w;
               curSubRightX -= w;
               return {
@@ -7728,13 +7937,16 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               sb.semGroup === 'الدرجة الفعلية' ||
               sb.text === 'الدرجة الفعلية' ||
               sb.text === 'درجة فعلية';
-            const isMergedSubBox = isActualGradeCol || isSingleSub;
+            const isMergedFullBotSubBox = isActualAndPctControlSheet && !sb.maxText;
+            const isMergedSubBox = isActualGradeCol || isSingleSub || isMergedFullBotSubBox;
             const subBoxTopY = isMergedSubBox
               ? tableTopY + topH
               : hasSemGroups && sb.semGroup
               ? tableTopY + topH + semGroupRowH
               : tableTopY + topH;
-            const subBoxH = isMergedSubBox
+            const subBoxH = isMergedFullBotSubBox
+              ? labelRowH + maxRowH
+              : isMergedSubBox
               ? labelRowH
               : hasSemGroups && sb.semGroup
               ? labelRowH - semGroupRowH
@@ -7780,7 +7992,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               );
             }
 
-            if (hasMaxRow) {
+            if (hasMaxRow && !isMergedFullBotSubBox) {
               if (col.splitBothSemTotalMax) {
                 const numMaxRows = col.splitActualMaxGrade ? 4 : 3;
                 let r1H = Math.floor(maxRowH / numMaxRows);
@@ -8678,6 +8890,17 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             ...controlSheetNonAddedSubjects,
           ];
 
+          const getSubjectEvalLabel = (pct: number, isFail: boolean, isPassFail: boolean): string => {
+            if (isPassFail) {
+              return isFail ? 'لم يجتاز' : 'اجتاز';
+            }
+            if (pct >= 85) return 'ممتاز';
+            if (pct >= 75) return 'جيد جداً';
+            if (pct >= 65) return 'جيد';
+            if (pct >= 50) return 'مقبول';
+            return 'دون المستوى';
+          };
+
           allCsSubjects.forEach((sub) => {
             if (isNonKgControlSheet && semester === 'second' && !isMiddleHomeschool) {
               const parseValOrDash = (rawVal: any) => {
@@ -8734,6 +8957,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
               if (!hasAnySem1 && !hasAnySem2) {
                 cellValues[`subj_actual_${sub.key}`] = '-';
+                cellValues[`subj_pct_${sub.key}`] = '-';
+                cellValues[`subj_eval_${sub.key}`] = '-';
               } else {
                 const isPrimary = stage === 'primary';
                 const rawSum = roundToOneDecimal(
@@ -8750,12 +8975,32 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                       : roundToOneDecimal(((hasAnySem1 && hasAnySem2 ? (sem1Sum + sem2Sum) : (hasAnySem2 ? sem2Sum * 2 : sem1Sum * 2)) * sub.actualMaxVal) / 200));
                 cellValues[`subj_actual_${sub.key}`] = formatToOneDecimal(actualScore);
 
+                const actTargetMax = sub.actualMaxVal ?? sub.maxVal;
                 const minReqActual = roundToOneDecimal(
                   sub.actualMaxVal * (sub.minTotalPass / 100)
                 );
                 const failedActualTotal = !boost && actualScore < minReqActual;
-                if (failedActualTotal || (isPrimary ? actualScore < sub.actualMaxVal / 2 : rawSum < sub.maxVal / 2)) {
+                const isSubjFailed = failedActualTotal || (isPrimary ? actualScore < sub.actualMaxVal / 2 : rawSum < sub.maxVal / 2);
+
+                if (cellValues[`subj_actual_${sub.key}`] === 'غ') {
+                  cellValues[`subj_pct_${sub.key}`] = 'غ';
+                  cellValues[`subj_eval_${sub.key}`] = 'غ';
+                } else if (cellValues[`subj_actual_${sub.key}`] === '-') {
+                  cellValues[`subj_pct_${sub.key}`] = '-';
+                  cellValues[`subj_eval_${sub.key}`] = '-';
+                } else if (actTargetMax > 0 && typeof actualScore === 'number' && !isNaN(actualScore)) {
+                  const pct = roundToOneDecimal((actualScore / actTargetMax) * 100);
+                  cellValues[`subj_pct_${sub.key}`] = `${formatToOneDecimal(pct)} %`;
+                  cellValues[`subj_eval_${sub.key}`] = getSubjectEvalLabel(pct, isSubjFailed, sub.isPassFailSubject);
+                } else {
+                  cellValues[`subj_pct_${sub.key}`] = '-';
+                  cellValues[`subj_eval_${sub.key}`] = '-';
+                }
+
+                if (isSubjFailed) {
                   failedControlSheetSubjKeys.add(`subj_actual_${sub.key}`);
+                  failedControlSheetSubjKeys.add(`subj_pct_${sub.key}`);
+                  failedControlSheetSubjKeys.add(`subj_eval_${sub.key}`);
                   failedControlSheetSubjKeys.add(`subj_${sub.key}`);
                 }
               }
@@ -8827,6 +9072,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 if (!hasAnyGrade) {
                   cellValues[`subj_${sub.key}`] = '-';
                   cellValues[`subj_actual_${sub.key}`] = '-';
+                  cellValues[`subj_pct_${sub.key}`] = '-';
+                  cellValues[`subj_eval_${sub.key}`] = '-';
                 } else {
                   const rawSum = roundToOneDecimal((hasSem1 ? sem1Num : 0) + (hasSem2 ? sem2Num : 0));
                   cellValues[`subj_${sub.key}`] =
@@ -8849,14 +9096,36 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                     sub.actualMaxVal * (sub.minTotalPass / 100)
                   );
                   const failedActualTotal = !boost && actualScore < minReqActual;
+                  const isSubjFailed = failedActualTotal || (hasSem1 && hasSem2 && rawSum < sub.maxVal);
+
+                  if (isActualAndPctControlSheet) {
+                    const actTargetMax = sub.actualMaxVal ?? sub.maxVal;
+                    if (cellValues[`subj_actual_${sub.key}`] === 'غ') {
+                      cellValues[`subj_pct_${sub.key}`] = 'غ';
+                      cellValues[`subj_eval_${sub.key}`] = 'غ';
+                    } else if (cellValues[`subj_actual_${sub.key}`] === '-') {
+                      cellValues[`subj_pct_${sub.key}`] = '-';
+                      cellValues[`subj_eval_${sub.key}`] = '-';
+                    } else if (actTargetMax > 0 && typeof actualScore === 'number' && !isNaN(actualScore)) {
+                      const pct = roundToOneDecimal((actualScore / actTargetMax) * 100);
+                      cellValues[`subj_pct_${sub.key}`] = `${formatToOneDecimal(pct)} %`;
+                      cellValues[`subj_eval_${sub.key}`] = getSubjectEvalLabel(pct, isSubjFailed, sub.isPassFailSubject);
+                    } else {
+                      cellValues[`subj_pct_${sub.key}`] = '-';
+                      cellValues[`subj_eval_${sub.key}`] = '-';
+                    }
+                  }
+
                   if (hasSem1 && (isSem1Abs || sem1Num < sub.maxVal / 2)) {
                     failedControlSheetSubjKeys.add(`subj_sem1_${sub.key}`);
                   }
                   if (hasSem2 && (isSem2Abs || sem2Num < sub.maxVal / 2)) {
                     failedControlSheetSubjKeys.add(`subj_sem2_${sub.key}`);
                   }
-                  if (failedActualTotal || (hasSem1 && hasSem2 && rawSum < sub.maxVal)) {
+                  if (isSubjFailed) {
                     failedControlSheetSubjKeys.add(`subj_actual_${sub.key}`);
+                    failedControlSheetSubjKeys.add(`subj_pct_${sub.key}`);
+                    failedControlSheetSubjKeys.add(`subj_eval_${sub.key}`);
                     failedControlSheetSubjKeys.add(`subj_${sub.key}`);
                   }
                 }
@@ -9005,10 +9274,26 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 const w2Num = csWritten2 ? parseFloat(String((csWritten2 as any)[sub.key]).replace(',', '.')) || 0 : 0;
                 const actualScore = roundToOneDecimal(a1Num + w1Num + a2Num + w2Num);
                 cellValues[`subj_actual_${sub.key}`] = formatToOneDecimal(actualScore);
+
+                const isNonWrittenFail = sub.maxVal > 0 && totalSubjScore < sub.maxVal / 2;
+                if (isActualAndPctControlSheet) {
+                  const actTargetMax = sub.actualMaxVal ?? sub.maxVal;
+                  if (actTargetMax > 0 && typeof actualScore === 'number' && !isNaN(actualScore)) {
+                    const pct = roundToOneDecimal((actualScore / actTargetMax) * 100);
+                    cellValues[`subj_pct_${sub.key}`] = `${formatToOneDecimal(pct)} %`;
+                    cellValues[`subj_eval_${sub.key}`] = getSubjectEvalLabel(pct, isNonWrittenFail, sub.isPassFailSubject);
+                  } else {
+                    cellValues[`subj_pct_${sub.key}`] = '-';
+                    cellValues[`subj_eval_${sub.key}`] = '-';
+                  }
+                }
                 
                 if (isNonKgControlSheet) {
-                  if (sub.maxVal > 0 && totalSubjScore < sub.maxVal / 2) {
+                  if (isNonWrittenFail) {
                     failedControlSheetSubjKeys.add(`subj_${sub.key}`);
+                    failedControlSheetSubjKeys.add(`subj_actual_${sub.key}`);
+                    failedControlSheetSubjKeys.add(`subj_pct_${sub.key}`);
+                    failedControlSheetSubjKeys.add(`subj_eval_${sub.key}`);
                   }
                 } else {
                   const totalPct = sub.maxVal > 0 ? (totalSubjScore / sub.maxVal) * 100 : 0;
@@ -9081,6 +9366,26 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 curSubRightX -= w;
                 return { k, x, w };
               });
+            } else if (col.splitSubWidths && col.splitSubWidths.length === nSub) {
+              let curSubRightX = cellX + colW;
+              splitParts = col.splitKeys.map((k, idx) => {
+                const w = col.splitSubWidths![idx];
+                const x = curSubRightX - w;
+                curSubRightX -= w;
+                return { k, x, w };
+              });
+            } else if (isActualAndPctControlSheet && nSub === 3) {
+              const w0 = Math.floor(colW * 0.28);
+              const w1 = Math.floor(colW * 0.34);
+              const w2 = colW - w0 - w1;
+              const customWidths = [w0, w1, w2];
+              let curSubRightX = cellX + colW;
+              splitParts = col.splitKeys.map((k, idx) => {
+                const w = customWidths[idx];
+                const x = curSubRightX - w;
+                curSubRightX -= w;
+                return { k, x, w };
+              });
             } else {
               const baseSubW = Math.floor(colW / nSub);
               let curSubRightX = cellX + colW;
@@ -9101,7 +9406,11 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               isFailed = false,
               isActualGrade = false
             ) => {
-              const textVal = isCustomControlSheet ? '' : formatToOneDecimal(rawTextVal);
+              const textVal = isCustomControlSheet
+                ? ''
+                : typeof rawTextVal === 'string' && rawTextVal.endsWith('%')
+                ? rawTextVal
+                : formatToOneDecimal(rawTextVal);
               const effectiveFailed = !isCustomControlSheet && isFailed;
               const shouldShade = effectiveFailed && isActualGrade && isNonKgControlSheet && semester === 'second';
               if (shouldShade) {
@@ -9415,14 +9724,19 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 ctx.restore();
                 return;
               }
-              const spVal = isCustomControlSheet ? '' : formatToOneDecimal(cellValues[sp.k] || '-');
+              const rawSpVal = cellValues[sp.k] || '-';
+              const spVal = isCustomControlSheet
+                ? ''
+                : typeof rawSpVal === 'string' && rawSpVal.endsWith('%')
+                ? rawSpVal
+                : formatToOneDecimal(rawSpVal);
               const spIsArabic = /[\u0600-\u06FF]/.test(spVal);
               ctx.direction = spIsArabic ? 'rtl' : 'ltr';
               ctx.fillStyle =
                 isSingleFail && isNonKgControlSheet && semester === 'second'
                   ? '#000000'
                   : '#1e293b';
-              const isActualGradePart = sp.k.startsWith('subj_actual_');
+              const isActualGradePart = sp.k.startsWith('subj_actual_') || sp.k.startsWith('subj_pct_') || sp.k.startsWith('subj_eval_');
               const spFontFam = isActualGradePart ? '"Cairo", sans-serif' : (spIsArabic ? '"Cairo", sans-serif' : '"Cairo", monospace');
               const isTotalSubKey =
                 isActualGradePart ||
@@ -9432,7 +9746,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   !sp.k.startsWith('subj_sem2_'));
               let spFontSize = isNonKgControlSheet
                 ? isActualGradePart
-                  ? 12.5
+                  ? (sp.k.startsWith('subj_pct_') || sp.k.startsWith('subj_eval_') ? 11.5 : 12.5)
                   : isTotalSubKey
                   ? 15
                   : semester === 'second'
@@ -9441,9 +9755,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 : rowFontSize * kgSem2TableFontScale;
               const spMaxW = sp.w - 4;
               ctx.font = `bold ${spFontSize}px ${spFontFam}`;
-              if (!isActualGradePart) {
+              if (!sp.k.startsWith('subj_eval_')) {
                 while (
-                  spFontSize > (isNonKgControlSheet ? 9.5 : 11 * kgSem2TableFontScale) &&
+                  spFontSize > (isNonKgControlSheet ? 7.5 : 11 * kgSem2TableFontScale) &&
                   ctx.measureText(spVal).width > spMaxW
                 ) {
                   spFontSize -= 0.5;
@@ -10634,6 +10948,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       ? semester === 'first'
         ? 'شيت_كنترول_الفصل_الدراسي_الأول'
         : 'شيت_كنترول_الفصل_الدراسي_الثانى'
+      : reportType === 'control_sheet_actual_and_percentage'
+      ? 'شيت_كنترول_الفصل_الدراسي_الثانى_بالدرجة_الفعلية_والنسبة_المئوية_والتقدير'
       : reportType === 'blank_control_sheet'
       ? 'شيت_كنترول_فارغ_للرصد_والتحرير_اليدوى'
       : reportType === 'custom_control_sheet'

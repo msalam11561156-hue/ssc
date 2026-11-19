@@ -4177,14 +4177,22 @@ export async function exportStudentSemesterGradesCertificatePdf(
     let rawEnName = (student.nameEn || (student as any).englishName || '').trim();
     if (!rawEnName) {
       try {
-        const savedStudentsStr = localStorage.getItem('sheet_control_students_data');
-        if (savedStudentsStr) {
-          const parsed = JSON.parse(savedStudentsStr);
-          const list: any[] = Array.isArray(parsed) ? parsed : Object.values(parsed).flat();
-          const found = list.find((s: any) => s && (s.id === student.id || (student.nationalId && s.nationalId === student.nationalId) || s.name === student.name));
-          if (found && (found.nameEn || found.englishName)) {
-            rawEnName = (found.nameEn || found.englishName).trim();
+        const memStudents = typeof window !== 'undefined' ? (window as any).__SMART_CONTROL_STUDENTS_BY_STAGE__ : null;
+        let list: any[] = [];
+        if (memStudents && typeof memStudents === 'object') {
+          list = Array.isArray(memStudents) ? memStudents : Object.values(memStudents).flat();
+        } else {
+          const savedStudentsStr =
+            localStorage.getItem('sheet_control_official_students_data') ||
+            localStorage.getItem('sheet_control_students_data');
+          if (savedStudentsStr) {
+            const parsed = JSON.parse(savedStudentsStr);
+            list = Array.isArray(parsed) ? parsed : Object.values(parsed).flat();
           }
+        }
+        const found = list.find((s: any) => s && (s.id === student.id || (student.nationalId && s.nationalId === student.nationalId) || s.name === student.name));
+        if (found && (found.nameEn || found.englishName)) {
+          rawEnName = (found.nameEn || found.englishName).trim();
         }
       } catch {}
     }

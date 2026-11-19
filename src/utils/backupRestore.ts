@@ -1,4 +1,45 @@
 import { SchoolData, ControlData, StudentData } from '../types';
+import { idbSetStrict, idbSet, idbRemove } from './idbStorage';
+
+// مفاتيح البيانات الضخمة أو المكررة التي لا يجب تكرار تخزينها في localStorage أو داخل كائن storage بالنسخة الاحتياطية
+const BULKY_STUDENT_STORAGE_KEYS = new Set([
+  'sheet_control_students_data',
+  'sheet_control_official_students_data',
+  'sheet_control_trial_students_data',
+]);
+
+const LOGO_STORAGE_KEYS = new Set([
+  'sheet_control_school_logo',
+  'sheet_control_official_school_logo',
+  'sheet_control_trial_school_logo',
+]);
+
+// الحد الأقصى الآمن لحجم النص المسموح بتخزينه اختيارياً في localStorage لبيانات الطلاب (~800 كيلوحرف)
+export const MAX_LOCAL_STORAGE_STUDENTS_CHARS = 800_000;
+
+export const safeLocalStorageSet = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const cleanupExcessStorageKeys = (): void => {
+  try {
+    BULKY_STUDENT_STORAGE_KEYS.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    });
+    LOGO_STORAGE_KEYS.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    });
+  } catch {}
+};
 
 export interface BackupMetadata {
   appName: string;
@@ -43,16 +84,17 @@ export const createBackupPayload = (
     timeStyle: 'medium',
   }).format(now);
 
-  // Capture all current localStorage entries
+  // التقاط الإعدادات الخفيفة من localStorage مع استبعاد مفاتيح بيانات الطلاب الضخمة والمكررة
+  // لأن studentsDataByStage موجودة بالفعل في الحقل الرئيسي للنسخة الاحتياطية
   const storage: Record<string, string> = {};
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key) {
-        const value = localStorage.getItem(key);
-        if (value !== null) {
-          storage[key] = value;
-        }
+      if (!key || BULKY_STUDENT_STORAGE_KEYS.has(key)) continue;
+      if (schoolData?.schoolLogo && LOGO_STORAGE_KEYS.has(key)) continue;
+      const value = localStorage.getItem(key);
+      if (value !== null) {
+        storage[key] = value;
       }
     }
   } catch (e) {
@@ -182,10 +224,24 @@ export const parseAndValidateBackup = (jsonString: string): ParsedBackupResult =
       };
     }
 
+    const storage: Record<string, string> = data.storage || {};
     const schoolData: SchoolData = data.schoolData || {};
     const controlDataByStage = data.controlDataByStage || {};
-    const studentsDataByStage = data.studentsDataByStage || {};
-    const storage = data.storage || {};
+
+    let studentsDataByStage: Record<string, StudentData[]> = data.studentsDataByStage || {};
+    if (
+      (!studentsDataByStage || Object.keys(studentsDataByStage).length === 0) &&
+      (storage['sheet_control_official_students_data'] || storage['sheet_control_students_data'])
+    ) {
+      try {
+        const legacyRaw =
+          storage['sheet_control_official_students_data'] || storage['sheet_control_students_data'];
+        const parsedLegacy = JSON.parse(legacyRaw);
+        if (parsedLegacy && typeof parsedLegacy === 'object') {
+          studentsDataByStage = parsedLegacy;
+        }
+      } catch {}
+    }
 
     const totalStudents = countTotalStudents(studentsDataByStage);
     const stagesCount = Object.keys(studentsDataByStage).length;
@@ -244,42 +300,81 @@ export const parseAndValidateBackup = (jsonString: string): ParsedBackupResult =
   }
 };
 
-export const applyBackupRestore = (payload: BackupPayload): void => {
+export const applyBackupRestore = async (payload: BackupPayload): Promise<void> => {
   try {
-    // 1. If payload contains storage snapshot, write all keys to localStorage
+    // 1. تنظيف المفاتيح الضخمة والمكررة من localStorage أولاً لإتاحة أقصى مساحة ممكنة
+    cleanupExcessStorageKeys();
+
+    // 2. استرجاع المفاتيح الخفيفة والإعدادات فقط إلى localStorage (مع تجاهل بيانات الطلاب والشعار المكرر)
     if (payload.storage && typeof payload.storage === 'object') {
       Object.entries(payload.storage).forEach(([k, v]) => {
-        try {
-          localStorage.setItem(k, v);
-        } catch (e) {
-          console.warn(`Could not set localStorage key ${k}:`, e);
-        }
+        if (BULKY_STUDENT_STORAGE_KEYS.has(k)) return;
+        if (payload.schoolData?.schoolLogo && LOGO_STORAGE_KEYS.has(k)) return;
+        if (typeof v !== 'string') return;
+        safeLocalStorageSet(k, v);
       });
     }
 
-    // 2. Ensure explicit key persistence
+    // 3. حفظ بيانات المدرسة والشعار (الشعار يُحفظ في IndexedDB بشكل مضمون، واختيارياً في localStorage إن توفرت مساحة)
     if (payload.schoolData) {
-      localStorage.setItem('sheet_control_school_data', JSON.stringify(payload.schoolData));
-      if (payload.schoolData.schoolLogo) {
-        localStorage.setItem('sheet_control_school_logo', payload.schoolData.schoolLogo);
+      const logo = payload.schoolData.schoolLogo || '';
+      if (logo) {
+        await idbSet('idb_official_school_logo', logo);
+      } else {
+        await idbRemove('idb_official_school_logo');
+      }
+
+      const schoolDataJson = JSON.stringify(payload.schoolData);
+      const savedOfficialSchool = safeLocalStorageSet('sheet_control_official_school_data', schoolDataJson);
+      if (!savedOfficialSchool && logo) {
+        // إذا كان الشعار ضخماً وتسبب في تجاوز السعة، نحفظ بيانات المدرسة بدونه في localStorage ويبقى الشعار في IndexedDB
+        const lightSchoolData = { ...payload.schoolData, schoolLogo: '' };
+        const lightJson = JSON.stringify(lightSchoolData);
+        safeLocalStorageSet('sheet_control_official_school_data', lightJson);
+        safeLocalStorageSet('sheet_control_school_data', lightJson);
+      } else {
+        safeLocalStorageSet('sheet_control_school_data', schoolDataJson);
+        if (logo && logo.length < 350_000) {
+          safeLocalStorageSet('sheet_control_school_logo', logo);
+        }
       }
     }
 
+    // 4. حفظ إعدادات الكنترول واللجان في IndexedDB و localStorage بأمان
     if (payload.controlDataByStage) {
-      localStorage.setItem(
-        'sheet_control_control_data_by_stage',
-        JSON.stringify(payload.controlDataByStage)
-      );
+      await idbSet('idb_official_control_data_by_stage', payload.controlDataByStage);
+      const controlJson = JSON.stringify(payload.controlDataByStage);
+      safeLocalStorageSet('sheet_control_official_control_data_by_stage', controlJson);
+      safeLocalStorageSet('sheet_control_control_data_by_stage', controlJson);
     }
 
+    // 5. حفظ بيانات الطلاب الضخمة مباشرةً في IndexedDB لضمان نجاح الاسترجاع مهما كَبُر حجمها
+    // مع إبقاء نسخة واحدة اختيارية فقط في localStorage إذا كان حجمها صغيراً جداً، ومنع التكرار نهائياً
     if (payload.studentsDataByStage) {
-      localStorage.setItem(
-        'sheet_control_students_data',
-        JSON.stringify(payload.studentsDataByStage)
-      );
+      await idbSetStrict('idb_official_students_data', payload.studentsDataByStage);
+
+      // ضمان عدم وجود المفتاح المكرر القديم إطلاقاً
+      try {
+        localStorage.removeItem('sheet_control_students_data');
+      } catch {}
+
+      try {
+        const studentsJson = JSON.stringify(payload.studentsDataByStage);
+        if (studentsJson.length <= MAX_LOCAL_STORAGE_STUDENTS_CHARS) {
+          if (!safeLocalStorageSet('sheet_control_official_students_data', studentsJson)) {
+            localStorage.removeItem('sheet_control_official_students_data');
+          }
+        } else {
+          localStorage.removeItem('sheet_control_official_students_data');
+        }
+      } catch {
+        try {
+          localStorage.removeItem('sheet_control_official_students_data');
+        } catch {}
+      }
     }
   } catch (err) {
-    console.error('Error applying backup to localStorage:', err);
+    console.error('Error applying backup restore:', err);
     throw err;
   }
 };

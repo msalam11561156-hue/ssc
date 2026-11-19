@@ -28,10 +28,10 @@ import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { BackupReminderModal } from './components/BackupReminderModal';
 import { FooterSettingsModal } from './components/FooterSettingsModal';
 import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
-import { createBackupPayload, saveBackupToFile, BackupPayload } from './utils/backupRestore';
+import { createBackupPayload, saveBackupToFile, BackupPayload, MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
-import { idbSet, idbGet } from './utils/idbStorage';
+import { idbSet, idbGet, idbRemove } from './utils/idbStorage';
 import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, testConnection } from './firebase';
@@ -190,7 +190,9 @@ function loadTrialStudentsData(): Record<string, StudentData[]> {
 }
 
 function loadOfficialStudentsData(): Record<string, StudentData[]> {
-  const saved = localStorage.getItem('sheet_control_official_students_data');
+  const saved =
+    localStorage.getItem('sheet_control_official_students_data') ||
+    localStorage.getItem('sheet_control_students_data');
   if (!saved) {
     return {};
   }
@@ -211,6 +213,7 @@ export default function App() {
   const [fatalError, setFatalError] = useState<Error | null>(null);
   const wasLoggedOutRef = React.useRef(false);
   const remoteWorkspaceReadyRef = React.useRef(false);
+  const hasReceivedRemoteStudentsRef = React.useRef(false);
   const isApplyingRemoteWorkspaceRef = React.useRef(false);
   const isApplyingRemoteStudentsRef = React.useRef(false);
 
@@ -299,6 +302,11 @@ export default function App() {
       localStorage.setItem('sheet_control_is_trial', 'false');
       return false;
     }
+    return localStorage.getItem('sheet_control_is_trial') === 'true';
+  });
+
+  const [hasHydratedOfficialIdb, setHasHydratedOfficialIdb] = useState<boolean>(() => {
+    if (initialTrial.isExpired || initialTrial.isDayExpired) return false;
     return localStorage.getItem('sheet_control_is_trial') === 'true';
   });
 
@@ -466,7 +474,8 @@ export default function App() {
       localStorage.setItem('sheet_control_is_trial', 'false');
 
       if (isTrialMode) {
-        // تحميل بيانات النسخة الرسمية عند الانتقال من النسخة التجريبية فقط
+        // تحميل بيانات النسخة الرسمية عند الانتقال من النسخة التجريبية مع إعادة قراءة IndexedDB أولاً
+        setHasHydratedOfficialIdb(false);
         setSchoolData(loadOfficialSchoolData());
         setControlDataByStage(loadOfficialControlData());
         setStudentsDataByStage(loadOfficialStudentsData());
@@ -606,27 +615,95 @@ export default function App() {
   setCurrentAffiliatedEntity(schoolData.affiliatedEntity);
   const t = translations[lang];
 
+  // استرجاع البيانات الضخمة (الطلاب والشعار وإعدادات الكنترول) من IndexedDB تلقائياً في الوضع الرسمي
   useEffect(() => {
-    // تنظيف أي نسخة تجريبية قديمة استهلكت سعة التخزين
+    if (isTrialMode) {
+      setHasHydratedOfficialIdb(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [idbStudents, idbControl, idbLogo] = await Promise.all([
+          idbGet('idb_official_students_data'),
+          idbGet('idb_official_control_data_by_stage'),
+          idbGet('idb_official_school_logo'),
+        ]);
+        if (cancelled) return;
+
+        if (
+          !hasReceivedRemoteStudentsRef.current &&
+          idbStudents &&
+          typeof idbStudents === 'object' &&
+          Object.keys(idbStudents).length > 0
+        ) {
+          setStudentsDataByStage(idbStudents);
+        }
+
+        if (idbControl && typeof idbControl === 'object' && Object.keys(idbControl).length > 0) {
+          setControlDataByStage((prev) => (Object.keys(prev).length > 0 ? prev : idbControl));
+        }
+
+        if (idbLogo && typeof idbLogo === 'string') {
+          setSchoolData((prev) => (prev.schoolLogo ? prev : { ...prev, schoolLogo: idbLogo }));
+        }
+      } catch (err) {
+        console.warn('Failed to hydrate official data from IndexedDB:', err);
+      } finally {
+        if (!cancelled) {
+          setHasHydratedOfficialIdb(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isTrialMode]);
+
+  useEffect(() => {
+    // مرجع سريع بالذاكرة لبيانات الطلاب الحالية دون استهلاك مساحة localStorage
+    if (typeof window !== 'undefined') {
+      (window as any).__SMART_CONTROL_STUDENTS_BY_STAGE__ = studentsDataByStage;
+    }
+
+    // تنظيف المفاتيح المكررة والقديمة التي كانت تستهلك سعة التخزين المحلي (localStorage)
     try {
       localStorage.removeItem('sheet_control_trial_students_data');
+      localStorage.removeItem('sheet_control_students_data');
     } catch {}
 
-    // حفظ احتياطي صامت في الخلفية عبر IndexedDB للبيانات الضخمة
+    // لا تكتب في IndexedDB أو localStorage قبل اكتمال تحميل البيانات الرسمية من IndexedDB لتفادي الكتابة الفارغة
+    if (!isTrialMode && !hasHydratedOfficialIdb) {
+      return;
+    }
+
+    // الحفظ الأساسي لبيانات الطلاب الضخمة عبر IndexedDB
     try {
       const idbKey = isTrialMode ? 'idb_trial_students_data' : 'idb_official_students_data';
       idbSet(idbKey, studentsDataByStage);
     } catch {}
 
+    // حفظ نسخة واحدة اختيارية فقط في localStorage إذا كان الحجم صغيراً، وإزالتها تلقائياً عند الكِبر لتفادي تجاوز السعة
     if (!isTrialMode) {
       try {
-        localStorage.setItem('sheet_control_official_students_data', JSON.stringify(studentsDataByStage));
-        localStorage.setItem('sheet_control_students_data', JSON.stringify(studentsDataByStage));
+        const serialized = JSON.stringify(studentsDataByStage);
+        if (serialized.length <= MAX_LOCAL_STORAGE_STUDENTS_CHARS) {
+          if (!safeLocalStorageSet('sheet_control_official_students_data', serialized)) {
+            localStorage.removeItem('sheet_control_official_students_data');
+          }
+        } else {
+          localStorage.removeItem('sheet_control_official_students_data');
+        }
       } catch (err) {
-        console.warn('Failed to save official students data:', err);
+        try {
+          localStorage.removeItem('sheet_control_official_students_data');
+        } catch {}
+        console.warn('Official students data stored in IndexedDB only (size exceeds localStorage cap):', err);
       }
     }
-  }, [studentsDataByStage, isTrialMode]);
+  }, [studentsDataByStage, isTrialMode, hasHydratedOfficialIdb]);
 
   useEffect(() => {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
@@ -653,25 +730,50 @@ export default function App() {
     const key = isTrialMode ? 'sheet_control_trial_school_data' : 'sheet_control_official_school_data';
     const logoKey = isTrialMode ? 'sheet_control_trial_school_logo' : 'sheet_control_official_school_logo';
     try {
-      localStorage.setItem(key, JSON.stringify(schoolData));
-      localStorage.setItem('sheet_control_school_data', JSON.stringify(schoolData));
+      if (!isTrialMode) {
+        if (schoolData.schoolLogo) {
+          idbSet('idb_official_school_logo', schoolData.schoolLogo);
+        } else {
+          idbRemove('idb_official_school_logo');
+        }
+      }
+
+      const fullJson = JSON.stringify(schoolData);
+      const savedPrimary = safeLocalStorageSet(key, fullJson);
+      if (!savedPrimary && schoolData.schoolLogo) {
+        const lightJson = JSON.stringify({ ...schoolData, schoolLogo: '' });
+        safeLocalStorageSet(key, lightJson);
+        safeLocalStorageSet('sheet_control_school_data', lightJson);
+      } else {
+        safeLocalStorageSet('sheet_control_school_data', fullJson);
+      }
+
       if (schoolData.schoolLogo) {
-        localStorage.setItem(logoKey, schoolData.schoolLogo);
-        localStorage.setItem('sheet_control_school_logo', schoolData.schoolLogo);
+        if (schoolData.schoolLogo.length < 350_000) {
+          safeLocalStorageSet(logoKey, schoolData.schoolLogo);
+          safeLocalStorageSet('sheet_control_school_logo', schoolData.schoolLogo);
+        } else {
+          localStorage.removeItem(logoKey);
+          localStorage.removeItem('sheet_control_school_logo');
+        }
       } else {
         localStorage.removeItem(logoKey);
         localStorage.removeItem('sheet_control_school_logo');
       }
     } catch (err) {
-      console.error('Failed to save schoolData to localStorage:', err);
+      console.error('Failed to save schoolData:', err);
     }
   }, [schoolData, isTrialMode]);
 
   useEffect(() => {
     try {
       const key = isTrialMode ? 'sheet_control_trial_control_data_by_stage' : 'sheet_control_official_control_data_by_stage';
-      localStorage.setItem(key, JSON.stringify(controlDataByStage));
-      localStorage.setItem('sheet_control_control_data_by_stage', JSON.stringify(controlDataByStage));
+      if (!isTrialMode) {
+        idbSet('idb_official_control_data_by_stage', controlDataByStage);
+      }
+      const json = JSON.stringify(controlDataByStage);
+      safeLocalStorageSet(key, json);
+      safeLocalStorageSet('sheet_control_control_data_by_stage', json);
     } catch (err) {
       console.warn('Failed to save controlDataByStage:', err);
     }
@@ -699,6 +801,7 @@ export default function App() {
       } else {
         wasLoggedOutRef.current = true;
         remoteWorkspaceReadyRef.current = false;
+        hasReceivedRemoteStudentsRef.current = false;
         clearUserSyncCache();
         setAuthUser(null);
         setAuthReady(true);
@@ -711,6 +814,7 @@ export default function App() {
   useEffect(() => {
     if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen) {
       remoteWorkspaceReadyRef.current = false;
+      hasReceivedRemoteStudentsRef.current = false;
       return;
     }
 
@@ -742,6 +846,7 @@ export default function App() {
       onStudentsData: (remoteStudents, hasRemoteDocs) => {
         receivedStudentsSnap = true;
         if (hasRemoteDocs) {
+          hasReceivedRemoteStudentsRef.current = true;
           isApplyingRemoteStudentsRef.current = true;
           setStudentsDataByStage(remoteStudents);
           setTimeout(() => {
@@ -780,7 +885,7 @@ export default function App() {
 
   // مزامنة تلقائية لبيانات الطلاب والدرجات إلى Firestore في الوضع الرسمي
   useEffect(() => {
-    if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current) return;
+    if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current || !hasHydratedOfficialIdb) return;
     if (isApplyingRemoteStudentsRef.current) return;
 
     const uid = authUser.uid;
@@ -791,7 +896,7 @@ export default function App() {
     }, 700);
 
     return () => clearTimeout(timer);
-  }, [studentsDataByStage, authReady, authUser, isTrialMode, hasPassedLoginScreen]);
+  }, [studentsDataByStage, authReady, authUser, isTrialMode, hasPassedLoginScreen, hasHydratedOfficialIdb]);
 
   // إدارة ترتيب المرحلة الحالية ومشاركته بين كافة شاشات المرحلة المختارة
   // (تحرير البيانات، التقييمات، التقييمات تفصيلاً، وتحرير الدرجات)
@@ -930,6 +1035,10 @@ export default function App() {
     localStorage.removeItem('sheet_control_step5_prev');
     localStorage.setItem('sheet_control_step', '1');
 
+    idbRemove('idb_official_students_data').catch(() => {});
+    idbRemove('idb_official_control_data_by_stage').catch(() => {});
+    idbRemove('idb_official_school_logo').catch(() => {});
+
     if (authUser && !isTrialMode) {
       clearOfficialWorkspaceInFirestore(authUser.uid).catch((err) => {
         if (err instanceof Error) setFatalError(err);
@@ -1000,7 +1109,8 @@ export default function App() {
     if (payload.controlDataByStage) setControlDataByStage(payload.controlDataByStage);
     if (payload.studentsDataByStage) setStudentsDataByStage(payload.studentsDataByStage);
     setIsRestoreModalOpen(false);
-    if (authUser && !isTrialMode) {
+    const restoredIsTrial = payload.storage?.['sheet_control_is_trial'] === 'true';
+    if (authUser && !restoredIsTrial) {
       try {
         await saveWorkspaceToFirestore(
           authUser.uid,

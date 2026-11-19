@@ -22,16 +22,21 @@ export function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
+export async function idbSetStrict(key: string, value: any): Promise<void> {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    store.put(value, key);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error || new Error('IndexedDB write failed'));
+    transaction.onabort = () => reject(transaction.error || new Error('IndexedDB write aborted'));
+  });
+}
+
 export async function idbSet(key: string, value: any): Promise<void> {
   try {
-    const db = await openDatabase();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(value, key);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    await idbSetStrict(key, value);
   } catch (err) {
     console.warn('IDB set warning:', err);
   }
@@ -59,9 +64,9 @@ export async function idbRemove(key: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(key);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      store.delete(key);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
     });
   } catch (err) {
     console.warn('IDB remove warning:', err);

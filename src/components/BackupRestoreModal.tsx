@@ -97,14 +97,14 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
     }
   };
 
-  const handleConfirmRestore = () => {
+  const handleConfirmRestore = async () => {
     if (!parsedResult?.valid || !parsedResult.payload) return;
 
     playClickSound();
     setIsProcessing(true);
 
     try {
-      applyBackupRestore(parsedResult.payload);
+      await applyBackupRestore(parsedResult.payload);
       setIsSuccess(true);
 
       setTimeout(() => {

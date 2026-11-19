@@ -3060,6 +3060,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           text={semester === 'first' ? 'شيت كنترول الفصل الدراسي الأول' : 'شيت كنترول الفصل الدراسي الثانى'}
                           bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]"
                         />
+                        {semester === 'second' && stage !== 'kindergarten' && (
+                          <ActionMenuButton
+                            onClick={() => handlePrintOption('control_sheet_actual_and_percentage')}
+                            icon={<Printer className="w-4 h-4" />}
+                            text="شيت كنترول الفصل الدراسي الثانى - بالدرجة الفعلية والنسبة المئوية والتقدير للطالب لكل مادة دراسية"
+                            bgGradient="bg-[linear-gradient(to_right,#0284c7,#2563eb,#0284c7)]"
+                          />
+                        )}
                         <ActionMenuButton
                           onClick={() => {
                             setIsPrintMenuOpen(false);
