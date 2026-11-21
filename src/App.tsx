@@ -32,7 +32,6 @@ import { SponsorAdCard } from './components/SponsorAdCard';
 import { SponsorSettingsModal, SponsorScheduleInterval } from './components/SponsorSettingsModal';
 import { createBackupPayload, saveBackupToFile, BackupPayload, MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
-import { isPaidUnlocked, checkAndRegisterPaidLaunch, recordPaidActiveTime } from './utils/activationManager';
 import { idbSet, idbGet, idbRemove } from './utils/idbStorage';
 import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
@@ -282,23 +281,25 @@ export default function App() {
     
     // Determine if official: not trial and either explicitly set or already has data
     const isOfficial = !isTrial && (localStorage.getItem('sheet_control_is_trial') === 'false' || hasStartedTrial || localStorage.getItem('sheet_control_last_official_step'));
-    
+    const validSteps = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    const savedStep = localStorage.getItem('sheet_control_step');
+    const parsedStep = savedStep ? parseInt(savedStep, 10) : 0;
+
     if (isOfficial) {
-      if (!isPaidUnlocked()) {
-        localStorage.setItem('sheet_control_step', '0');
+      if (savedStep === '0') {
         return 0;
+      }
+      if (savedStep && validSteps.has(parsedStep) && parsedStep > 0) {
+        return parsedStep;
       }
       const lastOfficial = localStorage.getItem('sheet_control_last_official_step');
       if (lastOfficial) {
         const parsed = parseInt(lastOfficial, 10);
         if (parsed > 0) return parsed;
       }
-      return 1; // Default to main screen if official but no step saved
+      return savedStep === null ? 0 : 1; // Default to main screen if official but no step saved
     }
 
-    const validSteps = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
-    const savedStep = localStorage.getItem('sheet_control_step');
-    const parsedStep = savedStep ? parseInt(savedStep, 10) : 0;
     return validSteps.has(parsedStep) ? parsedStep : 0;
   });
 
@@ -363,7 +364,7 @@ export default function App() {
   useEffect(() => {
     setTrialInfo(getTrialInfo());
 
-    if (!isTrialMode || isPaidUnlocked()) return;
+    if (!isTrialMode) return;
 
     let lastTick = Date.now();
 
@@ -378,7 +379,7 @@ export default function App() {
         setTrialInfo(updated);
 
         // إذا انتهت حصة اليوم (ساعة) أو انتهت الـ 4 أيام بالكامل
-        if ((updated.isExpired || updated.isDayExpired) && !isPaidUnlocked()) {
+        if (updated.isExpired || updated.isDayExpired) {
           setIsTrialMode(false);
           localStorage.setItem('sheet_control_is_trial', 'false');
           setStep(0);
@@ -407,62 +408,12 @@ export default function App() {
     };
   }, [isTrialMode]);
 
-  // تسجيل تشغيل البرنامج والتحقق من الأنظمة الأمنية الثلاثة (110 مرة / 110 يوم / 110 ساعة)
-  useEffect(() => {
-    const launch = checkAndRegisterPaidLaunch();
-    if (launch.justExpired) {
-      setIsTrialMode(false);
-      localStorage.setItem('sheet_control_is_trial', 'false');
-      setStep(0);
-      localStorage.setItem('sheet_control_step', '0');
-    }
-  }, []);
-
-  // احتساب وقت العمل الفعلي للنسخة الرسمية (200 ساعة) في الخلفية دون أي تلميحات أو رسائل للمستخدم
-  useEffect(() => {
-    if (isTrialMode || !isPaidUnlocked()) return;
-
-    let lastTick = Date.now();
-
-    const tick = () => {
-      const now = Date.now();
-      const delta = now - lastTick;
-      lastTick = now;
-
-      if (delta > 0 && delta < 15000 && !document.hidden) {
-        const res = recordPaidActiveTime(delta);
-        if (res.isExpired) {
-          setIsTrialMode(false);
-          localStorage.setItem('sheet_control_is_trial', 'false');
-          setStep(0);
-          localStorage.setItem('sheet_control_step', '0');
-        }
-      }
-    };
-
-    const interval = setInterval(tick, 1000);
-
-    const handleResetTick = () => {
-      lastTick = Date.now();
-    };
-
-    document.addEventListener('visibilitychange', handleResetTick);
-    window.addEventListener('focus', handleResetTick);
-    window.addEventListener('blur', handleResetTick);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleResetTick);
-      window.removeEventListener('focus', handleResetTick);
-      window.removeEventListener('blur', handleResetTick);
-    };
-  }, [isTrialMode]);
-
   // مزامنة حالة الحصة التجريبية للجهاز مع الخادم للتعرف عليه عبر أي متصفح
   useEffect(() => {
     syncTrialWithServer().then((serverInfo) => {
       setTrialInfo(serverInfo);
-      if ((serverInfo.isExpired || serverInfo.isDayExpired) && !isPaidUnlocked()) {
+      const currentlyInTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
+      if (currentlyInTrial && (serverInfo.isExpired || serverInfo.isDayExpired)) {
         setIsTrialMode(false);
         localStorage.setItem('sheet_control_is_trial', 'false');
         setStep(0);
@@ -515,10 +466,6 @@ export default function App() {
       setStep(1);
       localStorage.setItem('sheet_control_step', '1');
     } else {
-      if (!isPaidUnlocked()) {
-        setStep(0);
-        return;
-      }
       setIsTrialMode(false);
       localStorage.setItem('sheet_control_is_trial', 'false');
 
@@ -1064,7 +1011,7 @@ export default function App() {
 
 
   const handleResetSystem = () => {
-    if (isTrialMode && !isPaidUnlocked()) {
+    if (isTrialMode) {
       setIsResetModalOpen(false);
       return;
     }
@@ -1224,12 +1171,12 @@ export default function App() {
       id: 'systemSetup', 
       label: (t as any).systemSetup || 'ضبط وتهيئة النظام', 
       icon: Settings, 
-      disabled: isTrialMode && !isPaidUnlocked(),
-      color: (isTrialMode && !isPaidUnlocked())
+      disabled: isTrialMode,
+      color: isTrialMode
         ? 'bg-slate-700/60 opacity-40 cursor-not-allowed shadow-none'
         : 'bg-teal-600 shadow-[0_5px_15px_-3px_rgba(13,148,136,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(13,148,136,0.6)]', 
       action: () => { 
-        if (isTrialMode && !isPaidUnlocked()) return;
+        if (isTrialMode) return;
         setIsMenuOpen(false); 
         setIsResetModalOpen(true); 
       } 
@@ -1249,6 +1196,7 @@ export default function App() {
       label: 'اعدادات نافذة هذا البرنامج برعاية', 
       icon: Clock, 
       marquee: true,
+      hidden: true,
       color: 'bg-amber-600 shadow-[0_5px_15px_-3px_rgba(217,119,6,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(217,119,6,0.6)]',
       action: () => {
         setIsMenuOpen(false);
@@ -1548,7 +1496,7 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {menuItems.map((item) => {
+                {menuItems.filter((item) => !(item as any).hidden).map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
                   const isMarquee = Boolean((item as any).marquee);
                   return (
@@ -2049,7 +1997,7 @@ export default function App() {
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
                       onBack={() => setStep(3)}
-                      isTrialMode={isTrialMode && !isPaidUnlocked()}
+                      isTrialMode={isTrialMode}
                       onSave={() => {
                         if (!isTrialMode && !hasCurrentStudents) {
                           return;
@@ -2139,6 +2087,12 @@ export default function App() {
                       stage={schoolData.stage}
                       educationType={schoolData.educationType}
                       selectedGrade={gradeWithDivision}
+                      schoolName={schoolData.schoolName}
+                      administration={schoolData.administration}
+                      schoolLogo={schoolData.schoolLogo}
+                      dataOfficer={currentControlData.dataOfficer}
+                      controlHead={currentControlData.controlHead}
+                      committeeHead={currentControlData.committeeHead}
                       lastDetailedSubjectKey={currentDetailedSubject}
                       key={`assessments-${schoolData.educationType}-${schoolData.stage}-${gradeWithDivision}-${schoolData.semester}`}
                       lang={lang}
@@ -2147,7 +2101,7 @@ export default function App() {
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
                       onBack={() => setStep(5)}
-                      isTrialMode={isTrialMode && !isPaidUnlocked()}
+                      isTrialMode={isTrialMode}
                       sortBy={currentStageSortBy}
                       onSortChange={handleStageSortChange}
                       onEditData={(targetSem?: string) => {
@@ -2191,13 +2145,19 @@ export default function App() {
                       educationType={schoolData.educationType}
                       systemType={schoolData.systemType}
                       selectedGrade={gradeWithDivision}
+                      schoolName={schoolData.schoolName}
+                      administration={schoolData.administration}
+                      schoolLogo={schoolData.schoolLogo}
+                      dataOfficer={currentControlData.dataOfficer}
+                      controlHead={currentControlData.controlHead}
+                      committeeHead={currentControlData.committeeHead}
                       key={`written-exams-${schoolData.educationType}-${schoolData.stage}-${gradeWithDivision}-${schoolData.systemType || 'regular'}-${schoolData.semester}`}
                       lang={lang}
                       title={getScreenTitle()}
                       semester={schoolData.semester || 'first'}
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
-                      isTrialMode={isTrialMode && !isPaidUnlocked()}
+                      isTrialMode={isTrialMode}
                       onBack={() => {
                         if ((schoolData.stage === 'middle' || schoolData.stage === 'secondary') && schoolData.systemType === 'homeschool') {
                           setStep(step5PrevStep === 4 ? 4 : 3);
@@ -2278,7 +2238,7 @@ export default function App() {
                       controlHeadEn={currentControlData.controlHeadEn}
                       committeeHead={currentControlData.committeeHead}
                       committeeHeadEn={currentControlData.committeeHeadEn}
-                      isTrialMode={isTrialMode && !isPaidUnlocked()}
+                      isTrialMode={isTrialMode}
                     />
                   );
                 default:

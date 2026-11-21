@@ -19,7 +19,7 @@ import { TopTenCertificatesModal } from './TopTenCertificatesModal';
 import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
 import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { PasswordModal } from './PasswordModal';
-import { isPaidUnlocked, getDeviceId } from '../utils/activationManager';
+import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 
 interface StudentsDataScreenProps {
@@ -901,7 +901,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   };
 
   const [isCustomControlSheetModalOpen, setIsCustomControlSheetModalOpen] = useState(false);
-  const isOfficial = isPaidUnlocked() && !isTrialMode;
+  const isOfficial = !isTrialMode;
   const [showBlankSheetPasswordModal, setShowBlankSheetPasswordModal] = useState(false);
   const [blankSheetRandomId, setBlankSheetRandomId] = useState<number>(() => {
     try {
@@ -2553,12 +2553,20 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]"
                         />
                         {semester === 'second' && stage !== 'kindergarten' && (
-                          <ActionMenuButton
-                            onClick={() => handlePrintOption('control_sheet_actual_and_percentage')}
-                            icon={<Printer className="w-4 h-4" />}
-                            text="شيت كنترول الفصل الدراسي الثانى - بالدرجة الفعلية والنسبة المئوية والتقدير للطالب لكل مادة دراسية"
-                            bgGradient="bg-[linear-gradient(to_right,#0284c7,#2563eb,#0284c7)]"
-                          />
+                          <>
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('control_sheet_actual_and_percentage')}
+                              icon={<Printer className="w-4 h-4" />}
+                              text="شيت كنترول الفصل الدراسي الثانى - بالدرجة الفعلية والنسبة المئوية والتقدير للطالب لكل مادة دراسية"
+                              bgGradient="bg-[linear-gradient(to_right,#0284c7,#2563eb,#0284c7)]"
+                            />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('student_success_statement' as any)}
+                              icon={<Award className="w-4 h-4" />}
+                              text="مستخرج رسمي لبيان درجات طالب"
+                              bgGradient="bg-[linear-gradient(to_right,#dc2626,#1e3a8a,#dc2626)]"
+                            />
+                          </>
                         )}
                         <ActionMenuButton
                           onClick={() => {
@@ -5654,7 +5662,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         }}
         deviceIdOverride={seatNumbersRandomId}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="أرقام الجلوس بالإنجليزية"
         customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x"
         skipActivation={true}
       />
@@ -5720,7 +5728,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         deviceIdOverride={customSheetRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="شيت كنترول مخصص"
         customWhatsappMessage="السلام عليكم .. أود تفعيل تخصيص شيت كنترول - معرف جهازي :"
       />
 
@@ -5739,7 +5747,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         deviceIdOverride={englishCertRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="الشهادات بالإنجليزية"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي : ID : x"
       />
 
@@ -5755,7 +5763,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         deviceIdOverride={blankSheetRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="شيت كنترول فارغ"
         customWhatsappMessage="السلام عليكم .. أود تفعيل شيت كنترول فارغ - معرف جهازي :"
       />
 

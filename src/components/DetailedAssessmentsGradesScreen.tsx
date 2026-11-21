@@ -49,7 +49,7 @@ import { exportKgStudentEvaluationsReportPdf } from '../utils/exportPdf';
 import { SortButtonMenu } from './SortButtonMenu';
 import { sortStudents } from '../utils/studentSorting';
 import { PasswordModal } from './PasswordModal';
-import { isPaidUnlocked, getDeviceId } from '../utils/activationManager';
+import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 
 interface SubjectInfo {
@@ -326,7 +326,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     }
   };
 
-  const isOfficial = isPaidUnlocked();
+  const isOfficial = !isTrialMode;
   const [pendingPrintCallback, setPendingPrintCallback] = useState<(() => void) | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const lastSubjectStorageKey = useMemo(() => {
@@ -3362,7 +3362,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         deviceIdOverride={englishCertRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="الشهادات بالإنجليزية"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي :"
       />
 

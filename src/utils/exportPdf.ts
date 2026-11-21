@@ -220,7 +220,8 @@ export type PdfReportType =
   | 'top_ten_students_certificates'
   | 'top_ten_damg_students_certificate'
   | 'top_ten_damg_students_certificates'
-  | 'all_students_certificates';
+  | 'all_students_certificates'
+  | 'student_success_statement';
 
 export interface CustomControlSheetOptions {
   includeMainData: boolean;
@@ -347,6 +348,7 @@ export interface ExportStudentsPdfOptions {
   administrationEn?: string;
   schoolName?: string;
   schoolNameEn?: string;
+  schoolLogo?: string;
   educationType?: string;
   educationTypeEn?: string;
   dataOfficer?: string;
@@ -3525,6 +3527,108 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       defaultSubjectsOverrides: options.defaultSubjectsOverrides,
       rowTheme: options.rowTheme,
       isEnglishCertificate: reportType === 'student_semester_grades_certificate_en',
+    });
+    return;
+  }
+
+  if (reportType === 'student_success_statement') {
+    const isInvalidOrEmpty = (val?: string): boolean => {
+      if (!val) return true;
+      const s = val.trim();
+      return s === '' || s === '................' || s.includes('...') || s.includes('..') || s === '.';
+    };
+
+    let resolvedAdmin = propAdmin || '';
+    let resolvedSchoolName = propSchoolName || '';
+    let resolvedDataOfficer = !isInvalidOrEmpty(propDataOfficer) ? propDataOfficer!.trim() : '';
+    let resolvedControlHead = !isInvalidOrEmpty(propControlHead) ? propControlHead!.trim() : '';
+    let resolvedCommitteeHead = !isInvalidOrEmpty(propCommitteeHead) ? propCommitteeHead!.trim() : '';
+
+    const schoolStorageKeys = [
+      'sheet_control_school_data',
+      'sheet_control_official_school_data',
+      'sheet_control_trial_school_data',
+    ];
+    for (const sk of schoolStorageKeys) {
+      if (resolvedAdmin && resolvedSchoolName) break;
+      try {
+        const savedSchool = localStorage.getItem(sk);
+        if (savedSchool) {
+          const parsed = JSON.parse(savedSchool);
+          if (!resolvedAdmin && parsed.administration) resolvedAdmin = parsed.administration;
+          if (!resolvedSchoolName && parsed.schoolName) resolvedSchoolName = parsed.schoolName;
+        }
+      } catch {}
+    }
+    if (!resolvedAdmin) resolvedAdmin = localStorage.getItem('school_administration') || 'إدارة مصر الجديدة التعليمية';
+    if (!resolvedSchoolName) resolvedSchoolName = localStorage.getItem('school_name') || 'مدرسة الأمل الرسمية للغات';
+
+    const controlStorageKeys = [
+      'sheet_control_control_data_by_stage',
+      'sheet_control_official_control_data_by_stage',
+      'sheet_control_trial_control_data_by_stage',
+    ];
+    for (const ck of controlStorageKeys) {
+      if (!isInvalidOrEmpty(resolvedDataOfficer) && !isInvalidOrEmpty(resolvedControlHead) && !isInvalidOrEmpty(resolvedCommitteeHead)) {
+        break;
+      }
+      try {
+        const savedControl = localStorage.getItem(ck);
+        if (savedControl) {
+          const parsedControl = JSON.parse(savedControl);
+          if (parsedControl && typeof parsedControl === 'object') {
+            const stageControl = stage ? parsedControl[stage] : undefined;
+            const fallbackEntry = parsedControl[''] || (Object.values(parsedControl)[0] as Record<string, any> | undefined);
+            if (isInvalidOrEmpty(resolvedDataOfficer)) {
+              const v = stageControl?.dataOfficer || fallbackEntry?.dataOfficer;
+              if (!isInvalidOrEmpty(v)) resolvedDataOfficer = v.trim();
+            }
+            if (isInvalidOrEmpty(resolvedControlHead)) {
+              const v = stageControl?.controlHead || fallbackEntry?.controlHead;
+              if (!isInvalidOrEmpty(v)) resolvedControlHead = v.trim();
+            }
+            if (isInvalidOrEmpty(resolvedCommitteeHead)) {
+              const v = stageControl?.committeeHead || fallbackEntry?.committeeHead;
+              if (!isInvalidOrEmpty(v)) resolvedCommitteeHead = v.trim();
+            }
+          }
+        }
+      } catch {}
+    }
+
+    if (isInvalidOrEmpty(resolvedDataOfficer)) {
+      const v = localStorage.getItem('school_data_officer');
+      if (!isInvalidOrEmpty(v)) resolvedDataOfficer = v!.trim();
+    }
+    if (isInvalidOrEmpty(resolvedControlHead)) {
+      const v = localStorage.getItem('school_control_head');
+      if (!isInvalidOrEmpty(v)) resolvedControlHead = v!.trim();
+    }
+    if (isInvalidOrEmpty(resolvedCommitteeHead)) {
+      const v = localStorage.getItem('school_committee_head');
+      if (!isInvalidOrEmpty(v)) resolvedCommitteeHead = v!.trim();
+    }
+
+    if (isInvalidOrEmpty(resolvedDataOfficer)) resolvedDataOfficer = 'أحمد محمود حسن';
+    if (isInvalidOrEmpty(resolvedControlHead)) resolvedControlHead = 'محمد إبراهيم علي';
+    if (isInvalidOrEmpty(resolvedCommitteeHead)) resolvedCommitteeHead = 'محمود سامي كامل';
+
+    const { exportStudentSuccessStatementPdf } = await import('./detailedAssessmentsHelper');
+    await exportStudentSuccessStatementPdf({
+      students: rawStudents,
+      semester: propSemester,
+      selectedGrade,
+      stage: stage || 'primary',
+      schoolName: resolvedSchoolName,
+      administration: resolvedAdmin,
+      schoolLogo: options.schoolLogo,
+      dataOfficer: resolvedDataOfficer,
+      controlHead: resolvedControlHead,
+      committeeHead: resolvedCommitteeHead,
+      customCols: options.customCols,
+      defaultSubjectsOverrides: options.defaultSubjectsOverrides,
+      rowTheme: options.rowTheme,
+      title: options.title,
     });
     return;
   }

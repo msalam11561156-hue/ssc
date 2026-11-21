@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Square, Play } from 'lucide-react';
-import { getBrandShieldSync } from '../utils/offlineAssetCache';
+import { getBrandShieldSync, getCachedSponsorAdBanner, getSponsorAdBannerSync } from '../utils/offlineAssetCache';
+import sponsorAdBannerFallback from '../assets/images/sponsor_ad_banner.jpg';
 
 export const SPONSOR_DURATION_SECONDS = 15;
 const SPONSOR_DURATION_MS = SPONSOR_DURATION_SECONDS * 1000;
@@ -17,7 +18,22 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
 }) => {
   const [remainingMs, setRemainingMs] = useState<number>(SPONSOR_DURATION_MS);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [adBannerSrc, setAdBannerSrc] = useState<string>(() => getSponsorAdBannerSync());
   const remainingMsRef = useRef<number>(SPONSOR_DURATION_MS);
+
+  useEffect(() => {
+    let active = true;
+    getCachedSponsorAdBanner()
+      .then((cachedUrl) => {
+        if (active && cachedUrl) {
+          setAdBannerSrc(cachedUrl);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -84,7 +100,7 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
           aria-modal="true"
           aria-label="هذا البرنامج برعاية - ضع اعلانك هنا"
         >
-          {/* إطار خارجي متحرك الألوان بارتفاع 85vh (زيادة 10% عن 75vh) */}
+          {/* إطار خارجي متحرك الألوان بارتفاع 90vh (زيادة 5% عن 85vh) */}
           <motion.div
             initial={{
               opacity: 0,
@@ -124,7 +140,7 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
               },
             }}
             style={{ transformStyle: 'preserve-3d' }}
-            className="relative w-[75vw] h-[85vh] min-h-[420px] p-[3px] rounded-[26px] overflow-hidden shadow-[0_32px_95px_-20px_rgba(2,6,23,0.95)] will-change-transform"
+            className="relative w-[75vw] h-[90vh] min-h-[420px] p-[3px] rounded-[26px] overflow-hidden shadow-[0_32px_95px_-20px_rgba(2,6,23,0.95)] will-change-transform"
           >
             {/* حركة دوران ألوان الإطار */}
             <motion.div
@@ -169,8 +185,8 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
               />
 
               {/* الشريط العلوي (شريط العنوان) */}
-              <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 sm:px-10 pt-5 pb-4 border-b border-white/10">
-                <div className="flex items-center gap-2.5 min-w-0 justify-self-start">
+              <div className="relative z-10 flex items-center justify-between gap-3 px-5 sm:px-10 pt-5 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <img
                     src={getBrandShieldSync()}
                     alt="SMART CONTROL"
@@ -188,11 +204,7 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
                   </span>
                 </div>
 
-                <h2 className="justify-self-center text-center text-base sm:text-xl md:text-2xl font-extrabold text-amber-300 tracking-wide whitespace-nowrap">
-                  هذا البرنامج برعاية
-                </h2>
-
-                <div className="flex items-center gap-3 shrink-0 justify-self-end">
+                <div className="flex items-center gap-3 shrink-0">
                   {/* زر إيقاف / تشغيل + عداد الثواني */}
                   <div className="flex items-center gap-2.5" aria-live="polite">
                     <button
@@ -246,24 +258,257 @@ export const SponsorAdCard: React.FC<SponsorAdCardProps> = ({
               </div>
 
               {/* قلب البطاقة الرئيسي */}
-              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 sm:px-14 text-center">
-                <motion.p
-                  animate={{
-                    opacity: [0.32, 1, 0.32],
-                    scale: [0.985, 1.025, 0.985],
+              <div className="relative z-10 flex-1 min-h-0 w-full p-0 flex items-center justify-center overflow-hidden bg-[#060f22]">
+                {/* الصورة الأساسية مع حركة تنفس سينمائية فائقة النعومة */}
+                <motion.img
+                  src={adBannerSrc}
+                  alt="هذا البرنامج برعاية - ضع إعلانك هنا"
+                  loading="eager"
+                  decoding="async"
+                  animate={{ scale: [1, 1.022, 1] }}
+                  transition={{ repeat: Infinity, duration: 12, ease: 'easeInOut' }}
+                  onError={() => {
+                    if (adBannerSrc !== sponsorAdBannerFallback) {
+                      setAdBannerSrc(sponsorAdBannerFallback);
+                    }
                   }}
-                  transition={{ repeat: Infinity, duration: 3.4, ease: 'easeInOut' }}
-                  className="relative font-black text-white leading-[1.2] [text-wrap:balance] text-[clamp(2.25rem,5.2vw,4.5rem)] tracking-tight drop-shadow-[0_0_24px_rgba(251,191,36,0.45)] will-change-transform"
+                  className="w-full h-full object-fill select-none pointer-events-none block contrast-[1.03] saturate-[1.06] will-change-transform"
+                />
+
+                {/* تأثيرات احترافية متناسقة فوق الصورة */}
+                <div className="absolute inset-0 z-10 pointer-events-none select-none overflow-hidden">
+                  {/* 1. إبراز وميض وهالة ذهبية حول لوحة (ضع إعلانك هنا) */}
+                  <div
+                    className="absolute overflow-hidden rounded-sm"
+                    style={{
+                      left: '7.27%',
+                      top: '36.85%',
+                      width: '36.19%',
+                      height: '22.39%',
+                    }}
+                  >
+                    <motion.div
+                      animate={{
+                        opacity: [0.35, 0.9, 0.35],
+                        boxShadow: [
+                          'inset 0 0 12px rgba(251,191,36,0.18), 0 0 12px rgba(251,191,36,0.2)',
+                          'inset 0 0 22px rgba(251,191,36,0.38), 0 0 28px rgba(251,191,36,0.55)',
+                          'inset 0 0 12px rgba(251,191,36,0.18), 0 0 12px rgba(251,191,36,0.2)',
+                        ],
+                      }}
+                      transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute inset-0 border border-amber-300/60 rounded-sm"
+                    />
+                    <motion.div
+                      animate={{ x: ['-130%', '170%'] }}
+                      transition={{
+                        duration: 2.8,
+                        repeat: Infinity,
+                        repeatDelay: 2.4,
+                        ease: 'easeInOut',
+                      }}
+                      className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-amber-100/55 to-transparent skew-x-[-22deg] mix-blend-screen"
+                    />
+                  </div>
+
+                  {/* 2. ومضات نجمية لامعة على زوايا إطار الإعلان الذهبي */}
+                  <motion.div
+                    animate={{
+                      scale: [0, 1.3, 0],
+                      opacity: [0, 1, 0],
+                      rotate: [0, 90, 180],
+                    }}
+                    transition={{
+                      duration: 2.1,
+                      repeat: Infinity,
+                      repeatDelay: 2.6,
+                      ease: 'easeInOut',
+                    }}
+                    style={{ left: '43.3%', top: '36.9%' }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center"
+                  >
+                    <div className="w-full h-[2px] bg-white rounded-full shadow-[0_0_10px_#fbbf24,0_0_18px_#ffffff]" />
+                    <div className="h-full w-[2px] bg-white rounded-full shadow-[0_0_10px_#fbbf24,0_0_18px_#ffffff] absolute" />
+                  </motion.div>
+
+                  <motion.div
+                    animate={{
+                      scale: [0, 1.15, 0],
+                      opacity: [0, 0.95, 0],
+                      rotate: [0, -90, -180],
+                    }}
+                    transition={{
+                      duration: 2.1,
+                      repeat: Infinity,
+                      delay: 1.8,
+                      repeatDelay: 2.6,
+                      ease: 'easeInOut',
+                    }}
+                    style={{ left: '7.4%', top: '59.1%' }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center"
+                  >
+                    <div className="w-full h-[1.5px] bg-cyan-100 rounded-full shadow-[0_0_8px_#38bdf8,0_0_14px_#ffffff]" />
+                    <div className="h-full w-[1.5px] bg-cyan-100 rounded-full shadow-[0_0_8px_#38bdf8,0_0_14px_#ffffff] absolute" />
+                  </motion.div>
+
+                  {/* 3. مسح ضوئي زجاجي مائل انسيابي عبر كامل الصورة */}
+                  <motion.div
+                    animate={{ x: ['-120%', '220%'] }}
+                    transition={{
+                      duration: 4.5,
+                      repeat: Infinity,
+                      repeatDelay: 3.5,
+                      ease: 'easeInOut',
+                    }}
+                    className="absolute inset-y-0 w-1/3 skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/[0.09] to-transparent mix-blend-screen will-change-transform"
+                  />
+
+                  {/* 4. تدرج حواف داخلي خفيف لدمج الصورة باحترافية مع الإطار */}
+                  <div className="absolute inset-0 shadow-[inset_0_0_28px_rgba(6,15,34,0.38)]" />
+                </div>
+
+                {/* ضوء متحرك احترافي يدور بانسيابية حول كامل إطار الصورة */}
+                <svg
+                  viewBox="0 0 1000 560"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full z-20 pointer-events-none"
                 >
-                  ضع اعلانك هنا
-                </motion.p>
+                  <defs>
+                    <filter id="sponsorFrameGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+
+                    <linearGradient id="sponsorGoldBeam" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.35" />
+                      <stop offset="50%" stopColor="#fde68a" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+                    </linearGradient>
+
+                    <linearGradient id="sponsorCyanBeam" x1="100%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.35" />
+                      <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* مسار الإطار الأساسي الدقيق */}
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="997"
+                    height="557"
+                    fill="none"
+                    stroke="rgba(251, 191, 36, 0.28)"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                  />
+
+                  {/* الشعاع الذهبي المتوهج المتحرك حول الإطار (هالة + نواة مضيئة) */}
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="997"
+                    height="557"
+                    pathLength="1000"
+                    fill="none"
+                    stroke="url(#sponsorGoldBeam)"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray="175 825"
+                    vectorEffect="non-scaling-stroke"
+                    filter="url(#sponsorFrameGlow)"
+                    opacity="0.72"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="0"
+                      to="-1000"
+                      dur="12s"
+                      repeatCount="indefinite"
+                    />
+                  </rect>
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="997"
+                    height="557"
+                    pathLength="1000"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray="110 890"
+                    vectorEffect="non-scaling-stroke"
+                    opacity="0.95"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="-30"
+                      to="-1030"
+                      dur="12s"
+                      repeatCount="indefinite"
+                    />
+                  </rect>
+
+                  {/* الشعاع الفيروزي المقابل المتحرك حول الإطار (هالة + نواة مضيئة) */}
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="997"
+                    height="557"
+                    pathLength="1000"
+                    fill="none"
+                    stroke="url(#sponsorCyanBeam)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray="165 835"
+                    vectorEffect="non-scaling-stroke"
+                    filter="url(#sponsorFrameGlow)"
+                    opacity="0.68"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="-500"
+                      to="-1500"
+                      dur="12s"
+                      repeatCount="indefinite"
+                    />
+                  </rect>
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="997"
+                    height="557"
+                    pathLength="1000"
+                    fill="none"
+                    stroke="#e0f2fe"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="95 905"
+                    vectorEffect="non-scaling-stroke"
+                    opacity="0.92"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="-535"
+                      to="-1535"
+                      dur="12s"
+                      repeatCount="indefinite"
+                    />
+                  </rect>
+                </svg>
               </div>
 
               {/* أسفل البطاقة */}
-              <div className="relative z-10 px-6 sm:px-10 py-5 border-t border-white/10 bg-black/25 flex items-center justify-center text-center">
+              <div className="relative z-10 px-6 sm:px-10 py-3.5 sm:py-4 border-t border-white/10 bg-black/25 flex items-center justify-center text-center">
                 <span
                   dir="ltr"
-                  className="font-black text-xl sm:text-2xl md:text-3xl text-amber-300 tracking-wider tabular-nums select-all"
+                  className="font-black text-xs sm:text-sm md:text-lg text-amber-300 tracking-wider tabular-nums select-all"
                 >
                   01098594956 - 01131097055
                 </span>

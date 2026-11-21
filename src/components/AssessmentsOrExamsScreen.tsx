@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, ClipboardList, PenTool, Layers, Info, X } from 'lucide-react';
+import { ArrowRight, ArrowLeft, ClipboardList, PenTool, Layers, Info, X, Check } from 'lucide-react';
 import { translations } from '../i18n';
 import { Language } from '../types';
 
@@ -31,6 +31,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
 }) => {
   const [viewMode, setViewMode] = useState<'main' | 'assessments_sub'>('main');
   const [showDetailedModal, setShowDetailedModal] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<'assessments' | 'exams'>('assessments');
   const t = translations[lang];
 
   const isKg = isKindergarten || stage === 'kindergarten';
@@ -96,13 +97,21 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                   <button
                     type="button"
                     disabled={isNoStudents}
-                    onClick={handleAssessmentsClick}
-                    className={`w-full flex items-center justify-center gap-3 ${
+                    onClick={() => {
+                      setSelectedOption('assessments');
+                      handleAssessmentsClick();
+                    }}
+                    className={`w-full relative flex items-center justify-center gap-3 ${
                       isNoStudents 
                         ? 'bg-slate-300 border-slate-400 text-slate-500 cursor-not-allowed opacity-60 shadow-none' 
                         : 'bg-gradient-to-r from-[#14b8a6] via-[#0d9488] to-[#0f766e] hover:from-[#0d9488] hover:to-[#115e59] text-white active:scale-[0.98] shadow-lg'
                     } font-bold py-6 px-4 rounded-xl transition-all border-[1.5px] border-slate-900 text-lg md:text-xl`}
                   >
+                    {selectedOption === 'assessments' && !isNoStudents && (
+                      <div className="absolute top-3.5 left-3.5 w-7 h-7 rounded-full bg-white text-teal-600 flex items-center justify-center shadow-md">
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      </div>
+                    )}
                     <ClipboardList className="w-6 h-6" />
                     <span className="inline-block transform -translate-y-0.5">{(t as any).assessments || 'التقييمات'}</span>
                   </button>
@@ -111,13 +120,21 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                   <button
                     type="button"
                     disabled={disableExams || isNoStudents}
-                    onClick={onSelectExams}
-                    className={`w-full flex items-center justify-center gap-3 ${
+                    onClick={() => {
+                      setSelectedOption('exams');
+                      onSelectExams();
+                    }}
+                    className={`w-full relative flex items-center justify-center gap-3 ${
                       disableExams || isNoStudents 
                         ? 'bg-slate-300 border-slate-400 text-slate-500 cursor-not-allowed opacity-60 shadow-none' 
                         : 'bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white active:scale-[0.98] shadow-lg'
                     } font-bold py-6 px-4 rounded-xl transition-all border-[1.5px] border-slate-900 text-lg md:text-xl`}
                   >
+                    {selectedOption === 'exams' && !disableExams && !isNoStudents && (
+                      <div className="absolute top-3.5 left-3.5 w-7 h-7 rounded-full bg-white text-purple-600 flex items-center justify-center shadow-md">
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      </div>
+                    )}
                     <PenTool className="w-9 h-9" />
                     <span className="inline-block transform -translate-y-0.5">{(t as any).writtenExams}</span>
                   </button>
@@ -132,14 +149,35 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                     />
                   </div>
                   
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="w-1/2 flex items-center justify-center gap-2 bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black text-white font-bold py-4 px-8 rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-white shadow-lg"
-                  >
-                    {lang === 'ar' ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
-                    {t.back}
-                  </button>
+                  <div className="w-full flex items-center justify-center gap-4">
+                    <button
+                      type="button"
+                      onClick={onBack}
+                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black text-white font-bold py-4 px-4 rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-white shadow-lg text-base"
+                    >
+                      {lang === 'ar' ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
+                      {t.back}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isNoStudents}
+                      onClick={() => {
+                        if (selectedOption === 'exams') {
+                          onSelectExams();
+                        } else {
+                          handleAssessmentsClick();
+                        }
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 ${
+                        isNoStudents
+                          ? 'bg-slate-300 border-slate-400 text-slate-500 cursor-not-allowed opacity-60 shadow-none'
+                          : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg border-[1.5px] border-white'
+                      } font-bold py-4 px-4 rounded-lg transition-all active:scale-[0.98] text-base`}
+                    >
+                      <span>{t.next}</span>
+                      {lang === 'ar' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ) : (

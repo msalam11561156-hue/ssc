@@ -1,5 +1,5 @@
 import { DetailedAssessmentItem, StudentData } from '../types';
-import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme, getSubjectsConfigForStageGrade } from './exportPdf';
+import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme, getSubjectsConfigForStageGrade, getMiddleActualMaxGrade } from './exportPdf';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from './deletedSubjects';
@@ -7,6 +7,7 @@ import qrCodeUrl from '../assets/images/asd11.jpg';
 import { getActiveFooterTagline } from './adFilter';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
+import { isFemaleStudent } from './topTenCertificatesHelper';
 
 function drawCrispImage(
   ctx: CanvasRenderingContext2D,
@@ -3777,12 +3778,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
           hasAnyRecordedScore = true;
           allAddedAbsent = false;
           const combined = (hasSem1 && hasSem2) ? (sem1Total + sem2Total) / 2 : (hasSem2 ? sem2Total : sem1Total);
-          if (isMiddleStage && isSecondSem) {
-            const actualMax = getMiddleActualMax(subj);
-            totalAddedScore += Math.round(((combined / 100) * actualMax) * 10) / 10;
-          } else if (isSec2 && isSecondSem) {
-            const actualMax = getSecondary2ActualMax(subj);
-            totalAddedScore += Math.round(((combined / 100) * actualMax) * 10) / 10;
+          if (isMiddleStage || isSecondaryStage) {
+            totalAddedScore += combined;
           } else {
             totalAddedScore += combined;
           }
@@ -5198,15 +5195,14 @@ export async function exportStudentSemesterGradesCertificatePdf(
           pctStr = '0';
           evalLabel = 'غائب';
         } else if (hasSem1Total || hasSem2Total) {
-          // مجموع الفصلين للدرجة الفعلية
-          let combinedSum = numericTotalSem1 + numericTotalSem2;
-
-          // الدرجة الفعلية للطالب = (مجموع درجات الطالب * الدرجة الفعلية للمادة الدراسية) / 200
-          const actualMaxForFormula = isMiddleStage ? middleActualMax : (isSecondaryStage ? secondaryActualMax : subjMax);
-          const studentActualScore = Math.round(((combinedSum * actualMaxForFormula) / 200) * 10) / 10;
+          const finalActual = (hasSem1Total && hasSem2Total)
+            ? (numericTotalSem1 + numericTotalSem2) / 2
+            : (hasSem2Total ? numericTotalSem2 : numericTotalSem1);
+          const studentActualScore = Math.round(finalActual * 10) / 10;
           actualGradeStr = Number.isInteger(studentActualScore) ? String(studentActualScore) : studentActualScore.toFixed(1);
 
-          let pct = subjMax > 0 ? (combinedSum / subjMax) * 100 : 0;
+          const actualMaxForFormula = isMiddleStage ? middleActualMax : (isSecondaryStage ? secondaryActualMax : subjMax);
+          let pct = actualMaxForFormula > 0 ? (studentActualScore * 100) / actualMaxForFormula : 0;
           if (isPrimaryStage) {
             // فى المرحلة الابتدائية فى ملف شهادات الفصل الدراسي الثانى فى خلايا حقل النسبة المئوية اقسم القيمة / 2
             pct = pct / 2;
@@ -6205,6 +6201,1302 @@ export async function exportStudentSemesterGradesCertificatePdf(
   link.download = isEn
     ? `Student_Semester_Grades_Certificate_${semester}_${safeGrade}.pdf`
     : `شهادة_درجات_وتقديرات_${safeSemester}_2026_-_2027_${safeGrade}.pdf`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+export interface ExportStudentSuccessStatementPdfOptions {
+  students: StudentData[];
+  semester: string;
+  selectedGrade: string;
+  stage?: string;
+  schoolName?: string;
+  administration?: string;
+  governorate?: string;
+  schoolLogo?: string;
+  dataOfficer?: string;
+  controlHead?: string;
+  committeeHead?: string;
+  rowTheme?: string;
+  customCols?: any[];
+  defaultSubjectsOverrides?: Record<string, any>;
+  title?: string;
+}
+
+export async function exportStudentSuccessStatementPdf(
+  options: ExportStudentSuccessStatementPdfOptions
+): Promise<void> {
+  const {
+    students,
+    semester,
+    selectedGrade,
+    stage = 'primary',
+    schoolName = '',
+    administration = '',
+    dataOfficer: propDataOfficer,
+    controlHead: propControlHead,
+    committeeHead: propCommitteeHead,
+    customCols: propCustomCols,
+  } = options;
+
+  try {
+    if (typeof document !== 'undefined' && document.fonts) {
+      await document.fonts.ready;
+    }
+  } catch {}
+
+  let sLogo = options.schoolLogo || localStorage.getItem('sheet_control_school_logo') || localStorage.getItem('school_logo') || '';
+  const [qrImage, ministryLogoImage, schoolLogoImage, penIcon] = await Promise.all([
+    loadImage(qrCodeUrl),
+    loadImage(ministryLogoUrl),
+    sLogo ? loadImage(sLogo) : Promise.resolve(null),
+    loadImage(signaturePenUrl),
+  ]);
+
+  const isInvalidOrEmpty = (val?: string): boolean => {
+    if (!val) return true;
+    const s = val.trim();
+    return s === '' || s === '................' || s.includes('...') || s.includes('..') || s === '.';
+  };
+
+  let sAdmin = administration || '';
+  let sName = schoolName || '';
+  const schoolStorageKeys = [
+    'sheet_control_school_data',
+    'sheet_control_official_school_data',
+    'sheet_control_trial_school_data',
+  ];
+  for (const sk of schoolStorageKeys) {
+    if (sAdmin && sName) break;
+    try {
+      const savedSchool = localStorage.getItem(sk);
+      if (savedSchool) {
+        const parsed = JSON.parse(savedSchool);
+        if (!sAdmin && parsed.administration) sAdmin = parsed.administration;
+        if (!sName && parsed.schoolName) sName = parsed.schoolName;
+      }
+    } catch {}
+  }
+  if (!sAdmin) sAdmin = localStorage.getItem('school_administration') || 'إدارة مصر الجديدة التعليمية';
+  if (!sName) sName = localStorage.getItem('school_name') || 'مدرسة الأمل الرسمية للغات';
+
+  let dataOfficer = !isInvalidOrEmpty(propDataOfficer) ? propDataOfficer!.trim() : '';
+  let controlHead = !isInvalidOrEmpty(propControlHead) ? propControlHead!.trim() : '';
+  let committeeHead = !isInvalidOrEmpty(propCommitteeHead) ? propCommitteeHead!.trim() : '';
+
+  const controlStorageKeys = [
+    'sheet_control_control_data_by_stage',
+    'sheet_control_official_control_data_by_stage',
+    'sheet_control_trial_control_data_by_stage',
+  ];
+  for (const ck of controlStorageKeys) {
+    if (!isInvalidOrEmpty(dataOfficer) && !isInvalidOrEmpty(controlHead) && !isInvalidOrEmpty(committeeHead)) {
+      break;
+    }
+    try {
+      const savedControl = localStorage.getItem(ck);
+      if (savedControl) {
+        const parsedControl = JSON.parse(savedControl);
+        if (parsedControl && typeof parsedControl === 'object') {
+          const stageControl = stage ? parsedControl[stage] : undefined;
+          const fallbackEntry = parsedControl[''] || (Object.values(parsedControl)[0] as Record<string, any> | undefined);
+          if (isInvalidOrEmpty(dataOfficer)) {
+            const v = stageControl?.dataOfficer || fallbackEntry?.dataOfficer;
+            if (!isInvalidOrEmpty(v)) dataOfficer = v.trim();
+          }
+          if (isInvalidOrEmpty(controlHead)) {
+            const v = stageControl?.controlHead || fallbackEntry?.controlHead;
+            if (!isInvalidOrEmpty(v)) controlHead = v.trim();
+          }
+          if (isInvalidOrEmpty(committeeHead)) {
+            const v = stageControl?.committeeHead || fallbackEntry?.committeeHead;
+            if (!isInvalidOrEmpty(v)) committeeHead = v.trim();
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (isInvalidOrEmpty(dataOfficer) || isInvalidOrEmpty(controlHead) || isInvalidOrEmpty(committeeHead)) {
+    try {
+      const rawControl = localStorage.getItem('controlData') || localStorage.getItem('control_data');
+      if (rawControl) {
+        const parsed = JSON.parse(rawControl);
+        if (parsed && typeof parsed === 'object') {
+          if (isInvalidOrEmpty(dataOfficer) && !isInvalidOrEmpty(parsed.dataOfficer)) dataOfficer = parsed.dataOfficer.trim();
+          if (isInvalidOrEmpty(controlHead) && !isInvalidOrEmpty(parsed.controlHead)) controlHead = parsed.controlHead.trim();
+          if (isInvalidOrEmpty(committeeHead) && !isInvalidOrEmpty(parsed.committeeHead)) committeeHead = parsed.committeeHead.trim();
+        }
+      }
+    } catch {}
+  }
+
+  if (isInvalidOrEmpty(dataOfficer)) {
+    const v = localStorage.getItem('school_data_officer');
+    if (!isInvalidOrEmpty(v)) dataOfficer = v!.trim();
+  }
+  if (isInvalidOrEmpty(controlHead)) {
+    const v = localStorage.getItem('school_control_head');
+    if (!isInvalidOrEmpty(v)) controlHead = v!.trim();
+  }
+  if (isInvalidOrEmpty(committeeHead)) {
+    const v = localStorage.getItem('school_committee_head');
+    if (!isInvalidOrEmpty(v)) committeeHead = v!.trim();
+  }
+
+  if (isInvalidOrEmpty(dataOfficer)) dataOfficer = 'أحمد محمود حسن';
+  if (isInvalidOrEmpty(controlHead)) controlHead = 'محمد إبراهيم علي';
+  if (isInvalidOrEmpty(committeeHead)) committeeHead = 'محمود سامي كامل';
+
+  const isHomeschoolContext = Boolean(
+    (options.title && (options.title.includes('منازل') || options.title.toLowerCase().includes('homeschool'))) ||
+      (selectedGrade && (selectedGrade.includes('منازل') || selectedGrade.includes('خدمات'))) ||
+      (typeof window !== 'undefined' &&
+        (localStorage.getItem('current_system_type') === 'homeschool' ||
+          localStorage.getItem('systemType') === 'homeschool'))
+  );
+  const cfg = getSubjectsConfigForStageGrade(stage, selectedGrade, isHomeschoolContext);
+  const resolvedOverrides = options.defaultSubjectsOverrides || cfg.defaultSubjectsOverrides || {};
+  let baseSubjects: any[] = propCustomCols || cfg.customCols || [];
+  baseSubjects = filterDeletedSubjects(baseSubjects, stage, selectedGrade);
+  const isSec2Modern = checkIsSecondary2Modern(stage, selectedGrade);
+
+  const isMax40 = stage === 'primary';
+  const isMiddleStage = stage === 'middle' || stage === 'prep';
+  const isSecondaryStage = stage === 'secondary' || stage === 'sec';
+  const isSec2 =
+    isSecondaryStage &&
+    Boolean(
+      selectedGrade?.includes('الثاني') ||
+        selectedGrade?.includes('الثانى') ||
+        selectedGrade?.toLowerCase().includes('2nd') ||
+        selectedGrade?.includes('second') ||
+        selectedGrade === 'secondary_2' ||
+        selectedGrade?.includes('2')
+    );
+
+  const getSecondary2ActualMaxForStatement = (s: any, ovr: any, rawMax: number): number => {
+    if (isSec2Modern) return Number(ovr?.actualMaxGrade ?? s?.actualMaxGrade ?? rawMax);
+    if (ovr?.actualMaxGrade !== undefined && Number(ovr.actualMaxGrade) > 0) {
+      return Number(ovr.actualMaxGrade);
+    }
+    if (s?.actualMaxGrade !== undefined && Number(s.actualMaxGrade) > 0) {
+      return Number(s.actualMaxGrade);
+    }
+    const k = String(s?.key || '').toLowerCase();
+    const lbl = String(ovr?.label || s?.label || s?.name || '').trim();
+    if (k === 'arabic' || lbl.includes('عرب')) return 80;
+    if (k === 'english' || lbl.includes('إنجليز') || lbl.includes('انجليز') || lbl.toLowerCase().includes('english')) return 60;
+    if (k === 'math' || lbl.includes('رياضيات') || lbl.includes('رياض') || lbl.includes('بحتة') || lbl.includes('تطبيقي')) return 60;
+    if (k === 'history' || lbl.includes('تاريخ')) return 60;
+    if (k === 'geography' || lbl.includes('جغرافيا') || lbl.includes('جغراف')) return 60;
+    if (k === 'psychology' || lbl.includes('علم النفس') || lbl.includes('نفس')) return 60;
+    if (k === 'chemistry' || lbl.includes('كيمياء') || lbl.includes('كيميا')) return 60;
+    if (k === 'physics' || lbl.includes('فيزياء') || lbl.includes('فيزيا')) return 60;
+    if (k === 'religion' || lbl.includes('دين') || lbl.includes('إسلام') || lbl.includes('مسيح')) return 40;
+    if (k === 'second_foreign_language' || lbl.includes('أجنبية ثانية') || lbl.includes('اجنبية ثانية') || lbl.includes('فرنس') || lbl.includes('ألمان') || lbl.includes('المان') || lbl.includes('إيطال') || lbl.includes('ايطال') || lbl.includes('إسبان') || lbl.includes('اسبان')) return 40;
+    if (k === 'pe' || k === 'physical_education' || lbl.includes('رياضية') || lbl.includes('بدنية')) return 25;
+    if (k === 'national_education' || lbl.includes('وطنية')) return 25;
+    if (k === 'educational_vocational_activity' || k === 'activity' || k.includes('activity') || lbl.includes('مهن') || lbl.includes('تربو') || lbl.includes('نشاط')) return 20;
+    return rawMax;
+  };
+
+  const getStatementActualMax = (s: any, ovr: any, rawMax: number): number => {
+    if (ovr?.actualMaxGrade !== undefined && Number(ovr.actualMaxGrade) > 0) {
+      return Number(ovr.actualMaxGrade);
+    }
+    if (s?.actualMaxGrade !== undefined && Number(s.actualMaxGrade) > 0) {
+      return Number(s.actualMaxGrade);
+    }
+    if (isMiddleStage) {
+      return getMiddleActualMaxGrade(s.key, { ...s, ...ovr, label: ovr?.label || s.label });
+    }
+    if (isSec2) {
+      return getSecondary2ActualMaxForStatement(s, ovr, rawMax);
+    }
+    return rawMax;
+  };
+
+  const mapBaseSubjectToCol = (s: any) => {
+    const ovr = resolvedOverrides?.[s.key] || {};
+    const label = ovr.label || s.label || s.key;
+    const isTotal = s.key === 'total' || (label && String(label).includes('مجموع'));
+    const isAdded = ovr.isAddedToTotal !== undefined ? ovr.isAddedToTotal : (s.isAddedToTotal !== false);
+    const hasWritten = !isTotal && stage !== 'kindergarten' && (ovr.hasWrittenExam !== undefined ? ovr.hasWrittenExam : (s.hasWrittenExam !== false)) && !isSubjectWithoutWrittenExam({ ...s, ...ovr, label }, baseSubjects, stage);
+    const parsedBaseMax = Number(s.maxScore ?? ovr.maxGrade ?? s.maxGrade ?? s.max ?? 100);
+    const actualMaxScore = isTotal ? parsedBaseMax : getStatementActualMax(s, ovr, parsedBaseMax);
+    const maxScore = actualMaxScore;
+    const minScore = s.minScore ?? Math.round(maxScore / 2);
+    const isReligion = s.key === 'religion' || Boolean(label && String(label).includes('دين'));
+    const maxAssessmentsGrade =
+      ovr.maxAssessmentsGrade !== undefined
+        ? Number(ovr.maxAssessmentsGrade)
+        : s.maxAssessmentsGrade !== undefined
+        ? Number(s.maxAssessmentsGrade)
+        : hasWritten
+        ? isHomeschoolContext && isMiddleStage
+          ? 0
+          : isMax40
+          ? 40
+          : 70
+        : 100;
+    const maxWrittenGrade = hasWritten
+      ? ovr.maxWrittenGrade !== undefined
+        ? Number(ovr.maxWrittenGrade)
+        : s.maxWrittenGrade !== undefined
+        ? Number(s.maxWrittenGrade)
+        : isHomeschoolContext && isMiddleStage
+        ? 100
+        : Math.round(parsedBaseMax * (isMax40 ? 0.6 : 0.3))
+      : 0;
+    const rawMaxScore =
+      maxAssessmentsGrade + maxWrittenGrade > 0 ? maxAssessmentsGrade + maxWrittenGrade : 100;
+    const minTotalPassPercentage =
+      ovr.minTotalPassPercentage !== undefined
+        ? Number(ovr.minTotalPassPercentage)
+        : s.minTotalPassPercentage !== undefined
+        ? Number(s.minTotalPassPercentage)
+        : isReligion
+        ? 70
+        : 50;
+    const rawMinWrittenPass =
+      ovr.minPassPercentage !== undefined ? ovr.minPassPercentage : s.minPassPercentage;
+    const minWrittenPassPercentage =
+      rawMinWrittenPass === undefined ||
+      rawMinWrittenPass === 70 ||
+      rawMinWrittenPass === 10 ||
+      rawMinWrittenPass === 7.2
+        ? stage === 'secondary'
+          ? 25
+          : 30
+        : Number(rawMinWrittenPass);
+    return {
+      key: s.key,
+      label,
+      maxScore,
+      rawMaxScore,
+      minScore,
+      isAdded,
+      isTotal,
+      hasWritten,
+      maxAssessmentsGrade,
+      maxWrittenGrade,
+      minTotalPassPercentage,
+      minWrittenPassPercentage,
+    };
+  };
+
+  // Build columns list matching the reference standard
+  let cols: any[] = [];
+  if (baseSubjects.length > 0) {
+    const mapped = baseSubjects.map(mapBaseSubjectToCol);
+    const added = mapped.filter((s) => s.isAdded && !s.isTotal);
+    const nonAdded = mapped.filter((s) => !s.isAdded && !s.isTotal);
+    const totalMax = added.reduce((sum, s) => sum + Number(s.maxScore || 100), 0);
+    const totalMin = Math.round(totalMax / 2);
+
+    const hasTotalAlready = mapped.some((s) => s.isTotal);
+    if (hasTotalAlready) {
+      cols = mapped;
+    } else {
+      cols = [
+        ...added,
+        { key: 'total', label: 'المجموع', maxScore: totalMax, minScore: totalMin, isTotal: true, isAdded: true, hasWritten: false },
+        ...nonAdded,
+      ];
+    }
+  } else {
+    cols = [
+      { key: 'arabic', label: 'عربي', maxScore: 80, minScore: 40, isAdded: true, hasWritten: true },
+      { key: 'english', label: 'انجليزي', maxScore: 60, minScore: 30, isAdded: true, hasWritten: true },
+      { key: 'social', label: 'دراسات', maxScore: 40, minScore: 20, isAdded: true, hasWritten: true },
+      { key: 'math', label: 'رياضيات', maxScore: 60, minScore: 30, isAdded: true, hasWritten: true },
+      { key: 'science', label: 'علوم', maxScore: 40, minScore: 20, isAdded: true, hasWritten: true },
+      { key: 'total', label: 'المجموع', maxScore: 280, minScore: 140, isTotal: true, isAdded: true, hasWritten: false },
+      { key: 'activity1', label: 'نشاط ١', maxScore: 20, minScore: 10, isAdded: false, hasWritten: false },
+      { key: 'activity2', label: 'نشاط ٢', maxScore: 20, minScore: 10, isAdded: false, hasWritten: false },
+      { key: 'religion', label: 'دين', maxScore: 40, minScore: 20, isAdded: false, hasWritten: true },
+      { key: 'art', label: 'رسم', maxScore: 20, minScore: 10, isAdded: false, hasWritten: false },
+      { key: 'computer', label: 'حاسب', maxScore: 20, minScore: 10, isAdded: false, hasWritten: true },
+      { key: 'levelE', label: 'مستوى E', maxScore: 50, minScore: 25, isAdded: false, hasWritten: true },
+      { key: 'levelF', label: 'مستوى F', maxScore: 30, minScore: 15, isAdded: false, hasWritten: true },
+      { key: 'pe', label: 'تربية رياضية', maxScore: 20, minScore: 10, isAdded: false, hasWritten: false },
+    ];
+  }
+
+  const renderedPages: { jpegBytes: Uint8Array; widthPx: number; heightPx: number }[] = [];
+
+  for (const student of students || []) {
+    const isFemale = isFemaleStudent(student);
+    const statementTitle = isFemale
+      ? 'مستخرج رسمي لبيان درجات طالبة'
+      : 'مستخرج رسمي لبيان درجات طالب';
+    const studentLabel = isFemale ? 'اسم الطالبة' : 'اسم الطالب';
+    const studentDegreeLabel = isFemale ? 'الطالبة' : 'الطالب';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1190;
+    canvas.height = 1684;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) continue;
+
+    // Crisp white background (no outer borders)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 1190, 1684);
+
+    const marginX = 60;
+    const contentW = 1070;
+    const topInfoY = 45;
+    const topInfoH = 46;
+
+    ctx.direction = 'rtl';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 20px "Cairo", sans-serif';
+    ctx.textBaseline = 'middle';
+
+    const adminDisplay = `الإدارة : ${sAdmin || '........................'}`;
+    const schoolDisplay = `المدرسة : ${sName || '........................'}`;
+
+    // Far right: Administration
+    ctx.textAlign = 'right';
+    ctx.fillText(adminDisplay, marginX + contentW, topInfoY + topInfoH / 2);
+
+    // Far left: School Name
+    ctx.textAlign = 'left';
+    ctx.fillText(schoolDisplay, marginX, topInfoY + topInfoH / 2);
+
+    // Header dividing black line (like Calling List)
+    const headerLineY = topInfoY + topInfoH + 6;
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(marginX, headerLineY);
+    ctx.lineTo(marginX + contentW, headerLineY);
+    ctx.stroke();
+
+    // Title Banner
+    const bannerY = headerLineY + 14;
+    const bannerH = 75;
+    const bannerGrad = ctx.createLinearGradient(marginX, bannerY, marginX + contentW, bannerY);
+    bannerGrad.addColorStop(0, '#361500');
+    bannerGrad.addColorStop(0.25, '#5c270d');
+    bannerGrad.addColorStop(0.5, '#9a5826');
+    bannerGrad.addColorStop(0.75, '#5c270d');
+    bannerGrad.addColorStop(1, '#361500');
+
+    drawRoundedRect(ctx, marginX, bannerY, contentW, bannerH, 14);
+    ctx.fillStyle = bannerGrad;
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#0f172a';
+    ctx.stroke();
+
+    const stageDisplayName = (() => {
+      if (stage === 'kindergarten') return 'رياض الأطفال';
+      if (stage === 'primary') return 'المرحلة الابتدائية';
+      if (stage === 'middle' || stage === 'prep') return 'المرحلة الإعدادية';
+      if (stage === 'secondary') return 'المرحلة الثانوية';
+      return stage || '';
+    })();
+
+    const bannerTitleParts = [statementTitle];
+    if (stageDisplayName) bannerTitleParts.push(stageDisplayName);
+    if (selectedGrade) bannerTitleParts.push(selectedGrade);
+    bannerTitleParts.push('2026 - 2027');
+    const bannerTitleText = bannerTitleParts.join(' - ');
+
+    ctx.fillStyle = '#ffffff';
+    let bannerFontSize = 24;
+    ctx.font = `bold ${bannerFontSize}px "Cairo", sans-serif`;
+    while (bannerFontSize > 16 && ctx.measureText(bannerTitleText).width > contentW - 40) {
+      bannerFontSize -= 0.5;
+      ctx.font = `bold ${bannerFontSize}px "Cairo", sans-serif`;
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bannerTitleText, marginX + contentW / 2, bannerY + bannerH / 2 + 2);
+
+    // Student Photo Placeholder Box (widened +10% on the far left between title banner and name box)
+    const photoW = 165; // +10% over 150
+    const photoH = 225;
+    const photoX = marginX;
+    const photoY = bannerY + bannerH + 22;
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    drawRoundedRect(ctx, photoX, photoY, photoW, photoH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.direction = 'rtl';
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 20px "Cairo", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('صورة الطالب', photoX + photoW / 2, photoY + photoH / 2);
+    ctx.restore();
+
+    // Detail lines placed beside the photo box on the right side of the page
+    const textFontSize = 20;
+    const dotsFontSize = 18;
+    const rightBlockLeftLimitX = photoX + photoW + 28;
+    const rightBlockMaxW = marginX + contentW - rightBlockLeftLimitX;
+
+    const drawMixedDetailLine = (
+      segments: { text: string; isDots?: boolean }[],
+      yPos: number,
+      baseFont = textFontSize,
+      maxW = rightBlockMaxW
+    ) => {
+      ctx.save();
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right';
+
+      let scale = 1;
+      const measureTotal = (s: number) =>
+        segments.reduce((acc, seg) => {
+          ctx.font = seg.isDots
+            ? `400 ${Math.round(dotsFontSize * s)}px "Cairo", sans-serif`
+            : `bold ${Math.round(baseFont * s)}px "Cairo", sans-serif`;
+          return acc + ctx.measureText(seg.text).width;
+        }, 0);
+
+      while (scale > 0.65 && measureTotal(scale) > maxW) {
+        scale -= 0.03;
+      }
+
+      let cursorX = marginX + contentW;
+      for (const seg of segments) {
+        ctx.direction = 'rtl';
+        ctx.font = seg.isDots
+          ? `400 ${Math.round(dotsFontSize * scale)}px "Cairo", sans-serif`
+          : `bold ${Math.round(baseFont * scale)}px "Cairo", sans-serif`;
+        ctx.fillStyle = seg.isDots ? '#334155' : '#0f172a';
+        ctx.fillText(seg.text, cursorX, yPos);
+        cursorX -= ctx.measureText(seg.text).width;
+      }
+      ctx.restore();
+    };
+
+    const drawDottedDetailLine = (
+      label: string,
+      yPos: number,
+      leftLimitX = rightBlockLeftLimitX
+    ) => {
+      ctx.save();
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right';
+      ctx.direction = 'rtl';
+
+      ctx.font = `bold ${textFontSize}px "Cairo", sans-serif`;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(label, marginX + contentW, yPos);
+      const labelW = ctx.measureText(label).width;
+
+      const dotsRightX = marginX + contentW - labelW - 4;
+      const availDotsW = Math.max(40, dotsRightX - leftLimitX);
+
+      ctx.font = `400 ${dotsFontSize}px "Cairo", sans-serif`;
+      ctx.fillStyle = '#334155';
+      let dots = '.';
+      while (ctx.measureText(dots + '.').width <= availDotsW) {
+        dots += '.';
+      }
+      ctx.fillText(dots, dotsRightX, yPos);
+      ctx.restore();
+    };
+
+    drawMixedDetailLine(
+      [{ text: 'تم استخراج هذا المحرر بعد سداد الرسوم المقررة .' }],
+      photoY + 28,
+      21
+    );
+
+    drawMixedDetailLine(
+      [
+        { text: 'قسيمة سداد رقم ' },
+        { text: '..........................', isDots: true },
+        { text: ' مجموعة ' },
+        { text: '.........................', isDots: true },
+        { text: ' بمبلغ ' },
+        { text: '....................', isDots: true },
+        { text: ' جنيها مصريا' },
+      ],
+      photoY + 84
+    );
+
+    drawDottedDetailLine('بناء على طلب ولى الأمر : ', photoY + 140);
+    drawDottedDetailLine('وذلك لتقديم هذا البيان الى : ', photoY + 196);
+
+    // Student Info Box
+    const boxY = photoY + photoH + 22;
+    const boxH = 68;
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    drawRoundedRect(ctx, marginX, boxY, contentW, boxH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#0a2240';
+    ctx.font = 'bold 21px "Cairo", sans-serif';
+    ctx.textBaseline = 'middle';
+    const studentName = student.name || '........................';
+    const nationalId = student.nationalId || '........................';
+
+    // اسم الطالب / الطالبة فى أقصى اليمين
+    ctx.textAlign = 'right';
+    ctx.fillText(`${studentLabel} : ${studentName}`, marginX + contentW - 25, boxY + boxH / 2);
+
+    // الرقم القومى فى أقصى اليسار
+    ctx.textAlign = 'left';
+    ctx.fillText(`الرقم القومى : ${nationalId}`, marginX + 25, boxY + boxH / 2);
+
+    // Table Setup
+    const tableX = marginX;
+    const tableY = boxY + boxH + 30;
+    const tableW = contentW;
+    const headerRowH = Math.round(193 * 1.21);
+    const subHeaderH1 = 50;
+    const emptyRowH = Math.round(subHeaderH1 * 0.2) * 2; // زيادة 100% عن الارتفاع السابق (20 px)
+    const subHeaderH2 = 50;
+    const dataRowH = 58;
+    const tableTotalH = headerRowH + emptyRowH + subHeaderH1 + subHeaderH2 + dataRowH;
+    const tableRadius = 14;
+
+    const baseCol0W = Math.max(95, Math.min(115, Math.round(tableW / (cols.length + 1) * 1.35)));
+    const col0W = Math.round(baseCol0W * 1.21);
+    const remainingW = tableW - col0W;
+    const colW = remainingW / cols.length;
+    const col0Left = tableX + tableW - col0W;
+    const col0Center = col0Left + col0W / 2;
+
+    const spacerY = tableY + headerRowH;
+    const r2Y = spacerY + emptyRowH;
+    const r3Y = r2Y + subHeaderH1;
+    const r4Y = r3Y + subHeaderH2;
+
+    // Helper to draw vertical text from top to bottom (ALWAYS on a single line)
+    const drawVerticalTopToBottom = (
+      text: string,
+      cX: number,
+      cY: number,
+      availH: number,
+      textColor = '#000000'
+    ) => {
+      const chars = Array.from(text.trim());
+      const clean = chars.length > 22 ? chars.slice(0, 22).join('').trimEnd() : chars.join('');
+      ctx.save();
+      ctx.translate(cX, cY);
+      ctx.rotate(-Math.PI / 2);
+      ctx.direction = 'rtl';
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let fSize = 16.5;
+      ctx.font = `bold ${fSize}px "Cairo", sans-serif`;
+      while (fSize > 7.5 && ctx.measureText(clean).width > availH - 12) {
+        fSize -= 0.5;
+        ctx.font = `bold ${fSize}px "Cairo", sans-serif`;
+      }
+      ctx.fillText(clean, 0, 0);
+      ctx.restore();
+    };
+
+    // Helper to draw single line horizontal text
+    const drawSingleLineCell = (text: string, cX: number, cY: number, maxW: number) => {
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let fSize = 15;
+      ctx.font = `bold ${fSize}px "Cairo", sans-serif`;
+      while (fSize > 9 && ctx.measureText(text).width > maxW - 8) {
+        fSize -= 0.5;
+        ctx.font = `bold ${fSize}px "Cairo", sans-serif`;
+      }
+      ctx.fillText(text, cX, cY);
+    };
+
+    // Clip to rounded table corners
+    ctx.save();
+    drawRoundedRect(ctx, tableX, tableY, tableW, tableTotalH, tableRadius);
+    ctx.clip();
+
+    // 1. Fill row backgrounds
+    // Row 1: Header (White)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(tableX, tableY, tableW, headerRowH);
+
+    // Empty Spacer Row above النهاية الكبرى (White)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(tableX, spacerY, tableW, emptyRowH);
+
+    // Row 2: النهاية الكبرى (Light Blue)
+    ctx.fillStyle = '#dbeafe';
+    ctx.fillRect(tableX, r2Y, tableW, subHeaderH1);
+
+    // Row 3: النهاية الصغرى (Light Pink)
+    ctx.fillStyle = '#fce7f3';
+    ctx.fillRect(tableX, r3Y, tableW, subHeaderH2);
+
+    // Row 4: درجة الطالب / الطالبة (Bright Yellow)
+    ctx.fillStyle = '#ffff00';
+    ctx.fillRect(tableX, r4Y, tableW, dataRowH);
+
+    // 2. Draw Column 0 (Row titles on the far right on a single line)
+    // Row 1: "المادة" (vertical on a single line)
+    drawVerticalTopToBottom('المادة', col0Center, tableY + headerRowH / 2, headerRowH, '#000000');
+
+    // Row 2: "العظمى" (single horizontal line)
+    drawSingleLineCell('العظمى', col0Center, r2Y + subHeaderH1 / 2, col0W);
+
+    // Row 3: "الصغرى" (single horizontal line)
+    drawSingleLineCell('الصغرى', col0Center, r3Y + subHeaderH2 / 2, col0W);
+
+    // Row 4: "درجة الطالب / الطالبة" (single horizontal line)
+    drawSingleLineCell(`درجة ${studentDegreeLabel}`, col0Center, r4Y + dataRowH / 2, col0W);
+
+    // 3. Draw Subject Columns
+    const sem1Keys = ['first', 'الفصل الدراسي الأول', 'الفصل الدراسي الاول'];
+    const sem2Keys = [
+      ...(semester && !sem1Keys.includes(semester) && semester !== 'second' ? [semester] : []),
+      'second',
+      'الفصل الدراسي الثاني',
+      'الفصل الدراسي الثانى',
+    ];
+
+    const gradingSettings = getGradingSettings(stage, selectedGrade);
+    const mercyBoosts =
+      stage === 'primary' || stage === 'middle' || stage === 'prep' || stage === 'secondary'
+        ? getPrimaryStudentMercyBoosts(
+            student,
+            stage || '',
+            baseSubjects,
+            resolvedOverrides,
+            gradingSettings,
+            selectedGrade
+          )
+        : {};
+
+    const parseRawGrade = (raw: any): { has: boolean; isAbsent: boolean; num: number } => {
+      if (raw === undefined || raw === null) return { has: false, isAbsent: false, num: 0 };
+      const s = String(raw).trim();
+      if (s === '' || s === '-') return { has: false, isAbsent: false, num: 0 };
+      if (s === 'غ' || s.toLowerCase() === 'a') return { has: true, isAbsent: true, num: 0 };
+      const n = parseFloat(s.replace(',', '.'));
+      if (!isNaN(n)) return { has: true, isAbsent: false, num: n };
+      return { has: false, isAbsent: false, num: 0 };
+    };
+
+    const getFieldFromMap = (
+      mapBySem: Record<string, any> | undefined,
+      keys: string[],
+      subjKey: string
+    ): any => {
+      if (!mapBySem) return undefined;
+      const keyAliases =
+        subjKey === 'pe'
+          ? ['pe', 'physical_education', 'physicalEducation', 'sports', 'sport']
+          : [subjKey];
+      for (const sk of keys) {
+        const semObj = mapBySem[sk];
+        if (!semObj) continue;
+        for (const alias of keyAliases) {
+          const v = semObj[alias];
+          if (v !== undefined && v !== null && String(v).trim() !== '') {
+            return v;
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const getDetailedAssessVal = (keys: string[], col: any): any => {
+      const item = getFieldFromMap(student.detailedAssessments as any, keys, col.key);
+      if (!item || typeof item !== 'object') return undefined;
+      if (item.total !== undefined && item.total !== null && String(item.total).trim() !== '') {
+        return item.total;
+      }
+      const isPE =
+        col.key === 'pe' ||
+        col.key === 'physical_education' ||
+        Boolean(col.label && (String(col.label).includes('رياضية') || String(col.label).includes('بدنية')));
+      const parts = isPE
+        ? [item.physicalSkillDomain, item.cognitiveDomain, item.affectiveBehavioralDomain, item.sportsUniformAttendance ?? item.behavior]
+        : col.hasWritten === false
+        ? [item.practicalPerformance, item.classActivities, item.behavior]
+        : [item.classNotebook, item.homework, item.weeklyAssessment, item.researchProject, item.behavior, item.firstMonthlyExam, item.secondMonthlyExam];
+      let sum = 0;
+      let hasAny = false;
+      let allAbsent = true;
+      for (const p of parts) {
+        const parsed = parseRawGrade(p);
+        if (parsed.has) {
+          hasAny = true;
+          if (!parsed.isAbsent) {
+            allAbsent = false;
+            sum += parsed.num;
+          }
+        }
+      }
+      if (!hasAny) return undefined;
+      return allAbsent ? 'غ' : sum;
+    };
+
+    const isMiddleOrSecStage = isMiddleStage || isSecondaryStage;
+    const isStudentRegular = Boolean(
+      (student as any)?.systemType === 'regular' ||
+        (student as any)?.enrollmentType === 'منتظم' ||
+        (student as any)?.enrollmentStatus === 'منتظم' ||
+        student.studentStatus === 'منتظم' ||
+        student.studentStatus === 'نظامى'
+    );
+    const isHomeschoolGrade = Boolean(
+      selectedGrade && (selectedGrade.includes('منازل') || selectedGrade.includes('خدمات'))
+    );
+    const isStudentHomeschool = Boolean(
+      (student as any)?.systemType === 'homeschool' ||
+        (student as any)?.enrollmentType === 'منازل' ||
+        student.studentStatus === 'منازل' ||
+        isHomeschoolGrade ||
+        (typeof window !== 'undefined' &&
+          (localStorage.getItem('current_system_type') === 'homeschool' ||
+            localStorage.getItem('systemType') === 'homeschool'))
+    );
+    const isMiddleHomeschool = isMiddleOrSecStage && !isStudentRegular && isStudentHomeschool;
+
+    const getSemSubjectGrade = (keys: string[], col: any) => {
+      const includeAssess =
+        !(isSec2Modern && col.isAdded) && !(isMiddleHomeschool && col.hasWritten !== false);
+      const rawAssess = includeAssess
+        ? (getFieldFromMap(student.assessments as any, keys, col.key) ?? getDetailedAssessVal(keys, col))
+        : undefined;
+      const rawWritten = getFieldFromMap(student.writtenExams as any, keys, col.key);
+
+      const a = parseRawGrade(rawAssess);
+      const w = parseRawGrade(rawWritten);
+      const useWritten = col.hasWritten !== false || (!a.has && w.has);
+      const has = a.has || (useWritten && w.has);
+      if (!has) return { has: false, isAbsent: false, num: 0 };
+
+      const allAbsent = (!a.has || a.isAbsent) && (!(useWritten && w.has) || w.isAbsent);
+      const num = (a.isAbsent ? 0 : a.num) + (useWritten && !w.isAbsent ? w.num : 0);
+      return { has: true, isAbsent: allAbsent, num };
+    };
+
+    const formatStatementNum = (val: number): string => {
+      const rounded = roundToOneDecimal(val);
+      return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    };
+
+    const computeSubjectGradeString = (col: any): string => {
+      const boost = mercyBoosts[col.key];
+      if (boost) {
+        return formatStatementNum(boost.boostedActualGrade);
+      }
+
+      const sem1 = getSemSubjectGrade(sem1Keys, col);
+      const sem2 = getSemSubjectGrade(sem2Keys, col);
+
+      if (!sem1.has && !sem2.has) return '';
+
+      if ((!sem1.has || sem1.isAbsent) && (!sem2.has || sem2.isAbsent)) {
+        return 'غ';
+      }
+
+      const allSubjectGradesSum = (sem1.isAbsent ? 0 : sem1.num) + (sem2.isAbsent ? 0 : sem2.num);
+      if (isSec2Modern && col.isAdded) {
+        return formatStatementNum(allSubjectGradesSum / 2);
+      }
+
+      const twoSemRawMax = isMiddleHomeschool
+        ? 200
+        : col.hasWritten === false
+        ? Number(col.maxAssessmentsGrade ?? 100) * 2
+        : (Number(col.maxAssessmentsGrade ?? (isMax40 ? 40 : 70)) +
+            Number(col.maxWrittenGrade ?? (isMax40 ? 60 : 30))) *
+          2;
+      const actualMax = Number(col.maxScore ?? col.max ?? 100);
+      const actualPercentage = twoSemRawMax > 0 ? actualMax / twoSemRawMax : 0.5;
+
+      return formatStatementNum(allSubjectGradesSum * actualPercentage);
+    };
+
+    const getStudentGradeVal = (col: any): string => {
+      if (col.isTotal || col.key === 'total') {
+        let sum = 0;
+        let hasAny = false;
+        cols.forEach((c) => {
+          if (!c.isTotal && c.key !== 'total' && c.isAdded !== false) {
+            const val = computeSubjectGradeString(c);
+            if (val !== '' && val !== 'غ' && val !== '-') {
+              const num = parseFloat(val.replace(',', '.'));
+              if (!isNaN(num)) {
+                sum += num;
+                hasAny = true;
+              }
+            }
+          }
+        });
+        if (hasAny) {
+          return formatStatementNum(sum);
+        }
+        const directTot =
+          getFieldFromMap(student.writtenExams as any, sem2Keys, 'total') ??
+          getFieldFromMap(student.assessments as any, sem2Keys, 'total') ??
+          getFieldFromMap(student.writtenExams as any, sem1Keys, 'total') ??
+          getFieldFromMap(student.assessments as any, sem1Keys, 'total');
+        return directTot !== undefined && directTot !== null ? String(directTot).trim() : '';
+      }
+      return computeSubjectGradeString(col);
+    };
+
+    const failingColIndices = new Set<number>();
+    let hasAnyRecordedSubjectGrade = false;
+
+    cols.forEach((col, idx) => {
+      const isTotalCol = Boolean(
+        col.isTotal || col.key === 'total' || (col.label && String(col.label).includes('مجموع'))
+      );
+      if (isTotalCol) return;
+
+      const gradeVal = getStudentGradeVal(col);
+      if (gradeVal === '' || gradeVal === '-') return;
+      hasAnyRecordedSubjectGrade = true;
+
+      if (mercyBoosts[col.key]) return;
+      if (isMiddleHomeschool && !col.hasWritten) return;
+
+      if (gradeVal === 'غ') {
+        failingColIndices.add(idx);
+        return;
+      }
+
+      const num = parseFloat(String(gradeVal).replace(',', '.'));
+      if (isNaN(num)) return;
+
+      const maxVal = Number(col.maxScore ?? col.max ?? 100);
+      const isReligion =
+        col.key === 'religion' || Boolean(col.label && String(col.label).includes('دين'));
+      const minTotalPass =
+        col.minTotalPassPercentage !== undefined
+          ? Number(col.minTotalPassPercentage)
+          : isReligion
+          ? 70
+          : 50;
+      const subjectPct = maxVal > 0 ? (num / maxVal) * 100 : 0;
+      if (subjectPct < minTotalPass) {
+        failingColIndices.add(idx);
+        return;
+      }
+
+      if (col.hasWritten) {
+        const rawA2 =
+          getFieldFromMap(student.assessments as any, sem2Keys, col.key) ??
+          getDetailedAssessVal(sem2Keys, col);
+        const rawW2 = getFieldFromMap(student.writtenExams as any, sem2Keys, col.key);
+        const a2Parsed = parseRawGrade(rawA2);
+        const w2Parsed = parseRawGrade(rawW2);
+
+        if (w2Parsed.has && w2Parsed.isAbsent) {
+          failingColIndices.add(idx);
+          return;
+        }
+        if (a2Parsed.has && w2Parsed.has && !isSec2Modern) {
+          const maxWritten = Number(
+            col.maxWrittenGrade ?? Math.round(Number(col.rawMaxScore ?? maxVal) * (isMax40 ? 0.6 : 0.3))
+          );
+          const minWrittenPass = Number(
+            col.minWrittenPassPercentage ?? (stage === 'secondary' ? 25 : 30)
+          );
+          const written2Pct = maxWritten > 0 ? (w2Parsed.num / maxWritten) * 100 : 0;
+          if (written2Pct < minWrittenPass) {
+            failingColIndices.add(idx);
+            return;
+          }
+        }
+      }
+    });
+
+    type StatementResultStatus = 'pass' | 'second_round' | 'fail' | 'none';
+    let studentResultStatus: StatementResultStatus = 'none';
+    if (hasAnyRecordedSubjectGrade) {
+      const failCount = failingColIndices.size;
+      if (failCount === 0) {
+        studentResultStatus = 'pass';
+      } else if (stage === 'primary') {
+        studentResultStatus = 'second_round';
+      } else if (failCount >= 3) {
+        studentResultStatus = 'fail';
+      } else {
+        studentResultStatus = 'second_round';
+      }
+    }
+
+    cols.forEach((col, idx) => {
+      const cLeft = col0Left - (idx + 1) * colW;
+      const cCenter = cLeft + colW / 2;
+      const isTotalCol = Boolean(
+        col.isTotal || col.key === 'total' || (col.label && String(col.label).includes('مجموع'))
+      );
+
+      if (isTotalCol) {
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(cLeft, tableY, colW, headerRowH);
+        ctx.fillRect(cLeft, r2Y, colW, subHeaderH1 + subHeaderH2 + dataRowH);
+      }
+
+      // Row 1: Header (Vertical text from top to bottom on a SINGLE line)
+      drawVerticalTopToBottom(col.label || col.key, cCenter, tableY + headerRowH / 2, headerRowH, '#000000');
+
+      // Row 2: النهاية الكبرى
+      ctx.font = 'bold 18px "Cairo", sans-serif';
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const maxVal = col.maxScore ?? col.max ?? '80';
+      ctx.fillText(String(maxVal), cCenter, r2Y + subHeaderH1 / 2);
+
+      // Row 3: النهاية الصغرى
+      const minVal = col.minScore ?? Math.round(Number(maxVal) / 2);
+      ctx.fillText(String(minVal), cCenter, r3Y + subHeaderH2 / 2);
+
+      // Row 4: درجة الطالب / الطالبة
+      const gradeVal = getStudentGradeVal(col);
+      ctx.font = 'bold 19px "Cairo", sans-serif';
+      ctx.fillText(String(gradeVal), cCenter, r4Y + dataRowH / 2);
+    });
+
+    // 4. Horizontal Grid Lines
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.8;
+
+    [spacerY, r2Y, r3Y, r4Y].forEach((lineY) => {
+      ctx.beginPath();
+      ctx.moveTo(tableX, lineY);
+      ctx.lineTo(tableX + tableW, lineY);
+      ctx.stroke();
+    });
+
+    // 5. Vertical Grid Lines (split around the empty white row so internal borders inside it remain white)
+    // Boundary between Column 0 and subject columns
+    ctx.beginPath();
+    ctx.moveTo(col0Left, tableY);
+    ctx.lineTo(col0Left, spacerY);
+    ctx.moveTo(col0Left, r2Y);
+    ctx.lineTo(col0Left, tableY + tableTotalH);
+    ctx.stroke();
+
+    // Boundaries between subject columns
+    for (let i = 1; i < cols.length; i++) {
+      const vX = col0Left - i * colW;
+      ctx.beginPath();
+      ctx.moveTo(vX, tableY);
+      ctx.lineTo(vX, spacerY);
+      ctx.moveTo(vX, r2Y);
+      ctx.lineTo(vX, tableY + tableTotalH);
+      ctx.stroke();
+    }
+
+    ctx.restore(); // Exit clip
+
+    // 6. Crisp outer rounded border for the table
+    ctx.save();
+    drawRoundedRect(ctx, tableX, tableY, tableW, tableTotalH, tableRadius);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // جعل الحدود الخارجية (الأيمن والأيسر) للصف الفارغ باللون الأبيض مع الحفاظ على الخطوط الفاصلة الأفقية
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(tableX + tableW, spacerY + 1.2);
+    ctx.lineTo(tableX + tableW, r2Y - 1.2);
+    ctx.moveTo(tableX, spacerY + 1.2);
+    ctx.lineTo(tableX, r2Y - 1.2);
+    ctx.stroke();
+    ctx.restore();
+
+    // رسم دوائر حمراء حول مواد الدور الثانى فى حالة اذا كان الطالب له دور ثان
+    if (studentResultStatus === 'second_round' && failingColIndices.size > 0) {
+      ctx.save();
+      cols.forEach((col, idx) => {
+        if (!failingColIndices.has(idx)) return;
+        const cLeft = col0Left - (idx + 1) * colW;
+        const cCenter = cLeft + colW / 2;
+        const cy = r4Y + dataRowH / 2;
+        const gradeVal = getStudentGradeVal(col);
+        ctx.font = 'bold 19px "Cairo", sans-serif';
+        const textW = ctx.measureText(String(gradeVal)).width;
+        const ry = Math.min(dataRowH / 2 - 6, 22);
+        const rx = Math.max(ry, Math.min(colW / 2 - 5, textW / 2 + 12));
+        ctx.beginPath();
+        ctx.ellipse(cCenter, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.lineWidth = 2.8;
+        ctx.strokeStyle = '#dc2626';
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    // Electronic Date (Africa/Cairo)
+    const now = new Date();
+    let eDay = now.getDate();
+    let eMonth = now.getMonth() + 1;
+    let eYear = now.getFullYear();
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Cairo',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+      }).formatToParts(now);
+      const d = parts.find((p) => p.type === 'day')?.value;
+      const m = parts.find((p) => p.type === 'month')?.value;
+      const y = parts.find((p) => p.type === 'year')?.value;
+      if (d && m && y) {
+        eDay = parseInt(d, 10);
+        eMonth = parseInt(m, 10);
+        eYear = parseInt(y, 10);
+      }
+    } catch {}
+    const paddedDay = String(eDay).padStart(2, '0');
+    const paddedMonth = String(eMonth).padStart(2, '0');
+
+    // نتيجة الطالب / الطالبة أسفل الجدول بخط أكبر وفى وسط الصفحة
+    if (studentResultStatus !== 'none') {
+      const resultY = tableY + tableTotalH + 54;
+      const resultText =
+        studentResultStatus === 'pass'
+          ? `نتيجة ${studentDegreeLabel} : ${isFemale ? 'ناجحة ومنقولة الى الصف التالى' : 'ناجح ومنقول الى الصف التالى'}`
+          : studentResultStatus === 'second_round'
+          ? `نتيجة ${studentDegreeLabel} : ${isFemale ? 'لها دور ثان' : 'له دور ثان'}`
+          : `نتيجة ${studentDegreeLabel} : ${isFemale ? 'راسبة وباقية للإعادة' : 'راسب وباق للإعادة'}`;
+
+      ctx.save();
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = studentResultStatus === 'pass' ? '#15803d' : '#dc2626';
+      let resultFontSize = 27;
+      ctx.font = `bold ${resultFontSize}px "Cairo", sans-serif`;
+      while (resultFontSize > 18 && ctx.measureText(resultText).width > contentW - 40) {
+        resultFontSize -= 0.5;
+        ctx.font = `bold ${resultFontSize}px "Cairo", sans-serif`;
+      }
+      ctx.fillText(resultText, marginX + contentW / 2, resultY);
+      ctx.restore();
+    }
+
+    // 6.5 Date and signatures below the table/result
+    const dateY =
+      studentResultStatus !== 'none'
+        ? tableY + tableTotalH + 135
+        : tableY + tableTotalH + 75;
+
+    // تحريرا فى : اليوم - الشهر - 2026 م (رسم كل جزء بوضوح من اليمين لليسار لمنع تداخل اتجاه الأرقام)
+    {
+      ctx.save();
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = `bold ${textFontSize}px "Cairo", sans-serif`;
+      ctx.textAlign = 'right';
+
+      const dateTokens: { text: string; dir: 'rtl' | 'ltr' }[] = [
+        { text: 'تحريرا فى : ', dir: 'rtl' },
+        { text: paddedDay, dir: 'ltr' },
+        { text: ' - ', dir: 'ltr' },
+        { text: paddedMonth, dir: 'ltr' },
+        { text: ' - ', dir: 'ltr' },
+        { text: `${eYear}`, dir: 'ltr' },
+        { text: ' م', dir: 'rtl' },
+      ];
+
+      let cursorX = marginX + contentW;
+      for (const tok of dateTokens) {
+        ctx.direction = tok.dir;
+        ctx.fillText(tok.text, cursorX, dateY);
+        cursorX -= ctx.measureText(tok.text).width;
+      }
+      ctx.restore();
+    }
+
+    // سطر التوقيعات أسفل البيان مع أيقونة القلم قبل النقط غير العريضة (تساوي التنقيط وزيادته 75%)
+    const sigRowY = dateY + 110;
+    const equalSignatureDots = '.'.repeat(Math.round(22 * 1.75)); // 39 نقطة متساوية لجميع التوقيعات (+75%)
+
+    const measureSignatureBlock = (label: string, dotsStr: string, penSize = 30, gap = 6) => {
+      ctx.save();
+      ctx.font = `bold ${textFontSize}px "Cairo", sans-serif`;
+      const labelW = ctx.measureText(label).width;
+      ctx.font = `400 ${dotsFontSize}px "Cairo", sans-serif`;
+      const dotsW = ctx.measureText(dotsStr).width;
+      ctx.restore();
+      return {
+        labelW,
+        dotsW,
+        penSize,
+        gap,
+        totalW: labelW + gap + penSize + gap + dotsW,
+      };
+    };
+
+    const drawStatementSignature = (
+      label: string,
+      anchorX: number,
+      align: 'right' | 'center' | 'left',
+      dotsStr: string = equalSignatureDots
+    ) => {
+      ctx.save();
+      ctx.textBaseline = 'middle';
+
+      const { labelW, penSize, gap, totalW } = measureSignatureBlock(label, dotsStr);
+
+      const rightX =
+        align === 'right'
+          ? anchorX
+          : align === 'center'
+          ? anchorX + totalW / 2
+          : anchorX + totalW;
+
+      // 1. المسمى الوظيفي (يمين)
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'right';
+      ctx.font = `bold ${textFontSize}px "Cairo", sans-serif`;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(label, rightX, sigRowY);
+
+      // 2. أيقونة القلم قبل التنقيط
+      const penX = rightX - labelW - gap - penSize;
+      const penY = sigRowY - penSize / 2;
+      if (penIcon) {
+        ctx.drawImage(penIcon, penX, penY, penSize, penSize);
+      }
+
+      // 3. النقط أقل سمكاً (no bold) على يسار القلم
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'right';
+      ctx.font = `400 ${dotsFontSize}px "Cairo", sans-serif`;
+      ctx.fillStyle = '#334155';
+      ctx.fillText(dotsStr, penX - gap, sigRowY);
+
+      ctx.restore();
+    };
+
+    // ضبط التموضع بتساوٍ مع حماية من التداخل في حال اختلاف قياس الخط
+    let activeSigDots = equalSignatureDots;
+    while (activeSigDots.length > 20) {
+      const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
+      const wCenter = measureSignatureBlock('مدير المدرسة', activeSigDots).totalW;
+      const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
+      if (wRight + wCenter + wLeft + 48 <= contentW) {
+        break;
+      }
+      activeSigDots = activeSigDots.slice(0, -1);
+    }
+
+    const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
+    const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
+    const freeRightEdge = marginX + contentW - wRight;
+    const freeLeftEdge = marginX + wLeft;
+    const centerAnchorX = (freeRightEdge + freeLeftEdge) / 2;
+
+    drawStatementSignature('شئون الطلاب', marginX + contentW, 'right', activeSigDots);
+    drawStatementSignature('مدير المدرسة', centerAnchorX, 'center', activeSigDots);
+    drawStatementSignature('مدير الإدارة', marginX, 'left', activeSigDots);
+
+    // 7. Footer matching Calling List (including QR Code)
+    const footerLineY = 1530;
+    const footerQrSize = 90;
+    const footerQrX = marginX + contentW - footerQrSize;
+    const footerQrY = footerLineY + 6;
+    const footerAvailW = contentW - footerQrSize - 16;
+    const footerCenterX = marginX + footerAvailW / 2;
+
+    // الخط الفاصل أعلى سطر مسئول البيانات
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(marginX, footerLineY);
+    ctx.lineTo(marginX + contentW, footerLineY);
+    ctx.stroke();
+
+    // QR Code on far right of the footer
+    if (qrImage) {
+      ctx.save();
+      drawRoundedRect(ctx, footerQrX, footerQrY, footerQrSize, footerQrSize, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.clip();
+      ctx.drawImage(qrImage, footerQrX, footerQrY, footerQrSize, footerQrSize);
+      ctx.restore();
+    }
+
+    const footerTextY = footerLineY + 36;
+
+    // التاريخ على يسار التذييل
+    const dateDisplay = `${eDay} - ${eMonth} - ${eYear} م`;
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 14px "Cairo", sans-serif';
+    ctx.fillStyle = '#0f172a';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(dateDisplay, marginX + 10, footerTextY);
+    const dateRightEdge = marginX + 10 + ctx.measureText(dateDisplay).width;
+
+    // سطر التوقيعات على يمين التذييل بجوار الـ QR Code
+    ctx.direction = 'rtl';
+    const signaturesFooterText = `مسئول البيانات والمعلومات : ${dataOfficer}   رئيس الكنترول : ${controlHead}   رئيس اللجنة : ${committeeHead}`;
+    const rightTargetX = marginX + footerAvailW - 10;
+    const maxSigW = Math.max(300, rightTargetX - (dateRightEdge + 30));
+    let footerFontSize = 15;
+    ctx.font = `bold ${footerFontSize}px "Cairo", sans-serif`;
+    while (footerFontSize > 9 && ctx.measureText(signaturesFooterText).width > maxSigW) {
+      footerFontSize -= 0.5;
+      ctx.font = `bold ${footerFontSize}px "Cairo", sans-serif`;
+    }
+    ctx.textAlign = 'right';
+    ctx.fillText(signaturesFooterText, rightTargetX, footerTextY);
+
+    // الخط الفاصل لسطر المنظومة الرقمية
+    const subFooterHrY = footerLineY + 68;
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(marginX, subFooterHrY);
+    ctx.lineTo(marginX + footerAvailW, subFooterHrY);
+    ctx.stroke();
+
+    // سطر المنظومة الرقمية
+    const subFooterTextY = subFooterHrY + 22;
+    const footerTagline = getActiveFooterTagline(selectedGrade, stage);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#64748b';
+    ctx.font = 'bold 14px "Cairo", sans-serif';
+    ctx.fillText(footerTagline, footerCenterX, subFooterTextY, footerAvailW - 16);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    const base64 = dataUrl.split(',')[1];
+    const jpegBytes = base64ToUint8Array(base64);
+    renderedPages.push({ jpegBytes, widthPx: canvas.width, heightPx: canvas.height });
+  }
+
+  const pdfBytes = buildPdfFromJpegPages(renderedPages, 595.28, 841.89);
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+
+  const safeGrade = (selectedGrade || '').replace(/[\\/:*?"<>|]/g, '_').trim();
+  const allFemales = (students || []).every((s) => isFemaleStudent(s));
+  link.download = `مستخرج_رسمي_لبيان_درجات_${allFemales ? 'طالبة' : 'طالب'}_${safeGrade}.pdf`;
 
   document.body.appendChild(link);
   link.click();

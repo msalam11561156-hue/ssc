@@ -367,7 +367,7 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
         deviceIdOverride={randomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="الامتياز الإعلاني"
         customWhatsappMessage="السلام عليكم .. أود تفعيل الامتياز الإعلاني - معرف جهازي :"
       />
     </>

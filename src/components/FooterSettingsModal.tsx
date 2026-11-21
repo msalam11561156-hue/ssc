@@ -164,7 +164,7 @@ export const FooterSettingsModal: React.FC<FooterSettingsModalProps> = ({
         deviceIdOverride={randomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="VIP Option"
+        vipOptionTitle="تذييل التقارير الإفتراضي"
         customWhatsappMessage="السلام عليكم .. أود الغاء تذييل التقارير الافتراضى - معرف جهازي :"
       />
     </>

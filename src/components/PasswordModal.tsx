@@ -8,6 +8,7 @@ import {
   verifyActivationPassword, 
   activatePaidVersion 
 } from '../utils/activationManager';
+import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -45,6 +46,19 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   };
 
   const [deviceId, setDeviceId] = useState<number>(resolveEffectiveId);
+  const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
+
+  useEffect(() => {
+    let active = true;
+    getCachedBrandShield().then((cached) => {
+      if (active && cached) {
+        setLogoSrc(cached);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // تحديث المعرف وحقول النموذج عند فتح النافذة
   useEffect(() => {
@@ -55,6 +69,14 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
       setIsSuccess(false);
     }
   }, [isOpen, deviceIdOverride]);
+
+  const resolvedServiceName = (() => {
+    const raw = (vipOptionTitle || '').trim();
+    if (!raw || raw.toLowerCase() === 'vip option') {
+      return 'خدمة إضافية';
+    }
+    return raw.split(/\s+/).slice(0, 3).join(' ');
+  })();
 
   const whatsappNumber = '201098594956';
   const finalMessage = customWhatsappMessage 
@@ -105,7 +127,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
           exit={{ opacity: 0, scale: 0.9, y: 15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-[360px] bg-gradient-to-br from-[#bae6fd] via-[#e0e7ff] to-[#bbf7d0] border-2 border-[#38bdf8] rounded-[28px] shadow-2xl p-6 md:p-7 flex flex-col items-center text-center"
+          className="relative w-full max-w-[360px] max-h-[92vh] overflow-y-auto bg-gradient-to-br from-[#bae6fd] via-[#e0e7ff] to-[#bbf7d0] border-2 border-[#38bdf8] rounded-[28px] shadow-2xl p-6 md:p-7 flex flex-col items-center text-center"
         >
           {/* Close button (top-left in screenshot) */}
           <button
@@ -117,17 +139,37 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
             ×
           </button>
 
-          {/* VIP Option Header */}
+          {/* Services + Header */}
           {isVipOption && (
-            <div className="w-full flex flex-col items-center mt-0 mb-2">
-              <div className="flex items-center justify-center gap-2 px-3.5 py-1 bg-amber-500/15 border border-amber-500/40 rounded-full shadow-sm">
+            <div className="w-full flex flex-col items-center mt-0 mb-3">
+              <img
+                src={logoSrc}
+                alt="SMART CONTROL"
+                onError={() => {
+                  if (logoSrc !== '/brand_shield.png' && !logoSrc.startsWith('data:image/')) {
+                    setLogoSrc('/brand_shield.png');
+                  } else if (logoSrc !== '/pwa-192x192.png') {
+                    setLogoSrc('/pwa-192x192.png');
+                  }
+                }}
+                className="w-14 h-14 object-contain drop-shadow-sm select-none pointer-events-none"
+              />
+              <hr className="w-full border-t border-slate-300/80 my-2" />
+              <div
+                dir="ltr"
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-1 bg-amber-500/15 border border-amber-500/40 rounded-full shadow-sm"
+              >
                 <Crown className="w-4 h-4 text-amber-600 fill-amber-400 shrink-0" />
                 <span className="font-black text-slate-800 text-sm md:text-base tracking-wider">
-                  {vipOptionTitle || 'VIP Option'}
+                  Services +
                 </span>
                 <Crown className="w-4 h-4 text-amber-600 fill-amber-400 shrink-0" />
               </div>
-              <hr className="w-full border-t border-slate-300/80 mt-2.5 mb-1" />
+              <hr className="w-full border-t border-slate-300/80 my-2" />
+              <div className="font-black text-slate-800 text-sm md:text-base tracking-tight px-2">
+                {resolvedServiceName}
+              </div>
+              <hr className="w-full border-t border-slate-300/80 mt-2 mb-0.5" />
             </div>
           )}
 

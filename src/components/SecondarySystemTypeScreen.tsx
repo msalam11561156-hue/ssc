@@ -51,7 +51,6 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
 
   const handleChoose = (type: 'regular' | 'homeschool' | 'services') => {
     setSelected(type);
-    onSelect(type);
   };
 
   const isAr = lang === 'ar';
@@ -215,8 +214,8 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
             </div>
           </div>
 
-          {/* Back Button */}
-          <div className="flex justify-center pt-1">
+          {/* Back & Next Buttons */}
+          <div className="flex justify-center items-center gap-4 pt-1">
             <button
               type="button"
               onClick={onBack}
@@ -224,6 +223,14 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
             >
               {isAr ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
               <span>{t.back}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelect(selected)}
+              className={`px-8 py-3 rounded-xl font-black text-sm sm:text-base flex items-center gap-2 transition-all active:scale-95 cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md border-2 border-emerald-500/30`}
+            >
+              <span>{t.next}</span>
+              {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
             </button>
           </div>
         </div>

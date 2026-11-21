@@ -10,9 +10,11 @@ import splashCloudDashboardUrl from '../assets/images/smart_control_cloud_dashbo
 import splashScreenshotUrl from '../assets/images/meeting_room_smart.jpg';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 import brandShieldUrl from '../assets/images/brand_shield.png';
+import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
+const SPONSOR_AD_BANNER_CACHE_KEY = 'offline_sponsor_ad_banner_v1';
 
 async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
   if (blob.type && blob.type.toLowerCase().startsWith('image/')) {
@@ -212,6 +214,39 @@ export function getBrandShieldSync(): string {
   return memoryCache.get(BRAND_SHIELD_CACHE_KEY) || brandShieldUrl;
 }
 
+export function getSponsorAdBannerSync(): string {
+  return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY) || sponsorAdBannerUrl;
+}
+
+/**
+ * جلب وحفظ صورة إعلان نافذة (هذا البرنامج برعاية) محلياً على جهاز العميل في IndexedDB
+ * لضمان التحميل الفوري والعمل بالكامل بدون اتصال بالإنترنت مثل صور معرض الصور
+ */
+export async function getCachedSponsorAdBanner(): Promise<string> {
+  if (memoryCache.has(SPONSOR_AD_BANNER_CACHE_KEY)) {
+    return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(SPONSOR_AD_BANNER_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(SPONSOR_AD_BANNER_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for sponsor ad banner:', e);
+  }
+
+  try {
+    const dataUrl = await fetchToDataUrl(sponsorAdBannerUrl);
+    memoryCache.set(SPONSOR_AD_BANNER_CACHE_KEY, dataUrl);
+    idbSet(SPONSOR_AD_BANNER_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return sponsorAdBannerUrl;
+  }
+}
+
 /**
  * جلب وحفظ شعار الدرع الذهبي (Brand Shield) محلياً على جهاز العميل في IndexedDB
  * مع الرجوع التلقائي لمسار /brand_shield.png لضمان ظهوره الدائم في كافة القوائم
@@ -272,8 +307,9 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedSplashBackground('screenshot'),
     ]);
 
-    // 3. حفظ نموذج الامتياز الإعلاني في IndexedDB
+    // 3. حفظ نموذج الامتياز الإعلاني وصورة نافذة (هذا البرنامج برعاية) في IndexedDB
     const adExamplePromise = getCachedAdPrivilegeExample().catch(() => {});
+    const sponsorBannerPromise = getCachedSponsorAdBanner().catch(() => {});
 
     // 4. تخزين الأيقونات وصفحة البداية وملف المانيفست محلياً في ذاكرة التخزين الدائم للمتصفح (Cache Storage)
     if ('caches' in window) {
@@ -302,7 +338,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       }).catch(() => {});
     }
 
-    await Promise.allSettled([brandShieldPromise, certsPromise, splashPromise, adExamplePromise]);
+    await Promise.allSettled([brandShieldPromise, certsPromise, splashPromise, adExamplePromise, sponsorBannerPromise]);
   } catch (e) {
     console.warn('Preload offline assets warning:', e);
   }

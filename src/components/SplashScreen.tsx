@@ -10,12 +10,10 @@ import goldShieldBg from '../assets/images/smart_control_gold_shield.jpg';
 import cloudDashboardBg from '../assets/images/smart_control_cloud_dashboard.jpg';
 import screenshotBg from '../assets/images/meeting_room_smart.jpg';
 import { getCachedSplashBackground, SplashType } from '../utils/offlineAssetCache';
-import { PasswordModal } from './PasswordModal';
-import { isPaidUnlocked } from '../utils/activationManager';
 import { useIsMobilePhone } from '../utils/deviceHelper';
 import { AnimatedBackground } from './AnimatedBackground';
 
-import { Clock, AlertCircle, Crown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Clock, AlertCircle, Crown } from 'lucide-react';
 
 const PrecisionLightOverlay: React.FC = () => (
   <svg 
@@ -291,10 +289,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   trialCurrentDayNumber = 1,
   trialRemainingDaysCount = 3,
 }) => {
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [showDayExpiredModal, setShowDayExpiredModal] = useState(false);
   const [showAllExpiredModal, setShowAllExpiredModal] = useState(false);
-  const [isOfficialUnlocked, setIsOfficialUnlocked] = useState(() => isPaidUnlocked());
   const [blueShieldImg, setBlueShieldImg] = useState(blueShieldBg);
   const [illustrationImg, setIllustrationImg] = useState(defaultIllustrationBg);
   const [brandImg, setBrandImg] = useState(defaultBrandBg);
@@ -367,10 +363,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     });
   };
 
-  useEffect(() => {
-    setIsOfficialUnlocked(isPaidUnlocked());
-  }, []);
-
   // تبديل خلفية الشاشة كل 5 ثوان بنعومة وسلاسة بين الصور السبع
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -386,19 +378,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     if (isMobile) {
       return;
     }
-    if (isPaidUnlocked()) {
-      setIsOfficialUnlocked(true);
-      onNext(false);
-    } else {
-      setIsPasswordModalOpen(true);
-    }
+    onNext(false);
   };
 
   const handleTrialClick = () => {
     if (isMobile) {
       return;
     }
-    if (isOfficialUnlocked) return;
     if (isTrialExpired) {
       setShowAllExpiredModal(true);
       return;
@@ -408,12 +394,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       return;
     }
     onNext(true);
-  };
-
-  const handleUnlockSuccess = () => {
-    setIsOfficialUnlocked(true);
-    setIsPasswordModalOpen(false);
-    onNext(false);
   };
 
   return (
@@ -625,52 +605,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         transition={{ delay: 0.4, duration: 0.6 }}
         className="flex flex-col items-center gap-1.5 sm:gap-2.5 w-full shrink-0"
       >
-        {isOfficialUnlocked ? (
-          <div className="flex flex-col items-center justify-center w-full px-4 gap-1.5">
-            <motion.button
-              whileHover={{ scale: isMobile ? 1 : 1.08 }}
-              whileTap={{ scale: isMobile ? 1 : 0.95 }}
-              type="button"
-              onClick={() => {
-                if (isMobile) {
-                  return;
-                }
-                onNext(false);
-              }}
-              className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-gradient-to-r from-[#a855f7] via-[#6366f1] to-[#3b82f6] text-white shadow-[0_10px_25px_-5px_rgba(168,85,247,0.6)] border-2 border-black group transition-all relative overflow-hidden ${
-                isMobile ? 'opacity-60 cursor-not-allowed' : 'hover:from-[#9333ea] hover:via-[#4f46e5] hover:to-[#2563eb] cursor-pointer'
-              }`}
-              title={isMobile ? (lang === 'ar' ? 'يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت' : 'Works only on PC, Laptop & Tablet') : (lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application')}
-              aria-label={lang === 'ar' ? 'الدخول إلى التطبيق' : 'Enter application'}
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full" />
-              {lang === 'ar' ? (
-                <ArrowLeft className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:-translate-x-1 drop-shadow-md" />
-              ) : (
-                <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 relative z-10 transition-transform group-hover:translate-x-1 drop-shadow-md" />
-              )}
-            </motion.button>
-            {isMobile && (
-              <div 
-                className="w-full max-w-sm sm:max-w-md mx-auto mt-3 sm:mt-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-amber-500/20 border-2 border-amber-400/80 shadow-md shadow-amber-500/15 backdrop-blur-sm overflow-hidden relative flex items-center"
-                dir="ltr"
-              >
-                <div className="w-full overflow-hidden relative flex items-center [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]">
-                  <div
-                    className="inline-flex items-center gap-2 whitespace-nowrap animate-mobile-alert-marquee py-0.5"
-                    dir="rtl"
-                  >
-                    <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
-                    <span className="text-xs sm:text-sm font-black text-amber-200 tracking-wide leading-snug drop-shadow-sm whitespace-nowrap">
-                      يعمل فقط على أجهزة الكمبيوتر واللابتوب والتابلت
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1.5 w-full">
+        <div className="flex flex-col items-center gap-1.5 w-full">
             <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-4">
               <button
                 type="button"
@@ -727,7 +662,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               </div>
             )}
           </div>
-        )}
 
         {/* Support Information & Developer Signature */}
         <div className="flex flex-col items-center gap-1 sm:gap-1.5 w-full mt-0.5 sm:mt-1">
@@ -844,11 +778,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         )}
       </AnimatePresence>
 
-      <PasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-        onSuccess={handleUnlockSuccess}
-      />
     </div>
   );
 };
