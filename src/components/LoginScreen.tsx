@@ -362,12 +362,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                   {/* Graceful Butterfly: Enters Smoothly, Perches Briefly on Top Rose, Then Flies Away */}
                   <motion.g
                     filter="url(#butterflyShadow)"
-                    initial={{ x: -36, y: 178, rotate: 18, scale: 0.85, opacity: 0 }}
+                    initial={{ x: -36, y: 178, rotate: 18, scale: 0.425, opacity: 0 }}
                     animate={{
                       x: [-36, 92, 245, 354, 374, 375, 374, 394, 438, 506],
-                      y: [178, 208, 258, 270, 276, 275, 276, 252, 204, 168],
+                      y: [178, 208, 258, 272, 278, 277, 278, 254, 204, 168],
                       rotate: [18, 20, 14, 6, -10, -6, -12, -22, -20, -16],
-                      scale: [0.85, 0.98, 1.04, 0.94, 0.86, 0.86, 0.86, 0.92, 0.88, 0.82],
+                      scale: [0.425, 0.49, 0.52, 0.47, 0.43, 0.43, 0.43, 0.46, 0.44, 0.41],
                       opacity: [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                     }}
                     transition={{
