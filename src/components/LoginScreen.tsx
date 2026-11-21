@@ -163,9 +163,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                 src={loginPortraitSrc}
                 alt="مرحباً بك في منظومة الكنترول الذكي"
                 referrerPolicy="no-referrer"
-                animate={{ scale: [1, 1.06, 1] }}
+                animate={{ scale: [1, 1.21, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                className="w-full h-full object-cover object-[50%_65%] md:object-center origin-center will-change-transform select-none pointer-events-none"
+                className="w-full h-full object-cover object-[50%_65%] md:object-center origin-[48%_62%] will-change-transform select-none pointer-events-none"
               />
 
               {/* Seamless Left-Edge Blend into Dark Card Column */}
