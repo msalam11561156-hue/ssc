@@ -7,6 +7,60 @@ import { AnimatedBackground } from './AnimatedBackground';
 import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
 const loginPortraitSrc = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
+const PLANT_ROSES = [
+  { id: 'rose-top', x: 374, y: 282, baseRotate: -8, scale: 0.94, duration: 5.6, delay: 0 },
+  { id: 'rose-left', x: 352, y: 308, baseRotate: -16, scale: 1.04, duration: 6.4, delay: 1.1 },
+  { id: 'rose-right', x: 401, y: 304, baseRotate: 14, scale: 0.98, duration: 6.0, delay: 2.2 },
+];
+
+const BUTTERFLY_CYCLE_DURATION = 22;
+const BUTTERFLY_REPEAT_DELAY = 2.0;
+
+function buildWingKeyframes(sign: 1 | -1) {
+  const times: number[] = [];
+  const scaleX: number[] = [];
+  const skewY: number[] = [];
+
+  // Phase 1: Flying in smoothly (t = 0.00 -> 0.40)
+  const flyInSteps = 22;
+  for (let i = 0; i <= flyInSteps; i++) {
+    const t = (i / flyInSteps) * 0.40;
+    const isUp = i % 2 === 1;
+    times.push(Number(t.toFixed(4)));
+    scaleX.push(isUp ? 0.28 : 1);
+    skewY.push(isUp ? 8 * sign : 0);
+  }
+
+  // Phase 2: Perched softly on the top rose (t = 0.43 -> 0.65) with slow gentle wing breathing
+  const restFrames = [
+    { t: 0.43, sx: 0.46, sy: 5 * sign },
+    { t: 0.49, sx: 0.84, sy: 1.5 * sign },
+    { t: 0.55, sx: 0.36, sy: 6.5 * sign },
+    { t: 0.60, sx: 0.80, sy: 2 * sign },
+    { t: 0.65, sx: 0.42, sy: 5.5 * sign },
+  ];
+  for (const frame of restFrames) {
+    times.push(frame.t);
+    scaleX.push(frame.sx);
+    skewY.push(frame.sy);
+  }
+
+  // Phase 3: Lifting off and flying out smoothly (t = 0.68 -> 1.00)
+  const flyOutSteps = 18;
+  for (let i = 0; i <= flyOutSteps; i++) {
+    const t = 0.68 + (i / flyOutSteps) * 0.32;
+    const isUp = i % 2 === 1;
+    times.push(Number(t.toFixed(4)));
+    scaleX.push(isUp ? 0.28 : 1);
+    skewY.push(isUp ? 8 * sign : 0);
+  }
+
+  return { times, scaleX, skewY };
+}
+
+const LEFT_WING_KF = buildWingKeyframes(1);
+const RIGHT_WING_KF = buildWingKeyframes(-1);
+
 interface LoginScreenProps {
   onSuccess?: (user: User) => void;
   onContinueWithoutAccount?: () => void;
@@ -159,14 +213,269 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[45%_55%]">
             {/* Right Column (RTL - 45%): Portrait Strictly Inside Frame */}
             <div className="relative h-64 sm:h-72 md:h-full md:min-h-[520px] overflow-hidden bg-[#040507]">
-              <motion.img
-                src={loginPortraitSrc}
-                alt="مرحباً بك في منظومة الكنترول الذكي"
-                referrerPolicy="no-referrer"
-                animate={{ scale: [1, 1.21, 1] }}
+              <motion.div
+                animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                className="w-full h-full object-cover object-[50%_65%] md:object-center origin-[48%_62%] will-change-transform select-none pointer-events-none"
-              />
+                className="w-full h-full origin-center will-change-transform select-none pointer-events-none"
+              >
+                <svg
+                  viewBox="0 0 470 640"
+                  preserveAspectRatio="xMidYMid slice"
+                  role="img"
+                  aria-label="مرحباً بك في منظومة الكنترول الذكي"
+                  className="w-full h-full block"
+                >
+                  <defs>
+                    <radialGradient id="roseOuterGrad" cx="42%" cy="35%" r="65%">
+                      <stop offset="0%" stopColor="#ef4444" />
+                      <stop offset="55%" stopColor="#dc2626" />
+                      <stop offset="100%" stopColor="#7f1d1d" />
+                    </radialGradient>
+                    <radialGradient id="roseInnerGrad" cx="40%" cy="32%" r="65%">
+                      <stop offset="0%" stopColor="#f87171" />
+                      <stop offset="45%" stopColor="#b91c1c" />
+                      <stop offset="100%" stopColor="#6b1010" />
+                    </radialGradient>
+                    <filter id="roseShadow" x="-40%" y="-40%" width="180%" height="180%">
+                      <feDropShadow dx="0" dy="1.8" stdDeviation="1.4" floodColor="#091a0d" floodOpacity="0.65" />
+                    </filter>
+                    <linearGradient id="butterflyWingUpperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fef08a" />
+                      <stop offset="35%" stopColor="#fb923c" />
+                      <stop offset="75%" stopColor="#dc2626" />
+                      <stop offset="100%" stopColor="#450a0a" />
+                    </linearGradient>
+                    <linearGradient id="butterflyWingLowerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fde047" />
+                      <stop offset="50%" stopColor="#ea580c" />
+                      <stop offset="100%" stopColor="#7f1d1d" />
+                    </linearGradient>
+                    <filter id="butterflyShadow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="1.5" dy="3.5" stdDeviation="2.2" floodColor="#0f172a" floodOpacity="0.45" />
+                    </filter>
+                  </defs>
+
+                  <image
+                    href={loginPortraitSrc}
+                    x="0"
+                    y="0"
+                    width="470"
+                    height="640"
+                    preserveAspectRatio="none"
+                  />
+
+                  {/* 3 Slow-Fluttering Red Roses on the Classroom Plant */}
+                  {PLANT_ROSES.map((rose) => (
+                    <g
+                      key={rose.id}
+                      transform={`translate(${rose.x}, ${rose.y}) scale(${rose.scale})`}
+                      filter="url(#roseShadow)"
+                    >
+                      <motion.g
+                        style={{ transformOrigin: '0px 8px' }}
+                        animate={{
+                          rotate: [
+                            rose.baseRotate - 5,
+                            rose.baseRotate + 6,
+                            rose.baseRotate - 3,
+                            rose.baseRotate + 5,
+                            rose.baseRotate - 5,
+                          ],
+                          x: [0, 1.1, -0.7, 0.8, 0],
+                          y: [0, -0.9, 0.4, -0.6, 0],
+                          scaleX: [1, 0.94, 1.03, 0.96, 1],
+                          scaleY: [1, 1.03, 0.98, 1.02, 1],
+                        }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: rose.duration,
+                          delay: rose.delay,
+                          ease: 'easeInOut',
+                        }}
+                      >
+                        {/* Tiny Green Sepals / Leaves */}
+                        <path d="M-2,6 Q-7,8 -6,3 Q-3,4 -1,5 Z" fill="#1e5128" />
+                        <path d="M2,6 Q7,7.5 6,3 Q3,4 1,5 Z" fill="#245c2e" />
+                        <path d="M0,7 L0,11" stroke="#1b4322" strokeWidth="1.4" strokeLinecap="round" />
+
+                        {/* Outer Velvety Petals */}
+                        <motion.g
+                          style={{ transformOrigin: '0px 0px' }}
+                          animate={{
+                            rotate: [-3, 4, -2, 3, -3],
+                            scale: [1, 1.04, 0.98, 1.03, 1],
+                          }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: rose.duration * 0.85,
+                            delay: rose.delay + 0.3,
+                            ease: 'easeInOut',
+                          }}
+                        >
+                          <path
+                            d="M0,-9 C5.5,-9 9.5,-5 8.5,0.5 C9.5,5.5 4.5,8.5 0,7.5 C-4.5,8.5 -9.5,5.5 -8.5,0.5 C-9.5,-5 -5.5,-9 0,-9 Z"
+                            fill="url(#roseOuterGrad)"
+                          />
+                          <path
+                            d="M-6.5,-4.5 C-2,-7.5 3.5,-7 6.5,-3.5 C8,0 6,4.5 2,5.5 C-3,6 -7.5,2.5 -6.5,-4.5 Z"
+                            fill="#dc2626"
+                            opacity="0.88"
+                          />
+                        </motion.g>
+
+                        {/* Inner Cupped Petals & Swirl */}
+                        <motion.g
+                          style={{ transformOrigin: '0px 0px' }}
+                          animate={{
+                            rotate: [2, -4, 3, -2, 2],
+                            scale: [1, 0.97, 1.04, 0.99, 1],
+                          }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: rose.duration * 0.75,
+                            delay: rose.delay + 0.6,
+                            ease: 'easeInOut',
+                          }}
+                        >
+                          <circle cx="0" cy="-0.5" r="5" fill="url(#roseInnerGrad)" />
+                          <path
+                            d="M-3.5,-1.5 C-2.5,-4.5 2.5,-4.5 3.5,-1.5 C4,1.5 1.5,3.5 -1,3 C-3,2.5 -3.5,0.5 -2,-1 C-1,-2.2 1.5,-2 2,-0.5 C2.2,0.8 0.5,1.6 -0.5,1"
+                            fill="none"
+                            stroke="#7f1d1d"
+                            strokeWidth="1.05"
+                            strokeLinecap="round"
+                          />
+                          {/* Sunlit Rim Highlight */}
+                          <path
+                            d="M-4.5,-5.5 C-1.5,-7.5 2.5,-7.2 4.8,-5"
+                            fill="none"
+                            stroke="#fca5a5"
+                            strokeWidth="0.9"
+                            strokeLinecap="round"
+                            opacity="0.85"
+                          />
+                        </motion.g>
+                      </motion.g>
+                    </g>
+                  ))}
+
+                  {/* Graceful Butterfly: Enters Smoothly, Perches Briefly on Top Rose, Then Flies Away */}
+                  <motion.g
+                    filter="url(#butterflyShadow)"
+                    initial={{ x: -36, y: 178, rotate: 18, scale: 0.85, opacity: 0 }}
+                    animate={{
+                      x: [-36, 92, 245, 354, 374, 375, 374, 394, 438, 506],
+                      y: [178, 208, 258, 270, 276, 275, 276, 252, 204, 168],
+                      rotate: [18, 20, 14, 6, -10, -6, -12, -22, -20, -16],
+                      scale: [0.85, 0.98, 1.04, 0.94, 0.86, 0.86, 0.86, 0.92, 0.88, 0.82],
+                      opacity: [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      repeatDelay: BUTTERFLY_REPEAT_DELAY,
+                      duration: BUTTERFLY_CYCLE_DURATION,
+                      times: [0, 0.08, 0.24, 0.36, 0.42, 0.54, 0.65, 0.72, 0.86, 1],
+                      ease: 'easeInOut',
+                    }}
+                  >
+                    {/* Left Wing (pivots at its right edge inside the body) */}
+                    <motion.g
+                      style={{ originX: 1, originY: 0.5 }}
+                      animate={{ scaleX: LEFT_WING_KF.scaleX, skewY: LEFT_WING_KF.skewY }}
+                      transition={{
+                        repeat: Infinity,
+                        repeatDelay: BUTTERFLY_REPEAT_DELAY,
+                        duration: BUTTERFLY_CYCLE_DURATION,
+                        times: LEFT_WING_KF.times,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      {/* Upper Left Wing */}
+                      <path
+                        d="M0,-2 C-8,-15 -22,-18 -23,-7 C-24,0 -15,4 0,2 Z"
+                        fill="url(#butterflyWingUpperGrad)"
+                        stroke="#1c1917"
+                        strokeWidth="1.2"
+                      />
+                      <path
+                        d="M-2,-2 C-8,-9 -16,-11 -18,-5"
+                        fill="none"
+                        stroke="#451a03"
+                        strokeWidth="0.7"
+                        opacity="0.75"
+                      />
+                      <circle cx="-18" cy="-10" r="1.1" fill="#ffffff" opacity="0.9" />
+                      <circle cx="-20.5" cy="-6" r="0.85" fill="#ffffff" opacity="0.85" />
+                      {/* Lower Left Wing */}
+                      <path
+                        d="M0,2 C-12,3 -18,10 -12,15 C-7,19 -1,13 0,5 Z"
+                        fill="url(#butterflyWingLowerGrad)"
+                        stroke="#1c1917"
+                        strokeWidth="1.1"
+                      />
+                      <circle cx="-11.5" cy="12" r="0.8" fill="#fef9c3" opacity="0.85" />
+                    </motion.g>
+
+                    {/* Right Wing (pivots at its left edge inside the body) */}
+                    <motion.g
+                      style={{ originX: 0, originY: 0.5 }}
+                      animate={{ scaleX: RIGHT_WING_KF.scaleX, skewY: RIGHT_WING_KF.skewY }}
+                      transition={{
+                        repeat: Infinity,
+                        repeatDelay: BUTTERFLY_REPEAT_DELAY,
+                        duration: BUTTERFLY_CYCLE_DURATION,
+                        times: RIGHT_WING_KF.times,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      {/* Upper Right Wing */}
+                      <path
+                        d="M0,-2 C8,-15 22,-18 23,-7 C24,0 15,4 0,2 Z"
+                        fill="url(#butterflyWingUpperGrad)"
+                        stroke="#1c1917"
+                        strokeWidth="1.2"
+                      />
+                      <path
+                        d="M2,-2 C8,-9 16,-11 18,-5"
+                        fill="none"
+                        stroke="#451a03"
+                        strokeWidth="0.7"
+                        opacity="0.75"
+                      />
+                      <circle cx="18" cy="-10" r="1.1" fill="#ffffff" opacity="0.9" />
+                      <circle cx="20.5" cy="-6" r="0.85" fill="#ffffff" opacity="0.85" />
+                      {/* Lower Right Wing */}
+                      <path
+                        d="M0,2 C12,3 18,10 12,15 C7,19 1,13 0,5 Z"
+                        fill="url(#butterflyWingLowerGrad)"
+                        stroke="#1c1917"
+                        strokeWidth="1.1"
+                      />
+                      <circle cx="11.5" cy="12" r="0.8" fill="#fef9c3" opacity="0.85" />
+                    </motion.g>
+
+                    {/* Butterfly Body & Antennae */}
+                    <ellipse cx="0" cy="2" rx="1.8" ry="7.6" fill="#1c1917" />
+                    <circle cx="0" cy="-6" r="1.7" fill="#292524" />
+                    <path
+                      d="M-0.6,-7.2 Q-3.5,-12 -6,-13"
+                      fill="none"
+                      stroke="#1c1917"
+                      strokeWidth="0.7"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M0.6,-7.2 Q3.5,-12 6,-13"
+                      fill="none"
+                      stroke="#1c1917"
+                      strokeWidth="0.7"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="-6" cy="-13" r="0.65" fill="#fbbf24" />
+                    <circle cx="6" cy="-13" r="0.65" fill="#fbbf24" />
+                  </motion.g>
+                </svg>
+              </motion.div>
 
               {/* Seamless Left-Edge Blend into Dark Card Column */}
               <div className="hidden md:block absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/35 to-transparent pointer-events-none" />
