@@ -122,7 +122,7 @@ body,
   100% { transform: translateX(100%); }
 }
 
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .mobile-ticker {
     overflow: hidden;
     white-space: nowrap;
@@ -133,8 +133,34 @@ body,
   .mobile-ticker-inner {
     display: inline-block;
     white-space: nowrap;
-    animation: continuous-marquee-ltr 14s linear infinite;
+    animation: continuous-marquee-ltr 35s linear infinite;
   }
+}
+
+@keyframes login-schools-marquee-ltr {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100cqw);
+  }
+}
+
+.login-schools-ticker {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  container-type: inline-size;
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+
+.animate-login-schools-marquee {
+  display: inline-block;
+  width: max-content;
+  white-space: nowrap;
+  animation: login-schools-marquee-ltr 24s linear -4s infinite;
+  will-change: transform;
 }
 
 @keyframes pulse-slow {

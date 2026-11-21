@@ -5,136 +5,7 @@ import { AlertCircle } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { AnimatedBackground } from './AnimatedBackground';
 import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
-import loginGirlPortrait from '../assets/images/login_girl_popout_1795289770176.jpg';
-
-function buildPopoutArmCutout(img: HTMLImageElement): string | null {
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
-  if (!w || !h) return null;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) return null;
-
-  ctx.drawImage(img, 0, 0, w, h);
-  const imageData = ctx.getImageData(0, 0, w, h);
-  const data = imageData.data;
-
-  const minX = Math.floor(w * 0.62);
-  const fadeEndX = Math.floor(w * 0.69);
-  const fadeStartY = Math.floor(h * 0.66);
-  const maxY = Math.floor(h * 0.72);
-
-  const isBgCandidate = (idx: number): boolean => {
-    const o = idx * 4;
-    const r = data[o];
-    const g = data[o + 1];
-    const b = data[o + 2];
-    const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-    const isSkinWarm = r - b >= 14 && r > 52;
-    return !isSkinWarm && luma < 52 && maxC < 64;
-  };
-
-  const total = w * h;
-  const visited = new Uint8Array(total);
-  const isExteriorBg = new Uint8Array(total);
-  const queue = new Int32Array(total);
-  let head = 0;
-  let tail = 0;
-
-  const tryEnqueue = (x: number, y: number) => {
-    if (x < minX || x >= w || y < 0 || y >= maxY) return;
-    const idx = y * w + x;
-    if (visited[idx]) return;
-    visited[idx] = 1;
-    if (isBgCandidate(idx)) {
-      isExteriorBg[idx] = 1;
-      queue[tail++] = idx;
-    }
-  };
-
-  for (let y = 0; y < maxY; y++) {
-    tryEnqueue(w - 1, y);
-  }
-  for (let x = minX; x < w; x++) {
-    tryEnqueue(x, 0);
-    tryEnqueue(x, maxY - 1);
-  }
-
-  while (head < tail) {
-    const idx = queue[head++];
-    const x = idx % w;
-    const y = (idx - x) / w;
-    if (x + 1 < w) tryEnqueue(x + 1, y);
-    if (x - 1 >= minX) tryEnqueue(x - 1, y);
-    if (y + 1 < maxY) tryEnqueue(x, y + 1);
-    if (y - 1 >= 0) tryEnqueue(x, y - 1);
-  }
-
-  const nearBgDist = new Uint8Array(total);
-  for (let y = 2; y < maxY - 2; y++) {
-    for (let x = minX + 2; x < w - 2; x++) {
-      const idx = y * w + x;
-      if (isExteriorBg[idx]) continue;
-      if (
-        isExteriorBg[idx - 1] ||
-        isExteriorBg[idx + 1] ||
-        isExteriorBg[idx - w] ||
-        isExteriorBg[idx + w]
-      ) {
-        nearBgDist[idx] = 1;
-      } else if (
-        isExteriorBg[idx - 2] ||
-        isExteriorBg[idx + 2] ||
-        isExteriorBg[idx - w * 2] ||
-        isExteriorBg[idx + w * 2]
-      ) {
-        nearBgDist[idx] = 2;
-      }
-    }
-  }
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      const o = idx * 4;
-      if (x < minX || y >= maxY || isExteriorBg[idx]) {
-        data[o + 3] = 0;
-        continue;
-      }
-
-      let alpha = 255;
-      if (x < fadeEndX) {
-        alpha = Math.min(alpha, Math.round(((x - minX) / (fadeEndX - minX)) * 255));
-      }
-      if (y > fadeStartY) {
-        alpha = Math.min(alpha, Math.round(((maxY - y) / (maxY - fadeStartY)) * 255));
-      }
-
-      if (nearBgDist[idx] === 1) {
-        const luma = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
-        if (luma < 62) {
-          alpha = Math.min(alpha, Math.round((luma / 62) * 120));
-        } else {
-          alpha = Math.min(alpha, 210);
-        }
-      } else if (nearBgDist[idx] === 2) {
-        const luma = 0.299 * data[o] + 0.587 * data[o + 1] + 0.114 * data[o + 2];
-        if (luma < 52) {
-          alpha = Math.min(alpha, 195);
-        }
-      }
-
-      data[o + 3] = alpha;
-    }
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL('image/png');
-}
+const loginPortraitSrc = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
 interface LoginScreenProps {
   onSuccess?: (user: User) => void;
@@ -143,32 +14,12 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
   const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
-  const [popoutArmSrc, setPopoutArmSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      if (!active) return;
-      try {
-        const cutout = buildPopoutArmCutout(img);
-        if (cutout) setPopoutArmSrc(cutout);
-      } catch (err) {
-        console.warn('Popout cutout fallback:', err);
-      }
-    };
-    img.src = loginGirlPortrait;
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -293,7 +144,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, type: 'spring', bounce: 0.25 }}
-        className="relative z-10 w-full md:max-w-[calc(100%-6.5rem)] lg:max-w-4xl my-auto overflow-visible"
+        className="relative z-10 w-full md:max-w-3xl lg:max-w-4xl my-auto"
       >
         {/* Clipped Luminous Frame & Split Card */}
         <div className="relative w-full p-[3px] rounded-[32px] overflow-hidden shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85)]">
@@ -305,29 +156,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           />
 
           {/* Split Hero Card Container */}
-          <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[35%_65%]">
-            {/* Right Column (RTL - 35%): Portrait Inside Frame */}
+          <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[45%_55%]">
+            {/* Right Column (RTL - 45%): Portrait Strictly Inside Frame */}
             <div className="relative h-64 sm:h-72 md:h-full md:min-h-[520px] overflow-hidden bg-[#040507]">
-              {/* Mobile/Small Screen Full Fit */}
               <motion.img
-                src={loginGirlPortrait}
+                src={loginPortraitSrc}
                 alt="مرحباً بك في منظومة الكنترول الذكي"
                 referrerPolicy="no-referrer"
-                animate={{ scale: [1, 1.09, 1] }}
+                animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                className="md:hidden w-full h-full object-cover object-[50%_24%] origin-center will-change-transform select-none pointer-events-none"
+                className="w-full h-full object-cover object-[50%_65%] md:object-center origin-center will-change-transform select-none pointer-events-none"
               />
-              {/* Desktop/Tablet Split Card Layer 1: Aligned to allow forearm/hand to extend right past card edge */}
-              <div className="hidden md:block absolute top-0 bottom-0 left-0 aspect-[3/4] h-full">
-                <motion.img
-                  src={loginGirlPortrait}
-                  alt="مرحباً بك في منظومة الكنترول الذكي"
-                  referrerPolicy="no-referrer"
-                  animate={{ scale: [1, 1.09, 1] }}
-                  transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                  className="w-full h-full object-cover origin-center will-change-transform select-none pointer-events-none"
-                />
-              </div>
 
               {/* Seamless Left-Edge Blend into Dark Card Column */}
               <div className="hidden md:block absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/35 to-transparent pointer-events-none" />
@@ -337,7 +176,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             </div>
 
           {/* Left Column (RTL): Brand & Actions Panel */}
-          <div className="p-6 sm:p-8 lg:p-9 flex flex-col items-center justify-center text-center">
+          <div className="min-w-0 p-6 sm:p-8 lg:p-9 flex flex-col items-center justify-center text-center">
             {/* Glowing Floating App Logo */}
             <motion.div
               animate={{
@@ -394,8 +233,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               2027 - 2026
             </span>
           </div>
-          <div className="mobile-ticker mt-1">
-            <p className="mobile-ticker-inner text-xs sm:text-sm text-slate-300 font-bold tracking-wide">
+          <div dir="ltr" className="login-schools-ticker mt-1">
+            <p
+              dir="rtl"
+              className="animate-login-schools-marquee text-xs sm:text-sm text-slate-300 font-bold tracking-wide"
+            >
               للمدارس ( الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة - الدولية )
             </p>
           </div>
@@ -459,29 +301,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           </div>
         </div>
         </div>
-
-        {/* Layer 2: Out-of-Frame 3D Arm Pop-Out Breaking Past Only the Right Frame Edge */}
-        {popoutArmSrc && (
-          <div
-            aria-hidden="true"
-            style={{ clipPath: 'inset(0 -240px 0 0)' }}
-            className="hidden md:block absolute top-[4px] bottom-[4px] right-[4px] w-[calc(35%-2.8px)] z-30 pointer-events-none"
-          >
-            <div className="absolute top-0 bottom-0 left-0 aspect-[3/4] h-full overflow-visible">
-              <motion.img
-                src={popoutArmSrc}
-                alt=""
-                referrerPolicy="no-referrer"
-                animate={{ scale: [1, 1.09, 1] }}
-                transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                style={{
-                  filter: 'drop-shadow(-10px 14px 18px rgba(0, 0, 0, 0.85))',
-                }}
-                className="w-full h-full object-cover origin-center will-change-transform select-none pointer-events-none"
-              />
-            </div>
-          </div>
-        )}
       </motion.div>
 
       {/* Developer Contact Under Login Window */}
