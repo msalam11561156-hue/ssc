@@ -531,11 +531,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
 
           <h2 className="text-[13px] sm:text-xl font-extrabold text-white mt-1 leading-snug">
             مرحباً بك في منظومة الكنترول الذكي
-            <div className="mobile-ticker mt-1">
-              <span className="mobile-ticker-inner text-sm sm:text-base font-bold text-amber-300">
-                لإدارة أعمال إمتحانات المدارس المصرية
-              </span>
-            </div>
+            <span className="block mt-1 text-sm sm:text-base font-bold text-amber-300">
+              لإدارة أعمال إمتحانات المدارس المصرية
+            </span>
           </h2>
           <div className="my-3">
             <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] animate-pulse">
