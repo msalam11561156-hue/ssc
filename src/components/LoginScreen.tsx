@@ -201,7 +201,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   return (
     <div
       dir="rtl"
-      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-5 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
+      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-5 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
     >
       <AnimatedBackground />
 
@@ -223,7 +223,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           {/* Split Hero Card Container */}
           <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[45%_55%]">
             {/* Right Column (RTL - 45%): Portrait Strictly Inside Frame */}
-            <div className="relative h-[292px] sm:h-[329px] md:h-full md:min-h-[593px] overflow-hidden bg-[#040507]">
+            <div className="relative h-[242px] sm:h-[274px] md:h-full md:min-h-[593px] overflow-hidden bg-[#040507]">
               <motion.div
                 animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
@@ -495,11 +495,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               <div className="hidden md:block absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/35 to-transparent pointer-events-none" />
               <div className="hidden md:block absolute inset-y-6 left-0 w-[3px] bg-gradient-to-b from-transparent via-amber-400 to-transparent shadow-[0_0_10px_rgba(251,191,36,0.8)] pointer-events-none" />
               {/* Soft Bottom Blend Vignette */}
-              <div className="absolute inset-x-0 bottom-0 h-20 md:h-24 bg-gradient-to-t from-[#090d16]/85 via-[#090d16]/25 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-14 md:h-24 bg-gradient-to-t from-[#090d16]/85 via-[#090d16]/25 to-transparent pointer-events-none" />
             </div>
 
           {/* Left Column (RTL): Brand & Actions Panel */}
-          <div className="min-w-0 p-6 sm:p-8 lg:p-10 flex flex-col items-center justify-center text-center">
+          <div className="min-w-0 px-4 py-6 sm:p-6 md:p-8 lg:p-10 flex flex-col items-center justify-center text-center">
             {/* Glowing Floating App Logo */}
             <motion.div
               animate={{
@@ -516,9 +516,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                 scale: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
                 filter: { repeat: Infinity, duration: 3, ease: 'easeInOut' },
               }}
-              className="relative mb-5"
+              className="relative mb-4 md:mb-5"
             >
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-950/90 border-2 border-amber-400/50 flex items-center justify-center p-3.5 shadow-2xl">
+              <div className="w-[84px] h-[84px] sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-950/90 border-2 border-amber-400/50 flex items-center justify-center p-2.5 md:p-3.5 shadow-2xl">
                 <img
                   src={logoSrc}
                   alt="Smart Control Logo"
@@ -530,12 +530,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             </motion.div>
 
           {/* App Brand Title */}
-          <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400 drop-shadow-sm">
+          <h1 className="text-xl sm:text-3xl md:text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400 drop-shadow-sm">
             SMART CONTROL 0.1
           </h1>
 
           {/* Luminous Divider */}
-          <div className="w-4/5 h-[2px] bg-slate-800 rounded-full overflow-hidden my-3">
+          <div className="w-4/5 h-[2px] bg-slate-800 rounded-full overflow-hidden my-2.5 md:my-3">
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
@@ -543,39 +543,39 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             />
           </div>
 
-          <h2 className="text-[13px] sm:text-xl font-extrabold text-white mt-1 leading-snug">
-            مرحباً بك في منظومة الكنترول الذكي
-            <span className="block mt-1 text-sm sm:text-base font-bold text-amber-300">
+          <h2 className="text-[13px] sm:text-xl font-extrabold text-white mt-0.5 md:mt-1 leading-snug">
+            <span className="hidden md:inline">مرحباً بك في منظومة الكنترول الذكي</span>
+            <span className="block mt-0 md:mt-1 text-sm sm:text-base font-bold text-amber-300">
               لإدارة أعمال إمتحانات المدارس المصرية
             </span>
           </h2>
-          <div className="my-3">
+          <div className="hidden md:block my-3">
             <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-500 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] animate-pulse">
               2027 - 2026
             </span>
           </div>
-          <p className="mt-1 text-xs sm:text-sm text-slate-300 font-bold tracking-wide">
+          <p className="mt-1 text-[11px] sm:text-xs md:text-sm text-slate-300 font-bold tracking-wide">
             لجميع المدارس الرسمية والخاصة والدولية
           </p>
 
           <motion.span
             animate={{ backgroundPosition: ['220% center', '-220% center'] }}
             transition={{ repeat: Infinity, duration: 6.5, ease: 'linear' }}
-            className="mt-2.5 text-sm sm:text-base font-extrabold leading-relaxed tracking-wide text-transparent bg-clip-text bg-[linear-gradient(110deg,#fde68a_0%,#ffffff_30%,#fbbf24_55%,#ffffff_78%,#fde68a_100%)] bg-[length:220%_auto] select-none"
+            className="mt-1.5 md:mt-2.5 text-xs sm:text-sm md:text-base font-extrabold leading-relaxed tracking-wide text-transparent bg-clip-text bg-[linear-gradient(110deg,#fde68a_0%,#ffffff_30%,#fbbf24_55%,#ffffff_78%,#fde68a_100%)] bg-[length:220%_auto] select-none"
           >
             مجانى وسيبقى مجانى
           </motion.span>
 
           {/* Error Alert */}
           {errorMsg && (
-            <div className="w-full mt-5 mb-2 h-14 px-4 rounded-2xl bg-rose-500/20 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center justify-center gap-2 text-center">
+            <div className="w-full mt-3 mb-1.5 md:mt-5 md:mb-2 h-14 px-4 rounded-2xl bg-rose-500/20 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center justify-center gap-2 text-center">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Divider Line Above Buttons */}
-          <div className="w-full h-[2px] bg-slate-700/80 rounded-full overflow-hidden mt-6 mb-5">
+          <div className="w-full h-[2px] bg-slate-700/80 rounded-full overflow-hidden mt-4 mb-3.5 md:mt-6 md:mb-5">
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
@@ -591,7 +591,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               rel="noopener noreferrer"
               aria-label="شرح التطبيق"
               title="شرح التطبيق"
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:via-rose-500 hover:to-red-600 text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center gap-2.5 shadow-[0_6px_20px_-4px_rgba(220,38,38,0.5)] transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full h-12 md:h-14 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:via-rose-500 hover:to-red-600 text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center gap-2.5 shadow-[0_6px_20px_-4px_rgba(220,38,38,0.5)] transition-all active:scale-[0.98] cursor-pointer"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -612,7 +612,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               type="button"
               onClick={() => onContinueWithoutAccount?.()}
               disabled={isLoading}
-              className="w-full h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-[1.05rem] border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+              className="w-full h-12 md:h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-[1.05rem] border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               <span>متابعة</span>
             </button>
@@ -623,7 +623,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
       </motion.div>
 
       {/* Developer Contact Under Login Window */}
-      <div className="relative z-10 mt-4 text-center select-none">
+      <div className="relative z-10 mt-2 md:mt-4 text-center select-none">
         <p className="text-xs sm:text-sm font-bold text-amber-300 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
           Mahmoud Sallam : 01098594956 - 01131097055
         </p>
