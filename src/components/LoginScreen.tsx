@@ -582,6 +582,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               href="https://youtube.com/playlist?list=PLCwlGOLf0Pec&si=6d9RhP0T6gWZKsAx"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="شرح التطبيق"
+              title="شرح التطبيق"
               className="w-full h-14 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:via-rose-500 hover:to-red-600 text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center gap-2.5 shadow-[0_6px_20px_-4px_rgba(220,38,38,0.5)] transition-all active:scale-[0.98] cursor-pointer"
             >
               <svg
@@ -596,7 +598,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                 />
                 <path fill="#dc2626" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
               </svg>
-              <span>شرح التطبيق</span>
+              <span className="hidden sm:inline">شرح التطبيق</span>
             </a>
 
             <button
