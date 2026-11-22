@@ -586,8 +586,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             >
               <svg
                 viewBox="0 0 24 24"
+                preserveAspectRatio="none"
                 aria-hidden="true"
-                className="w-6 h-6 shrink-0"
+                className="w-[43.1px] h-[45px] shrink-0"
               >
                 <path
                   fill="#ffffff"
