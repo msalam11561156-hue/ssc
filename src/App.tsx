@@ -336,9 +336,10 @@ export default function App() {
     setTimeout(() => setBackupToast(null), 4000);
   };
 
+  const isSponsorWindowEnabled = false;
   const isOnSplashScreen = step === 0;
   useEffect(() => {
-    if (!hasPassedLoginScreen || (!authUser && !continueWithoutAccount) || isOnSplashScreen || isSponsorAdOpen) {
+    if (!isSponsorWindowEnabled || !hasPassedLoginScreen || (!authUser && !continueWithoutAccount) || isOnSplashScreen || isSponsorAdOpen) {
       return;
     }
 
@@ -1196,6 +1197,7 @@ export default function App() {
       label: 'اعدادات نافذة هذا البرنامج برعاية', 
       icon: Clock, 
       marquee: true,
+      hidden: !isSponsorWindowEnabled,
       color: 'bg-amber-600 shadow-[0_5px_15px_-3px_rgba(217,119,6,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(217,119,6,0.6)]',
       action: () => {
         setIsMenuOpen(false);
@@ -1663,7 +1665,7 @@ export default function App() {
 
         {/* Sponsor Window Timing Settings Dialog */}
         <AnimatePresence>
-          {isSponsorSettingsModalOpen && (
+          {isSponsorWindowEnabled && isSponsorSettingsModalOpen && (
             <SponsorSettingsModal
               isOpen={isSponsorSettingsModalOpen}
               onClose={() => setIsSponsorSettingsModalOpen(false)}
@@ -1676,7 +1678,7 @@ export default function App() {
 
         {/* 75% Viewport 10-Second Sponsorship Ad Card */}
         <SponsorAdCard
-          isOpen={isSponsorAdOpen}
+          isOpen={isSponsorWindowEnabled && isSponsorAdOpen}
           onClose={handleCloseSponsorAd}
         />
 
