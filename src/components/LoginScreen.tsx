@@ -209,7 +209,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, type: 'spring', bounce: 0.25 }}
-        className="relative z-10 w-full md:max-w-[968px] lg:max-w-[1130px] my-auto"
+        className="relative z-10 w-full md:max-w-[920px] lg:max-w-[1074px] my-auto"
       >
         {/* Clipped Luminous Frame & Split Card */}
         <div className="relative w-full p-[3px] rounded-[32px] overflow-hidden shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85)]">
@@ -223,7 +223,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           {/* Split Hero Card Container */}
           <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[45%_55%]">
             {/* Right Column (RTL - 45%): Portrait Strictly Inside Frame */}
-            <div className="relative h-[307px] sm:h-[346px] md:h-full md:min-h-[624px] overflow-hidden bg-[#040507]">
+            <div className="relative h-[292px] sm:h-[329px] md:h-full md:min-h-[593px] overflow-hidden bg-[#040507]">
               <motion.div
                 animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
@@ -499,7 +499,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             </div>
 
           {/* Left Column (RTL): Brand & Actions Panel */}
-          <div className="min-w-0 p-7 sm:p-9 lg:p-11 flex flex-col items-center justify-center text-center">
+          <div className="min-w-0 p-6 sm:p-8 lg:p-10 flex flex-col items-center justify-center text-center">
             {/* Glowing Floating App Logo */}
             <motion.div
               animate={{
@@ -554,14 +554,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               2027 - 2026
             </span>
           </div>
-          <div dir="ltr" className="login-schools-ticker mt-1">
-            <p
-              dir="rtl"
-              className="animate-login-schools-marquee text-xs sm:text-sm text-slate-300 font-bold tracking-wide"
-            >
-              للمدارس ( الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة - الدولية )
-            </p>
-          </div>
+          <p className="mt-1 text-xs sm:text-sm text-slate-300 font-bold tracking-wide">
+            لجميع المدارس الرسمية والخاصة والدولية
+          </p>
 
           <motion.span
             animate={{ backgroundPosition: ['220% center', '-220% center'] }}
