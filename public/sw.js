@@ -91,8 +91,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Bypass API calls and Vite dev server internal routes
+  // Bypass API calls, third-party analytics, and Vite dev server internal routes
   if (
+    url.hostname.endsWith('clarity.ms') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/@vite/') ||
     url.pathname.startsWith('/@react-refresh') ||
