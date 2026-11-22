@@ -6637,7 +6637,7 @@ export async function exportStudentSuccessStatementPdf(
     ctx.font = 'bold 20px "Cairo", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('صورة الطالب', photoX + photoW / 2, photoY + photoH / 2);
+    ctx.fillText('صورة شخصية', photoX + photoW / 2, photoY + photoH / 2);
     ctx.restore();
 
     // Detail lines placed beside the photo box on the right side of the page

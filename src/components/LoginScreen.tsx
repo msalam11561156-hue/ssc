@@ -201,7 +201,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   return (
     <div
       dir="rtl"
-      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
+      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-3 sm:p-5 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
     >
       <AnimatedBackground />
 
@@ -209,7 +209,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, type: 'spring', bounce: 0.25 }}
-        className="relative z-10 w-full md:max-w-3xl lg:max-w-4xl my-auto"
+        className="relative z-10 w-full md:max-w-[968px] lg:max-w-[1130px] my-auto"
       >
         {/* Clipped Luminous Frame & Split Card */}
         <div className="relative w-full p-[3px] rounded-[32px] overflow-hidden shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85)]">
@@ -223,7 +223,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           {/* Split Hero Card Container */}
           <div className="relative z-10 w-full bg-gradient-to-b from-[#111827] via-[#0f172a] to-[#090d16] rounded-[29px] overflow-hidden border border-slate-800/80 grid grid-cols-1 md:grid-cols-[45%_55%]">
             {/* Right Column (RTL - 45%): Portrait Strictly Inside Frame */}
-            <div className="relative h-64 sm:h-72 md:h-full md:min-h-[520px] overflow-hidden bg-[#040507]">
+            <div className="relative h-[307px] sm:h-[346px] md:h-full md:min-h-[624px] overflow-hidden bg-[#040507]">
               <motion.div
                 animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
@@ -499,7 +499,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             </div>
 
           {/* Left Column (RTL): Brand & Actions Panel */}
-          <div className="min-w-0 p-6 sm:p-8 lg:p-9 flex flex-col items-center justify-center text-center">
+          <div className="min-w-0 p-7 sm:p-9 lg:p-11 flex flex-col items-center justify-center text-center">
             {/* Glowing Floating App Logo */}
             <motion.div
               animate={{
@@ -516,9 +516,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                 scale: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
                 filter: { repeat: Infinity, duration: 3, ease: 'easeInOut' },
               }}
-              className="relative mb-4"
+              className="relative mb-5"
             >
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-950/90 border-2 border-amber-400/50 flex items-center justify-center p-3 shadow-2xl">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-950/90 border-2 border-amber-400/50 flex items-center justify-center p-3.5 shadow-2xl">
                 <img
                   src={logoSrc}
                   alt="Smart Control Logo"
