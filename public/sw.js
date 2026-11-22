@@ -1,12 +1,13 @@
 // Smart Control 0.1 - Ultra Reliable Offline Service Worker
-const CACHE_NAME = 'smart-control-offline-v6';
-const STATIC_CACHE_NAME = 'smart-control-static-v6';
+const CACHE_NAME = 'smart-control-offline-v7';
+const STATIC_CACHE_NAME = 'smart-control-static-v7';
 
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/brand_shield.png',
+  '/assets/aistudio/Screenshot_12_bc36452f.jpg',
   '/appicon.ico',
   '/favicon.ico',
   '/favicon.svg',

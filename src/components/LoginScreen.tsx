@@ -4,8 +4,13 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmail
 import { AlertCircle } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { AnimatedBackground } from './AnimatedBackground';
-import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
-const loginPortraitSrc = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
+import {
+  getBrandShieldSync,
+  getCachedBrandShield,
+  getCachedLoginPortrait,
+  getLoginPortraitSync,
+} from '../utils/offlineAssetCache';
+const loginPortraitFallbackUrl = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
 const PLANT_ROSES = [
   { id: 'rose-top', x: 374, y: 282, baseRotate: -8, scale: 0.94, duration: 5.6, delay: 0 },
@@ -68,6 +73,7 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
   const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
+  const [portraitSrc, setPortraitSrc] = useState<string>(() => getLoginPortraitSync());
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -80,6 +86,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
     getCachedBrandShield().then((cached) => {
       if (active && cached) {
         setLogoSrc(cached);
+      }
+    });
+    getCachedLoginPortrait().then((cached) => {
+      if (active && cached) {
+        setPortraitSrc(cached);
       }
     });
 
@@ -216,14 +227,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               <motion.div
                 animate={{ scale: [1, 1.06, 1] }}
                 transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
-                className="w-full h-full origin-center will-change-transform select-none pointer-events-none"
+                className="relative w-full h-full origin-center will-change-transform select-none pointer-events-none"
               >
+                <img
+                  src={portraitSrc}
+                  alt="مرحباً بك في منظومة الكنترول الذكي"
+                  fetchPriority="high"
+                  loading="eager"
+                  decoding="sync"
+                  onError={() => {
+                    if (portraitSrc !== loginPortraitFallbackUrl) {
+                      setPortraitSrc(loginPortraitFallbackUrl);
+                    }
+                  }}
+                  className="w-full h-full object-cover object-center block"
+                />
                 <svg
                   viewBox="0 0 470 640"
                   preserveAspectRatio="xMidYMid slice"
-                  role="img"
-                  aria-label="مرحباً بك في منظومة الكنترول الذكي"
-                  className="w-full h-full block"
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full block pointer-events-none"
                 >
                   <defs>
                     <radialGradient id="roseOuterGrad" cx="42%" cy="35%" r="65%">
@@ -254,15 +277,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                       <feDropShadow dx="1.5" dy="3.5" stdDeviation="2.2" floodColor="#0f172a" floodOpacity="0.45" />
                     </filter>
                   </defs>
-
-                  <image
-                    href={loginPortraitSrc}
-                    x="0"
-                    y="0"
-                    width="470"
-                    height="640"
-                    preserveAspectRatio="none"
-                  />
 
                   {/* 3 Slow-Fluttering Red Roses on the Classroom Plant */}
                   {PLANT_ROSES.map((rose) => (

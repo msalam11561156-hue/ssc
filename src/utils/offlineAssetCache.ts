@@ -15,6 +15,8 @@ import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
 const SPONSOR_AD_BANNER_CACHE_KEY = 'offline_sponsor_ad_banner_v1';
+const LOGIN_PORTRAIT_CACHE_KEY = 'offline_login_portrait_v1';
+const LOGIN_PORTRAIT_URL = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
 async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
   if (blob.type && blob.type.toLowerCase().startsWith('image/')) {
@@ -214,8 +216,37 @@ export function getBrandShieldSync(): string {
   return memoryCache.get(BRAND_SHIELD_CACHE_KEY) || brandShieldUrl;
 }
 
+export function getLoginPortraitSync(): string {
+  return memoryCache.get(LOGIN_PORTRAIT_CACHE_KEY) || LOGIN_PORTRAIT_URL;
+}
+
 export function getSponsorAdBannerSync(): string {
   return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY) || sponsorAdBannerUrl;
+}
+
+export async function getCachedLoginPortrait(): Promise<string> {
+  if (memoryCache.has(LOGIN_PORTRAIT_CACHE_KEY)) {
+    return memoryCache.get(LOGIN_PORTRAIT_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(LOGIN_PORTRAIT_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(LOGIN_PORTRAIT_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for login portrait:', e);
+  }
+
+  try {
+    const dataUrl = await fetchToDataUrl(LOGIN_PORTRAIT_URL);
+    memoryCache.set(LOGIN_PORTRAIT_CACHE_KEY, dataUrl);
+    idbSet(LOGIN_PORTRAIT_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch {
+    return LOGIN_PORTRAIT_URL;
+  }
 }
 
 /**
@@ -287,8 +318,11 @@ export async function getCachedBrandShield(): Promise<string> {
 export async function preloadAndCacheOfflineAssets(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    // 0. حفظ شعار الدرع الذهبي في IndexedDB
-    const brandShieldPromise = getCachedBrandShield().catch(() => {});
+    // 0. إعطاء الأولوية القصوى لصور نافذة تسجيل الدخول (الشعار + صورة الفصل) قبل تنزيل الخلفيات الكبيرة
+    await Promise.allSettled([
+      getCachedBrandShield().catch(() => {}),
+      getCachedLoginPortrait().catch(() => {}),
+    ]);
 
     // 1. حفظ قوالب الشهادات في IndexedDB
     const certsPromise = Promise.allSettled([
@@ -338,7 +372,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       }).catch(() => {});
     }
 
-    await Promise.allSettled([brandShieldPromise, certsPromise, splashPromise, adExamplePromise, sponsorBannerPromise]);
+    await Promise.allSettled([certsPromise, splashPromise, adExamplePromise, sponsorBannerPromise]);
   } catch (e) {
     console.warn('Preload offline assets warning:', e);
   }
