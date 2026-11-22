@@ -1196,7 +1196,6 @@ export default function App() {
       label: 'اعدادات نافذة هذا البرنامج برعاية', 
       icon: Clock, 
       marquee: true,
-      hidden: true,
       color: 'bg-amber-600 shadow-[0_5px_15px_-3px_rgba(217,119,6,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(217,119,6,0.6)]',
       action: () => {
         setIsMenuOpen(false);
