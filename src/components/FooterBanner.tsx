@@ -16,8 +16,14 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
 
   const bannerText = lang === 'ar' 
     ? (
-      <span className="flex items-center gap-3 whitespace-nowrap" dir="rtl">
-        ننوه عناية سيادتكم بأن ترحيل وتحديث بيانات الطلاب للعام الدراسي المقبل سيتم تلقائيًا دون الحاجة إلى إعادة إدخالها يدويا ، إذ تتولى خوارزميات تطبيق سمارت كنترول إتمام هذا الإجراء برمجيًا ، تخفيفًا للأعباء وتيسيرًا على السادة القائمين على أعمال الكنترول والبيانات بالمدارس.{'\u00A0\u00A0\u00A0\u00A0-\u00A0\u00A0\u00A0\u00A0'}لمتابعة الاصدارات الاخرى للتطبيقات التعليمية المختلفة والمتطورة والعصرية يسعدنا إنضمامكم إلينا عبر منصات التواصل الاجتماعى المختلفة - الدعم الفنى 01098594956 - 01131097055 - تطبيق سمارت كنترول 26 - 27 : حوكمة وإدارة أعمال الإمتحانات بلا حدود - نسعى إلى بناء جسور الثقة والمصداقية التي تقوم على أعمدة المسئولية والأمانة والمهنية ، مدعومةً بأحدث حلول الرقمنة والتكنولوجيا والابتكار لتحقيق التميز والاستدامة حفاظاً على القمة.{'\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}مجانى وسيبقى مجانى
+      <span className="whitespace-nowrap" dir="rtl">
+        <span dir="ltr" className="inline-block text-[1.5em] leading-none align-middle">
+          <span className="text-black">SMART</span> CONTROL{' '}
+          <span className="text-red-600">NEWS</span>
+        </span>
+        <span className="drop-shadow-md">
+          {'\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}ننوه عناية سيادتكم بأن ترحيل وتحديث بيانات الطلاب للعام الدراسي المقبل سيتم تلقائيًا دون الحاجة إلى إعادة إدخالها مرة أخرى ، سيما أن خوارزميات تطبيق سمارت كنترول هى من تتولى إتمام هذا الإجراء برمجيًا ، تخفيفًا للأعباء وتيسيرًا على السادة القائمين على أعمال الكنترول بالمدارس المصرية.{'\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}لمتابعة الاصدارات الاخرى للتطبيقات التعليمية المختلفة والمتطورة والعصرية يسعدنا إنضمامكم إلينا عبر منصات التواصل الاجتماعى المختلفة - الدعم الفنى 01098594956 - 01131097055 - تطبيق سمارت كنترول 26 - 27{'\u00A0\u00A0\u00A0\u00A0\u00A0'}إدارة أعمال الإمتحانات بلا حدود{'\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}نسعى إلى بناء جسور الثقة والمصداقية التي تقوم على المسئولية والأمانة والمهنية ، مدعومةً بأحدث حلول الرقمنة والتكنولوجيا والابتكار لتحقيق التميز والاستدامة حفاظاً على القمة.{'\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}مجانى وسيبقى مجانى
+        </span>
       </span>
     )
     : (
@@ -69,7 +75,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
               }
             `}
           </style>
-          <div className={`${scrollAnimation} whitespace-nowrap text-white font-bold text-xs sm:text-sm md:text-base px-3 sm:px-4 drop-shadow-md`}>
+          <div className={`${scrollAnimation} whitespace-nowrap text-white font-bold text-xs sm:text-sm md:text-base px-3 sm:px-4`}>
             {bannerText}
           </div>
         </div>
