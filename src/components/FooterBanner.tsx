@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Share2, Facebook, Star, Menu, X } from 'lucide-react';
 import { Language } from '../types';
 import { ShareModal } from './ShareModal';
 import { PWAInstallButton } from './PWAInstallButton';
-import { getCachedNewsMicIcon, getNewsMicIconSync } from '../utils/offlineAssetCache';
 
 interface FooterBannerProps {
   lang: Language;
@@ -14,22 +13,8 @@ interface FooterBannerProps {
 export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnabled }) => {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [newsMicIconSrc, setNewsMicIconSrc] = useState<string>(() => getNewsMicIconSync());
-
-  useEffect(() => {
-    let mounted = true;
-    getCachedNewsMicIcon().then((cachedSrc) => {
-      if (mounted && cachedSrc) {
-        setNewsMicIconSrc(cachedSrc);
-      }
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const tenSpaces = '\u00A0'.repeat(10);
-  const fiveSpaces = '\u00A0'.repeat(5);
 
   const smartControlNewsTag = (
     <>
@@ -38,14 +23,6 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
         <span className="text-black">SMART</span> CONTROL{' '}
         <span className="text-red-600">NEWS</span>
       </span>
-      {fiveSpaces}
-      <img
-        src={newsMicIconSrc}
-        onError={() => setNewsMicIconSrc('/assets/images/news_mic_icon.png')}
-        alt=""
-        aria-hidden="true"
-        className="inline-block align-middle h-[2.3em] w-auto object-contain shrink-0 select-none pointer-events-none"
-      />
       {tenSpaces}
     </>
   );

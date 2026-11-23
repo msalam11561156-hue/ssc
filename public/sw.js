@@ -18,7 +18,6 @@ const CORE_ASSETS = [
   '/sounds/click.wav',
   '/assets/images/splash_brand_bg.jpg',
   '/assets/images/splash_control_illustration.jpg',
-  '/assets/images/news_mic_icon.png',
   '/assets/aistudio/asd126_e7a9cb22.jfif',
   '/docs/control-work-guide.pdf',
 ];
