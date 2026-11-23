@@ -750,7 +750,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               </h3>
 
               <p className="text-sm text-slate-700 leading-relaxed mb-4 font-semibold">
-                عفواً ... انتهت النسخة التجريبية.
+                عفواً ... انتهت صلاحية النسخة التجريبية.
               </p>
 
               <div className="w-full flex flex-col gap-2.5 mt-2">
@@ -762,13 +762,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                   }}
                   className="w-full py-3.5 px-5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-black rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
                 >
-                  تفعيل النسخة الرسمية الآن
+                  يمكنك استخدام النسخة الرسمية مجانا
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setShowAllExpiredModal(false)}
-                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl border border-black/30 transition-all cursor-pointer"
                 >
                   إغلاق
                 </button>
