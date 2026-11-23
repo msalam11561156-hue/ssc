@@ -1,6 +1,6 @@
 // Smart Control 0.1 - Ultra Reliable Offline Service Worker
-const CACHE_NAME = 'smart-control-offline-v8';
-const STATIC_CACHE_NAME = 'smart-control-static-v8';
+const CACHE_NAME = 'smart-control-offline-v9';
+const STATIC_CACHE_NAME = 'smart-control-static-v9';
 
 const CORE_ASSETS = [
   '/',
@@ -19,6 +19,7 @@ const CORE_ASSETS = [
   '/assets/images/splash_brand_bg.jpg',
   '/assets/images/splash_control_illustration.jpg',
   '/assets/aistudio/asd126_e7a9cb22.jfif',
+  '/docs/control-work-guide.pdf',
 ];
 
 const IMAGE_EXT_REGEX = /\.(png|jpg|jpeg|gif|svg|webp|jfif|ico)$/i;

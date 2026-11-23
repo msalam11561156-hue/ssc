@@ -30,6 +30,7 @@ export default defineConfig(() => {
           'assets/images/splash_control_illustration.jpg',
           'assets/aistudio/asd126_e7a9cb22.jfif',
           'assets/aistudio/Screenshot_12_bc36452f.jpg',
+          'docs/control-work-guide.pdf',
           'sounds/click.wav'
         ],
         manifest: {

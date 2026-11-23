@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
@@ -22,6 +22,7 @@ import { KG_LEARNING_DOMAINS } from '../utils/kgAssessmentsReportHelper';
 import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
+import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
@@ -2952,6 +2953,15 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                       <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
                         <BrandHeader />
                         <RowThemeSelector />
+                        <ActionMenuButton
+                          onClick={async () => {
+                            setIsPrintMenuOpen(false);
+                            await downloadControlWorkGuide();
+                          }}
+                          icon={<FileDown className="w-4 h-4" />}
+                          text="دليل أعمال الكنترول"
+                          bgGradient="bg-[linear-gradient(to_right,#b45309,#f59e0b,#b45309)]"
+                        />
                         <ActionMenuButton
                           onClick={() => handlePrintOption('students_data')}
                           icon={<Printer className="w-4 h-4" />}

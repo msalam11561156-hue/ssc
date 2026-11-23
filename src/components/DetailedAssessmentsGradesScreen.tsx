@@ -23,13 +23,15 @@ import {
   X,
   BarChart3,
   Award,
-  Trophy
+  Trophy,
+  FileDown
 } from 'lucide-react';
 import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSubjects';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { StudentData, Language, EducationalStage, DetailedAssessmentItem, EducationType } from '../types';
+import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 
 const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
 const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
@@ -2742,6 +2744,17 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 
                 {/* بطاقة ألوان الطباعة */}
                 <RowThemeSelector />
+
+                {/* 0. دليل أعمال الكنترول */}
+                <ActionMenuButton
+                  onClick={async () => {
+                    setIsPrintMenuOpen(false);
+                    await downloadControlWorkGuide();
+                  }}
+                  icon={<FileDown className="w-4 h-4" />}
+                  text="دليل أعمال الكنترول"
+                  bgGradient="bg-[linear-gradient(to_right,#b45309,#f59e0b,#b45309)]"
+                />
 
                 {/* 1. تقييمات المواد تفصيلا */}
                 <ActionMenuButton

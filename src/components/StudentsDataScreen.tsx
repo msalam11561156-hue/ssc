@@ -13,6 +13,7 @@ import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
+import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
@@ -2409,6 +2410,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
                         <BrandHeader />
                         <RowThemeSelector />
+                        <ActionMenuButton
+                          onClick={async () => {
+                            setIsPrintMenuOpen(false);
+                            await downloadControlWorkGuide();
+                          }}
+                          icon={<FileDown className="w-4 h-4" />}
+                          text="دليل أعمال الكنترول"
+                          bgGradient="bg-[linear-gradient(to_right,#b45309,#f59e0b,#b45309)]"
+                        />
                         <ActionMenuButton
                           onClick={() => handlePrintOption('students_data')}
                           icon={<Printer className="w-4 h-4" />}
