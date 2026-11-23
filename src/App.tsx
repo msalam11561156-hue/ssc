@@ -1901,6 +1901,7 @@ export default function App() {
                       controlData={currentControlData}
                       onSchoolChange={setSchoolData}
                       onControlChange={handleControlChange}
+                      onBack={() => navigateStep(0)}
                       onNext={() => {
                         if (schoolData.stage === 'middle') {
                           navigateStep(10);
