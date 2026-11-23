@@ -3940,6 +3940,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         document.fonts.load('bold 18px "Cairo"'),
         document.fonts.load('bold 20px "Cairo"'),
         document.fonts.load('bold 24px "Cairo"'),
+        document.fonts.load('bold 30px "Cairo"'),
         document.fonts.ready,
       ]);
     }
@@ -7518,10 +7519,82 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
       ctx.restore();
     }
+    const pageItems = pagesData[pageIdx] || [];
+    const isCallingListReport = reportType === 'calling_list';
+    const callingInfoTopGap = 12;
+    const callingInfoH = 44;
+    const callingHrTopGap = 10;
+    const callingHrBottomGap = 14;
+    if (isCallingListReport) {
+      const callingCommLabel =
+        pageItems.find((item) => item.student?.name && item.committeeNumText)?.committeeNumText ||
+        pageItems[0]?.committeeNumText ||
+        String(pageIdx + 1);
+
+      const toLatinDigits = (val: string) =>
+        val
+          .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+          .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+
+      const seatValues = pageItems
+        .filter((item) => Boolean(item.student?.name))
+        .map((item) =>
+          (
+            item.student.seatNumbers?.[semester] ||
+            (semester === 'first' ? item.student.seatNumber : '') ||
+            ''
+          ).trim()
+        )
+        .filter((s) => s.length > 0);
+
+      let firstSeatLabel = '-';
+      let lastSeatLabel = '-';
+      if (seatValues.length > 0) {
+        const numericEntries = seatValues.map((raw) => ({
+          raw,
+          num: Number(toLatinDigits(raw)),
+        }));
+        if (numericEntries.every((e) => Number.isFinite(e.num))) {
+          let minEntry = numericEntries[0];
+          let maxEntry = numericEntries[0];
+          numericEntries.forEach((entry) => {
+            if (entry.num < minEntry.num) minEntry = entry;
+            if (entry.num > maxEntry.num) maxEntry = entry;
+          });
+          firstSeatLabel = minEntry.raw;
+          lastSeatLabel = maxEntry.raw;
+        } else {
+          firstSeatLabel = seatValues[0];
+          lastSeatLabel = seatValues[seatValues.length - 1];
+        }
+      }
+
+      const callingSubBannerText = `اللجنة رقم ( ${callingCommLabel} ) - من رقم جلوس ( ${firstSeatLabel} ) الى رقم جلوس ( ${lastSeatLabel} )`;
+      ctx.save();
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 30px "Cairo", sans-serif';
+      drawCenteredText(
+        ctx,
+        callingSubBannerText,
+        widthPx / 2,
+        bannerY + bannerH + callingInfoTopGap + callingInfoH / 2,
+        contentW - 24
+      );
+      const callingHrY = bannerY + bannerH + callingInfoTopGap + callingInfoH + callingHrTopGap;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(marginX, callingHrY);
+      ctx.lineTo(marginX + contentW, callingHrY);
+      ctx.stroke();
+      ctx.restore();
+    }
     const tableTopY = hasKgColorLegend
       ? kgLegendY + kgLegendH + 8
+      : isCallingListReport
+      ? bannerY + bannerH + callingInfoTopGap + callingInfoH + callingHrTopGap + callingHrBottomGap
       : bannerY + bannerH + (isSubjectReport ? 14 : 16);
-    const pageItems = pagesData[pageIdx] || [];
     const isLastPage = pageIdx === totalPages - 1;
     const showStatsOnPage =
       reportType === 'calling_list' ||
