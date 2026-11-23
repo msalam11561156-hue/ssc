@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const AnimatedBackground = () => {
+export const AnimatedBackground = React.memo(() => {
   return (
-    <div className="fixed inset-0 z-[-1] bg-gradient-to-b from-slate-950 via-slate-900 to-black overflow-hidden">
+    <div className="fixed inset-0 z-[-1] bg-gradient-to-b from-slate-950 via-slate-900 to-black overflow-hidden pointer-events-none select-none [contain:strict]">
       <style>
         {`
           .wave-layer {
@@ -18,12 +18,15 @@ export const AnimatedBackground = () => {
           }
           
           @keyframes wave-slide {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
           }
           @keyframes wave-slide-reverse {
-            0% { transform: translateX(-50%); }
-            100% { transform: translateX(0); }
+            0% { transform: translate3d(-50%, 0, 0); }
+            100% { transform: translate3d(0, 0, 0); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .wave-layer { animation: none !important; }
           }
         `}
       </style>
@@ -56,4 +59,4 @@ export const AnimatedBackground = () => {
       />
     </div>
   );
-};
+});

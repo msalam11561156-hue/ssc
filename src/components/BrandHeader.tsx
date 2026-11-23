@@ -1,28 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { getBrandShieldSync, getCachedBrandShield } from '../utils/offlineAssetCache';
 
 interface BrandHeaderProps {
   variant?: 'gold' | 'black';
 }
 
 export const BrandHeader: React.FC<BrandHeaderProps> = ({ variant = 'black' }) => {
-  const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
-
-  useEffect(() => {
-    let active = true;
-    getCachedBrandShield().then((cached) => {
-      if (active && cached) {
-        setLogoSrc(cached);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [logoSrc, setLogoSrc] = useState<string>('/pwa-256x256.png');
 
   const handleImageError = () => {
-    if (logoSrc !== '/brand_shield.png' && !logoSrc.startsWith('data:image/')) {
+    if (logoSrc === '/pwa-256x256.png') {
       setLogoSrc('/brand_shield.png');
     } else if (logoSrc !== '/pwa-192x192.png') {
       setLogoSrc('/pwa-192x192.png');
@@ -40,20 +27,12 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ variant = 'black' }) =
         animate={{ 
           y: [0, -8, 0],
           scale: [1, 1.05, 1],
-          rotateY: [0, 10, 0, -10, 0],
-          filter: [
-            "drop-shadow(0 0 5px rgba(251,191,36,0.2))", 
-            "drop-shadow(0 0 20px rgba(251,191,36,0.8))", 
-            "drop-shadow(0 0 5px rgba(251,191,36,0.2))"
-          ]
         }}
         transition={{ 
           y: { repeat: Infinity, duration: 4, ease: "easeInOut" },
           scale: { repeat: Infinity, duration: 4, ease: "easeInOut" },
-          rotateY: { repeat: Infinity, duration: 6, ease: "easeInOut" },
-          filter: { repeat: Infinity, duration: 3, ease: "easeInOut" }
         }}
-        className="relative z-10 mb-1"
+        className="relative z-10 mb-1 will-change-transform drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
       >
         <img 
           src={logoSrc} 

@@ -29,6 +29,7 @@ export default defineConfig(() => {
           'assets/images/splash_brand_bg.jpg', 
           'assets/images/splash_control_illustration.jpg',
           'assets/aistudio/asd126_e7a9cb22.jfif',
+          'assets/aistudio/Screenshot_12_bc36452f.jpg',
           'sounds/click.wav'
         ],
         manifest: {
@@ -88,6 +89,7 @@ export default defineConfig(() => {
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api/],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,jpg,jpeg,gif,webp,jfif,wav}'],
+          globIgnores: ['assets/aistudio/**'],
           maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
           runtimeCaching: [
             {
@@ -170,6 +172,18 @@ export default defineConfig(() => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            'vendor-motion': ['motion'],
+            'vendor-xlsx': ['xlsx'],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

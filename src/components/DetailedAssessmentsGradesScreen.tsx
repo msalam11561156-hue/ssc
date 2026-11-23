@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -29,11 +29,12 @@ import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSubjects';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
-import { TopTenCertificatesModal } from './TopTenCertificatesModal';
-import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
-import { CertificatesSelectionModal } from './CertificatesSelectionModal';
-import { AdvancedStatsModal } from './AdvancedStatsModal';
 import { StudentData, Language, EducationalStage, DetailedAssessmentItem, EducationType } from '../types';
+
+const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
+const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
+const CertificatesSelectionModal = lazy(() => import('./CertificatesSelectionModal').then(m => ({ default: m.CertificatesSelectionModal })));
+const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
 import { RowBgTheme, getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { ensureCellVisible } from '../utils/cellNavigation';
@@ -3337,15 +3338,19 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           </div>
         )}
       </AnimatePresence></PortalModal>
-      <AdvancedStatsModal
-        isOpen={isAdvancedStatsModalOpen}
-        onClose={() => setIsAdvancedStatsModalOpen(false)}
-        students={localData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        lang={lang}
-      />
+      <Suspense fallback={null}>
+        {isAdvancedStatsModalOpen && (
+          <AdvancedStatsModal
+            isOpen={isAdvancedStatsModalOpen}
+            onClose={() => setIsAdvancedStatsModalOpen(false)}
+            students={localData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            lang={lang}
+          />
+        )}
+      </Suspense>
 
       <PasswordModal
         isOpen={showEnglishCertPasswordModal}
@@ -3383,44 +3388,54 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       />
 
       {/* شهادات التقدير */}
-      <TopTenCertificatesModal
-        isOpen={isTopTenModalOpen}
-        onClose={() => setIsTopTenModalOpen(false)}
-        students={localData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-      />
-      <TopTenCertificatesModal
-        isOpen={isTopTenDamgModalOpen}
-        onClose={() => setIsTopTenDamgModalOpen(false)}
-        students={localData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-        isDamgOnly={true}
-      />
-      <AllStudentsCertificatesModal
-        isOpen={isAllStudentsCertModalOpen}
-        onClose={() => setIsAllStudentsCertModalOpen(false)}
-        students={localData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-      />
-      <CertificatesSelectionModal
-        isOpen={isCertSelectionModalOpen}
-        onClose={() => setIsCertSelectionModalOpen(false)}
-        onSelectTopTen={() => setIsTopTenModalOpen(true)}
-        onSelectTopTenDamg={() => setIsTopTenDamgModalOpen(true)}
-        onSelectAllStudents={() => setIsAllStudentsCertModalOpen(true)}
-      />
+      <Suspense fallback={null}>
+        {isTopTenModalOpen && (
+          <TopTenCertificatesModal
+            isOpen={isTopTenModalOpen}
+            onClose={() => setIsTopTenModalOpen(false)}
+            students={localData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+          />
+        )}
+        {isTopTenDamgModalOpen && (
+          <TopTenCertificatesModal
+            isOpen={isTopTenDamgModalOpen}
+            onClose={() => setIsTopTenDamgModalOpen(false)}
+            students={localData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+            isDamgOnly={true}
+          />
+        )}
+        {isAllStudentsCertModalOpen && (
+          <AllStudentsCertificatesModal
+            isOpen={isAllStudentsCertModalOpen}
+            onClose={() => setIsAllStudentsCertModalOpen(false)}
+            students={localData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+          />
+        )}
+        {isCertSelectionModalOpen && (
+          <CertificatesSelectionModal
+            isOpen={isCertSelectionModalOpen}
+            onClose={() => setIsCertSelectionModalOpen(false)}
+            onSelectTopTen={() => setIsTopTenModalOpen(true)}
+            onSelectTopTenDamg={() => setIsTopTenDamgModalOpen(true)}
+            onSelectAllStudents={() => setIsAllStudentsCertModalOpen(true)}
+          />
+        )}
+      </Suspense>
     </motion.div>
   );
 };

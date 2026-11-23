@@ -1,36 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { SplashScreen } from './components/SplashScreen';
-import { MainScreen } from './components/MainScreen';
-import { GradesScreen } from './components/GradesScreen';
-import { DivisionScreen } from './components/DivisionScreen';
-import { SemesterScreen } from './components/SemesterScreen';
-import { StudentsDataScreen } from './components/StudentsDataScreen';
-import { AssessmentsOrExamsScreen } from './components/AssessmentsOrExamsScreen';
-import { AssessmentsGradesScreen } from './components/AssessmentsGradesScreen';
-import { WrittenExamsGradesScreen } from './components/WrittenExamsGradesScreen';
-import { DetailedAssessmentsGradesScreen } from './components/DetailedAssessmentsGradesScreen';
-import { MiddleSystemTypeScreen } from './components/MiddleSystemTypeScreen';
-import { SecondarySystemTypeScreen } from './components/SecondarySystemTypeScreen';
-import { SecondaryGrade2SystemScreen } from './components/SecondaryGrade2SystemScreen';
-import { SecondaryModernTracksScreen } from './components/SecondaryModernTracksScreen';
-import { ColorThemeBar } from './components/ColorThemeBar';
 import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/themeConfig';
 import { SchoolData, ControlData, Language, StudentData } from './types';
 import { translations, setCurrentAffiliatedEntity } from './i18n';
 import { AnimatedBackground } from './components/AnimatedBackground';
 import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock } from 'lucide-react';
 
-import { FooterBanner } from './components/FooterBanner';
 import { BrandHeader } from './components/BrandHeader';
-import { getAllDefaultStudentsDataByStage } from './utils/defaultStudentsData';
-import { BackupRestoreModal } from './components/BackupRestoreModal';
-import { BackupReminderModal } from './components/BackupReminderModal';
-import { FooterSettingsModal } from './components/FooterSettingsModal';
-import { AdvertisingPrivilegeModal } from './components/AdvertisingPrivilegeModal';
-import { SponsorAdCard } from './components/SponsorAdCard';
-import { SponsorSettingsModal, SponsorScheduleInterval } from './components/SponsorSettingsModal';
-import { createBackupPayload, saveBackupToFile, BackupPayload, MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
+import type { SponsorScheduleInterval } from './components/SponsorSettingsModal';
+import type { BackupPayload } from './utils/backupRestore';
+import { MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { idbSet, idbGet, idbRemove } from './utils/idbStorage';
 import { isMobilePhoneDevice } from './utils/deviceHelper';
@@ -45,6 +24,35 @@ import {
   clearOfficialWorkspaceInFirestore,
   clearUserSyncCache,
 } from './utils/firebaseSync';
+
+const SplashScreen = lazy(() => import('./components/SplashScreen').then(m => ({ default: m.SplashScreen })));
+const MainScreen = lazy(() => import('./components/MainScreen').then(m => ({ default: m.MainScreen })));
+const GradesScreen = lazy(() => import('./components/GradesScreen').then(m => ({ default: m.GradesScreen })));
+const DivisionScreen = lazy(() => import('./components/DivisionScreen').then(m => ({ default: m.DivisionScreen })));
+const SemesterScreen = lazy(() => import('./components/SemesterScreen').then(m => ({ default: m.SemesterScreen })));
+const StudentsDataScreen = lazy(() => import('./components/StudentsDataScreen').then(m => ({ default: m.StudentsDataScreen })));
+const AssessmentsOrExamsScreen = lazy(() => import('./components/AssessmentsOrExamsScreen').then(m => ({ default: m.AssessmentsOrExamsScreen })));
+const AssessmentsGradesScreen = lazy(() => import('./components/AssessmentsGradesScreen').then(m => ({ default: m.AssessmentsGradesScreen })));
+const WrittenExamsGradesScreen = lazy(() => import('./components/WrittenExamsGradesScreen').then(m => ({ default: m.WrittenExamsGradesScreen })));
+const DetailedAssessmentsGradesScreen = lazy(() => import('./components/DetailedAssessmentsGradesScreen').then(m => ({ default: m.DetailedAssessmentsGradesScreen })));
+const MiddleSystemTypeScreen = lazy(() => import('./components/MiddleSystemTypeScreen').then(m => ({ default: m.MiddleSystemTypeScreen })));
+const SecondarySystemTypeScreen = lazy(() => import('./components/SecondarySystemTypeScreen').then(m => ({ default: m.SecondarySystemTypeScreen })));
+const SecondaryGrade2SystemScreen = lazy(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
+const SecondaryModernTracksScreen = lazy(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
+const ColorThemeBar = lazy(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
+const FooterBanner = lazy(() => import('./components/FooterBanner').then(m => ({ default: m.FooterBanner })));
+const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
+const BackupReminderModal = lazy(() => import('./components/BackupReminderModal').then(m => ({ default: m.BackupReminderModal })));
+const FooterSettingsModal = lazy(() => import('./components/FooterSettingsModal').then(m => ({ default: m.FooterSettingsModal })));
+const AdvertisingPrivilegeModal = lazy(() => import('./components/AdvertisingPrivilegeModal').then(m => ({ default: m.AdvertisingPrivilegeModal })));
+const SponsorAdCard = lazy(() => import('./components/SponsorAdCard').then(m => ({ default: m.SponsorAdCard })));
+const SponsorSettingsModal = lazy(() => import('./components/SponsorSettingsModal').then(m => ({ default: m.SponsorSettingsModal })));
+
+const ScreenSuspenseFallback = () => (
+  <div className="w-full min-h-[260px] flex items-center justify-center p-8">
+    <div className="w-9 h-9 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const MathStatsIcon = ({ className = "w-6 h-6 md:w-8 md:h-8" }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -182,11 +190,12 @@ function loadOfficialControlData(): Record<string, ControlData> {
   return {};
 }
 
-function loadTrialStudentsData(): Record<string, StudentData[]> {
+async function loadTrialStudentsDataAsync(): Promise<Record<string, StudentData[]>> {
   // تفريغ أي نسخة تجريبية ضخمة مخزنة مسبقاً لتفادي تجاوز سعة التخزين (QuotaExceededError)
   try {
     localStorage.removeItem('sheet_control_trial_students_data');
   } catch {}
+  const { getAllDefaultStudentsDataByStage } = await import('./utils/defaultStudentsData');
   return getAllDefaultStudentsDataByStage();
 }
 
@@ -409,18 +418,21 @@ export default function App() {
     };
   }, [isTrialMode]);
 
-  // مزامنة حالة الحصة التجريبية للجهاز مع الخادم للتعرف عليه عبر أي متصفح
+  // مزامنة حالة الحصة التجريبية للجهاز مع الخادم بشكل مؤجل لعدم مزاحمة رسم الشاشة الأولى
   useEffect(() => {
-    syncTrialWithServer().then((serverInfo) => {
-      setTrialInfo(serverInfo);
-      const currentlyInTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
-      if (currentlyInTrial && (serverInfo.isExpired || serverInfo.isDayExpired)) {
-        setIsTrialMode(false);
-        localStorage.setItem('sheet_control_is_trial', 'false');
-        setStep(0);
-        localStorage.setItem('sheet_control_step', '0');
-      }
-    });
+    const timer = window.setTimeout(() => {
+      syncTrialWithServer().then((serverInfo) => {
+        setTrialInfo(serverInfo);
+        const currentlyInTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
+        if (currentlyInTrial && (serverInfo.isExpired || serverInfo.isDayExpired)) {
+          setIsTrialMode(false);
+          localStorage.setItem('sheet_control_is_trial', 'false');
+          setStep(0);
+          localStorage.setItem('sheet_control_step', '0');
+        }
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -437,34 +449,41 @@ export default function App() {
     };
   }, []);
 
-  const handleStartApp = (isTrial?: boolean) => {
+  const navigateStep = React.useCallback((nextStep: number) => {
+    startTransition(() => {
+      setStep(nextStep);
+    });
+  }, []);
+
+  const handleStartApp = async (isTrial?: boolean) => {
     if (isMobilePhoneDevice()) {
-      setStep(0);
+      navigateStep(0);
       return;
     }
     if (isTrial) {
       const current = getTrialInfo();
       if (current.isExpired || current.isDayExpired) {
         setTrialInfo(current);
-        setStep(0);
+        navigateStep(0);
         return;
       }
       const res = startTrial();
       if (!res.success) {
         setTrialInfo(getTrialInfo());
-        setStep(0);
+        navigateStep(0);
         return;
       }
       setIsTrialMode(true);
       localStorage.setItem('sheet_control_is_trial', 'true');
       setTrialInfo(getTrialInfo());
 
-      // تحميل بيانات النسخة التجريبية (25 طالب بكامل بياناتهم ودرجاتهم وبيانات افتراضية للنافذة الرئيسية)
+      // تحميل بيانات النسخة التجريبية ديناميكياً لتسريع التحميل المبدئي
       setSchoolData(loadTrialSchoolData());
       setControlDataByStage(loadTrialControlData());
-      setStudentsDataByStage(loadTrialStudentsData());
+      const trialStudents = await loadTrialStudentsDataAsync();
+      setStudentsDataByStage(trialStudents);
 
-      setStep(1);
+      navigateStep(1);
       localStorage.setItem('sheet_control_step', '1');
     } else {
       setIsTrialMode(false);
@@ -478,7 +497,7 @@ export default function App() {
         setStudentsDataByStage(loadOfficialStudentsData());
       }
 
-      setStep(1);
+      navigateStep(1);
       localStorage.setItem('sheet_control_step', '1');
       localStorage.setItem('sheet_control_last_official_step', '1');
     }
@@ -566,8 +585,48 @@ export default function App() {
 
   const [studentsDataByStage, setStudentsDataByStage] = useState<Record<string, StudentData[]>>(() => {
     const isTrial = localStorage.getItem('sheet_control_is_trial') === 'true';
-    return isTrial ? loadTrialStudentsData() : loadOfficialStudentsData();
+    return isTrial ? {} : loadOfficialStudentsData();
   });
+
+  // تحميل بيانات الطلاب التجريبية ديناميكياً عند الحاجة فقط دون تضخيم الحزمة المبدئية
+  useEffect(() => {
+    if (!isTrialMode || !hasPassedLoginScreen) return;
+    if (Object.keys(studentsDataByStage).length > 0) return;
+    let cancelled = false;
+    loadTrialStudentsDataAsync()
+      .then((data) => {
+        if (!cancelled) {
+          setStudentsDataByStage(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isTrialMode, hasPassedLoginScreen]);
+
+  // التحميل المسبق الهادئ للشاشة التالية أثناء الخمول لإزالة أي تأخير عند التنقل
+  useEffect(() => {
+    const idleWin = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (!hasPassedLoginScreen) {
+      const id = window.setTimeout(() => {
+        void import('./components/SplashScreen');
+      }, 1500);
+      return () => window.clearTimeout(id);
+    }
+    if (step === 0) {
+      const prefetch = () => {
+        void import('./components/MainScreen');
+        void import('./components/FooterBanner');
+      };
+      if (typeof idleWin.requestIdleCallback === 'function') {
+        const idleId = idleWin.requestIdleCallback(prefetch, { timeout: 2000 });
+        return () => idleWin.cancelIdleCallback?.(idleId);
+      }
+      const id = window.setTimeout(prefetch, 800);
+      return () => window.clearTimeout(id);
+    }
+  }, [hasPassedLoginScreen, step]);
 
   const fallbackControlEntry =
     controlDataByStage[''] || Object.values(controlDataByStage)[0];
@@ -665,41 +724,49 @@ export default function App() {
       (window as any).__SMART_CONTROL_STUDENTS_BY_STAGE__ = studentsDataByStage;
     }
 
-    // تنظيف المفاتيح المكررة والقديمة التي كانت تستهلك سعة التخزين المحلي (localStorage)
-    try {
-      localStorage.removeItem('sheet_control_trial_students_data');
-      localStorage.removeItem('sheet_control_students_data');
-    } catch {}
-
     // لا تكتب في IndexedDB أو localStorage قبل اكتمال تحميل البيانات الرسمية من IndexedDB لتفادي الكتابة الفارغة
     if (!isTrialMode && !hasHydratedOfficialIdb) {
       return;
     }
 
-    // الحفظ الأساسي لبيانات الطلاب الضخمة عبر IndexedDB
-    try {
-      const idbKey = isTrialMode ? 'idb_trial_students_data' : 'idb_official_students_data';
-      idbSet(idbKey, studentsDataByStage);
-    } catch {}
-
-    // حفظ نسخة واحدة اختيارية فقط في localStorage إذا كان الحجم صغيراً، وإزالتها تلقائياً عند الكِبر لتفادي تجاوز السعة
-    if (!isTrialMode) {
+    const flushStudentsPersistence = () => {
       try {
-        const serialized = JSON.stringify(studentsDataByStage);
-        if (serialized.length <= MAX_LOCAL_STORAGE_STUDENTS_CHARS) {
-          if (!safeLocalStorageSet('sheet_control_official_students_data', serialized)) {
+        localStorage.removeItem('sheet_control_trial_students_data');
+        localStorage.removeItem('sheet_control_students_data');
+      } catch {}
+
+      try {
+        const idbKey = isTrialMode ? 'idb_trial_students_data' : 'idb_official_students_data';
+        idbSet(idbKey, studentsDataByStage);
+      } catch {}
+
+      if (!isTrialMode) {
+        try {
+          const serialized = JSON.stringify(studentsDataByStage);
+          if (serialized.length <= MAX_LOCAL_STORAGE_STUDENTS_CHARS) {
+            if (!safeLocalStorageSet('sheet_control_official_students_data', serialized)) {
+              localStorage.removeItem('sheet_control_official_students_data');
+            }
+          } else {
             localStorage.removeItem('sheet_control_official_students_data');
           }
-        } else {
-          localStorage.removeItem('sheet_control_official_students_data');
+        } catch (err) {
+          try {
+            localStorage.removeItem('sheet_control_official_students_data');
+          } catch {}
+          console.warn('Official students data stored in IndexedDB only (size exceeds localStorage cap):', err);
         }
-      } catch (err) {
-        try {
-          localStorage.removeItem('sheet_control_official_students_data');
-        } catch {}
-        console.warn('Official students data stored in IndexedDB only (size exceeds localStorage cap):', err);
       }
-    }
+    };
+
+    const timer = window.setTimeout(flushStudentsPersistence, 350);
+    const handlePageHide = () => flushStudentsPersistence();
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
   }, [studentsDataByStage, isTrialMode, hasHydratedOfficialIdb]);
 
   useEffect(() => {
@@ -724,61 +791,81 @@ export default function App() {
   }, [step5PrevStep]);
 
   useEffect(() => {
-    const key = isTrialMode ? 'sheet_control_trial_school_data' : 'sheet_control_official_school_data';
-    const logoKey = isTrialMode ? 'sheet_control_trial_school_logo' : 'sheet_control_official_school_logo';
-    try {
-      if (!isTrialMode) {
-        if (schoolData.schoolLogo) {
-          idbSet('idb_official_school_logo', schoolData.schoolLogo);
-        } else {
-          idbRemove('idb_official_school_logo');
+    const flushSchoolPersistence = () => {
+      const key = isTrialMode ? 'sheet_control_trial_school_data' : 'sheet_control_official_school_data';
+      const logoKey = isTrialMode ? 'sheet_control_trial_school_logo' : 'sheet_control_official_school_logo';
+      try {
+        if (!isTrialMode) {
+          if (schoolData.schoolLogo) {
+            idbSet('idb_official_school_logo', schoolData.schoolLogo);
+          } else {
+            idbRemove('idb_official_school_logo');
+          }
         }
-      }
 
-      const fullJson = JSON.stringify(schoolData);
-      const savedPrimary = safeLocalStorageSet(key, fullJson);
-      if (!savedPrimary && schoolData.schoolLogo) {
-        const lightJson = JSON.stringify({ ...schoolData, schoolLogo: '' });
-        safeLocalStorageSet(key, lightJson);
-        safeLocalStorageSet('sheet_control_school_data', lightJson);
-      } else {
-        safeLocalStorageSet('sheet_control_school_data', fullJson);
-      }
+        const fullJson = JSON.stringify(schoolData);
+        const savedPrimary = safeLocalStorageSet(key, fullJson);
+        if (!savedPrimary && schoolData.schoolLogo) {
+          const lightJson = JSON.stringify({ ...schoolData, schoolLogo: '' });
+          safeLocalStorageSet(key, lightJson);
+          safeLocalStorageSet('sheet_control_school_data', lightJson);
+        } else {
+          safeLocalStorageSet('sheet_control_school_data', fullJson);
+        }
 
-      if (schoolData.schoolLogo) {
-        if (schoolData.schoolLogo.length < 350_000) {
-          safeLocalStorageSet(logoKey, schoolData.schoolLogo);
-          safeLocalStorageSet('sheet_control_school_logo', schoolData.schoolLogo);
+        if (schoolData.schoolLogo) {
+          if (schoolData.schoolLogo.length < 350_000) {
+            safeLocalStorageSet(logoKey, schoolData.schoolLogo);
+            safeLocalStorageSet('sheet_control_school_logo', schoolData.schoolLogo);
+          } else {
+            localStorage.removeItem(logoKey);
+            localStorage.removeItem('sheet_control_school_logo');
+          }
         } else {
           localStorage.removeItem(logoKey);
           localStorage.removeItem('sheet_control_school_logo');
         }
-      } else {
-        localStorage.removeItem(logoKey);
-        localStorage.removeItem('sheet_control_school_logo');
+      } catch (err) {
+        console.error('Failed to save schoolData:', err);
       }
-    } catch (err) {
-      console.error('Failed to save schoolData:', err);
-    }
+    };
+
+    const timer = window.setTimeout(flushSchoolPersistence, 300);
+    window.addEventListener('pagehide', flushSchoolPersistence);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', flushSchoolPersistence);
+    };
   }, [schoolData, isTrialMode]);
 
   useEffect(() => {
-    try {
-      const key = isTrialMode ? 'sheet_control_trial_control_data_by_stage' : 'sheet_control_official_control_data_by_stage';
-      if (!isTrialMode) {
-        idbSet('idb_official_control_data_by_stage', controlDataByStage);
+    const flushControlPersistence = () => {
+      try {
+        const key = isTrialMode ? 'sheet_control_trial_control_data_by_stage' : 'sheet_control_official_control_data_by_stage';
+        if (!isTrialMode) {
+          idbSet('idb_official_control_data_by_stage', controlDataByStage);
+        }
+        const json = JSON.stringify(controlDataByStage);
+        safeLocalStorageSet(key, json);
+        safeLocalStorageSet('sheet_control_control_data_by_stage', json);
+      } catch (err) {
+        console.warn('Failed to save controlDataByStage:', err);
       }
-      const json = JSON.stringify(controlDataByStage);
-      safeLocalStorageSet(key, json);
-      safeLocalStorageSet('sheet_control_control_data_by_stage', json);
-    } catch (err) {
-      console.warn('Failed to save controlDataByStage:', err);
-    }
+    };
+
+    const timer = window.setTimeout(flushControlPersistence, 300);
+    window.addEventListener('pagehide', flushControlPersistence);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', flushControlPersistence);
+    };
   }, [controlDataByStage, isTrialMode]);
 
   // اختبار الاتصال بقاعدة بيانات Firebase ومراقبة حالة تسجيل الدخول
   useEffect(() => {
-    testConnection();
+    const connTimer = window.setTimeout(() => {
+      testConnection();
+    }, 1200);
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -804,7 +891,10 @@ export default function App() {
         setAuthReady(true);
       }
     });
-    return () => unsubAuth();
+    return () => {
+      window.clearTimeout(connTimer);
+      unsubAuth();
+    };
   }, []);
 
   // الاستماع الفوري لبيانات المدرسة والطلاب من Firestore بعد تسجيل الدخول واجتياز شاشة الدخول فقط
@@ -1073,6 +1163,7 @@ export default function App() {
     setIsMenuOpen(false);
     setIsSavingBackup(true);
     try {
+      const { createBackupPayload, saveBackupToFile } = await import('./utils/backupRestore');
       const payload = createBackupPayload(schoolData, controlDataByStage, studentsDataByStage);
       const res = await saveBackupToFile(payload);
       if (res.success) {
@@ -1129,8 +1220,8 @@ export default function App() {
   };
 
   const menuItems = [
-    { id: 'splashScreen', label: t.splashScreen, icon: Home, color: 'bg-indigo-600 shadow-[0_5px_15px_-3px_rgba(79,70,229,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(79,70,229,0.6)]', action: () => { setStep(0); setIsMenuOpen(false); } },
-    { id: 'mainData', label: t.mainData, icon: LayoutDashboard, color: 'bg-fuchsia-600 shadow-[0_5px_15px_-3px_rgba(192,38,211,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(192,38,211,0.6)]', action: () => { setStep(1); setIsMenuOpen(false); } },
+    { id: 'splashScreen', label: t.splashScreen, icon: Home, color: 'bg-indigo-600 shadow-[0_5px_15px_-3px_rgba(79,70,229,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(79,70,229,0.6)]', action: () => { navigateStep(0); setIsMenuOpen(false); } },
+    { id: 'mainData', label: t.mainData, icon: LayoutDashboard, color: 'bg-fuchsia-600 shadow-[0_5px_15px_-3px_rgba(192,38,211,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(192,38,211,0.6)]', action: () => { navigateStep(1); setIsMenuOpen(false); } },
     { 
       id: 'backup', 
       label: t.backup, 
@@ -1618,69 +1709,73 @@ export default function App() {
         </AnimatePresence>
 
         {/* Restore Backup Dialog */}
-        <AnimatePresence>
-          {isRestoreModalOpen && (
-            <BackupRestoreModal
-              isOpen={isRestoreModalOpen}
-              onClose={() => setIsRestoreModalOpen(false)}
-              onRestoreSuccess={handleRestoreSuccess}
+        <Suspense fallback={null}>
+          <AnimatePresence>
+            {isRestoreModalOpen && (
+              <BackupRestoreModal
+                isOpen={isRestoreModalOpen}
+                onClose={() => setIsRestoreModalOpen(false)}
+                onRestoreSuccess={handleRestoreSuccess}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Backup Reminder Settings Dialog */}
+          <AnimatePresence>
+            {isBackupReminderModalOpen && (
+              <BackupReminderModal
+                isOpen={isBackupReminderModalOpen}
+                onClose={() => setIsBackupReminderModalOpen(false)}
+                currentInterval={reminderInterval}
+                onSave={handleSaveReminderInterval}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Footer Settings Dialog */}
+          <AnimatePresence>
+            {isFooterSettingsModalOpen && (
+              <FooterSettingsModal
+                isOpen={isFooterSettingsModalOpen}
+                onClose={() => setIsFooterSettingsModalOpen(false)}
+                enabled={isDefaultFooterEnabled}
+                onToggle={setIsDefaultFooterEnabled}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Exclusive Advertising Privilege Dialog */}
+          <AnimatePresence>
+            {isAdModalOpen && (
+              <AdvertisingPrivilegeModal
+                isOpen={isAdModalOpen}
+                onClose={() => setIsAdModalOpen(false)}
+                onSave={handleSaveAdText}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Sponsor Window Timing Settings Dialog */}
+          <AnimatePresence>
+            {isSponsorWindowEnabled && isSponsorSettingsModalOpen && (
+              <SponsorSettingsModal
+                isOpen={isSponsorSettingsModalOpen}
+                onClose={() => setIsSponsorSettingsModalOpen(false)}
+                currentInterval={sponsorInterval}
+                onSave={handleSaveSponsorInterval}
+                onPreview={() => setIsSponsorAdOpen(true)}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* 75% Viewport 10-Second Sponsorship Ad Card */}
+          {isSponsorWindowEnabled && isSponsorAdOpen && (
+            <SponsorAdCard
+              isOpen={isSponsorWindowEnabled && isSponsorAdOpen}
+              onClose={handleCloseSponsorAd}
             />
           )}
-        </AnimatePresence>
-
-        {/* Backup Reminder Settings Dialog */}
-        <AnimatePresence>
-          {isBackupReminderModalOpen && (
-            <BackupReminderModal
-              isOpen={isBackupReminderModalOpen}
-              onClose={() => setIsBackupReminderModalOpen(false)}
-              currentInterval={reminderInterval}
-              onSave={handleSaveReminderInterval}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Footer Settings Dialog */}
-        <AnimatePresence>
-          {isFooterSettingsModalOpen && (
-            <FooterSettingsModal
-              isOpen={isFooterSettingsModalOpen}
-              onClose={() => setIsFooterSettingsModalOpen(false)}
-              enabled={isDefaultFooterEnabled}
-              onToggle={setIsDefaultFooterEnabled}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Exclusive Advertising Privilege Dialog */}
-        <AnimatePresence>
-          {isAdModalOpen && (
-            <AdvertisingPrivilegeModal
-              isOpen={isAdModalOpen}
-              onClose={() => setIsAdModalOpen(false)}
-              onSave={handleSaveAdText}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Sponsor Window Timing Settings Dialog */}
-        <AnimatePresence>
-          {isSponsorWindowEnabled && isSponsorSettingsModalOpen && (
-            <SponsorSettingsModal
-              isOpen={isSponsorSettingsModalOpen}
-              onClose={() => setIsSponsorSettingsModalOpen(false)}
-              currentInterval={sponsorInterval}
-              onSave={handleSaveSponsorInterval}
-              onPreview={() => setIsSponsorAdOpen(true)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* 75% Viewport 10-Second Sponsorship Ad Card */}
-        <SponsorAdCard
-          isOpen={isSponsorWindowEnabled && isSponsorAdOpen}
-          onClose={handleCloseSponsorAd}
-        />
+        </Suspense>
 
         {/* Windows-style Backup Reminder Toast */}
         <AnimatePresence>
@@ -1771,15 +1866,18 @@ export default function App() {
         {/* Main Content */}
         <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
           {step === 10 && (
-            <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
-              <ColorThemeBar
-                activeTheme={activeColorTheme}
-                onThemeChange={handleColorThemeChange}
-                lang={lang}
-              />
-            </div>
+            <Suspense fallback={null}>
+              <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
+                <ColorThemeBar
+                  activeTheme={activeColorTheme}
+                  onThemeChange={handleColorThemeChange}
+                  lang={lang}
+                />
+              </div>
+            </Suspense>
           )}
-          <AnimatePresence mode="wait">
+          <Suspense fallback={<ScreenSuspenseFallback />}>
+            <AnimatePresence mode="wait">
             {(() => {
               switch (step) {
                 case 0:
@@ -1805,11 +1903,11 @@ export default function App() {
                       onControlChange={handleControlChange}
                       onNext={() => {
                         if (schoolData.stage === 'middle') {
-                          setStep(10);
+                          navigateStep(10);
                         } else if (schoolData.stage === 'secondary') {
-                          setStep(11);
+                          navigateStep(11);
                         } else {
-                          setStep(2);
+                          navigateStep(2);
                         }
                       }}
                       lang={lang}
@@ -1822,14 +1920,14 @@ export default function App() {
                       lang={lang}
                       initialType={schoolData.systemType || 'regular'}
                       theme={activeColorTheme}
-                      onBack={() => setStep(1)}
+                      onBack={() => navigateStep(1)}
                       onSelect={(systemType) => {
                         setSchoolData(prev => ({ ...prev, systemType }));
                         if (typeof window !== 'undefined') {
                           localStorage.setItem('current_system_type', systemType);
                           localStorage.setItem('systemType', systemType);
                         }
-                        setStep(2);
+                        navigateStep(2);
                       }}
                     />
                   );
@@ -1840,14 +1938,14 @@ export default function App() {
                       lang={lang}
                       initialType={schoolData.systemType || 'regular'}
                       theme={activeColorTheme}
-                      onBack={() => setStep(1)}
+                      onBack={() => navigateStep(1)}
                       onSelect={(systemType) => {
                         setSchoolData(prev => ({ ...prev, systemType }));
                         if (typeof window !== 'undefined') {
                           localStorage.setItem('current_system_type', systemType);
                           localStorage.setItem('systemType', systemType);
                         }
-                        setStep(2);
+                        navigateStep(2);
                       }}
                     />
                   );
@@ -1861,27 +1959,27 @@ export default function App() {
                       onChange={handleControlChange}
                       onBack={() => {
                         if (schoolData.stage === 'middle') {
-                          setStep(10);
+                          navigateStep(10);
                         } else if (schoolData.stage === 'secondary') {
-                          setStep(11);
+                          navigateStep(11);
                         } else {
-                          setStep(1);
+                          navigateStep(1);
                         }
                       }}
                       onEditData={() => {
                         setEditMode('data');
                         if (isSecondSecondaryGrade) {
-                          setStep(12);
+                          navigateStep(12);
                         } else {
-                          setStep(3);
+                          navigateStep(3);
                         }
                       }}
                       onEditGrades={() => {
                         setEditMode('grades');
                         if (isSecondSecondaryGrade) {
-                          setStep(12);
+                          navigateStep(12);
                         } else {
-                          setStep(3);
+                          navigateStep(3);
                         }
                       }}
                       isOfficial={!isTrialMode}
@@ -1896,13 +1994,13 @@ export default function App() {
                       lang={lang}
                       initialSystem={schoolData.secondarySystem || 'old'}
                       theme={activeColorTheme}
-                      onBack={() => setStep(2)}
+                      onBack={() => navigateStep(2)}
                       onSelect={(selectedSystem) => {
                         setSchoolData(prev => ({ ...prev, secondarySystem: selectedSystem }));
                         if (selectedSystem === 'old') {
-                          setStep(8);
+                          navigateStep(8);
                         } else {
-                          setStep(13);
+                          navigateStep(13);
                         }
                       }}
                     />
@@ -1914,10 +2012,10 @@ export default function App() {
                       lang={lang}
                       initialDivision={schoolData.division && !schoolData.division.startsWith('modern_') ? schoolData.division : 'literary'}
                       subtitle={getDivisionSubtitle()}
-                      onBack={() => setStep(12)}
+                      onBack={() => navigateStep(12)}
                       onSave={(division) => {
                         setSchoolData(prev => ({ ...prev, secondarySystem: 'old', division }));
-                        setStep(3);
+                        navigateStep(3);
                       }}
                     />
                   );
@@ -1929,10 +2027,10 @@ export default function App() {
                       initialTrack={schoolData.division?.startsWith('modern_') ? schoolData.division : 'modern_medical'}
                       subtitle={getDivisionSubtitle()}
                       theme={activeColorTheme}
-                      onBack={() => setStep(12)}
+                      onBack={() => navigateStep(12)}
                       onSelect={(trackId) => {
                         setSchoolData(prev => ({ ...prev, secondarySystem: 'modern', division: trackId }));
-                        setStep(3);
+                        navigateStep(3);
                       }}
                     />
                   );
@@ -1947,12 +2045,12 @@ export default function App() {
                       onBack={() => {
                         if (isSecondSecondaryGrade) {
                           if (schoolData.secondarySystem === 'modern') {
-                            setStep(13);
+                            navigateStep(13);
                           } else {
-                            setStep(8);
+                            navigateStep(8);
                           }
                         } else {
-                          setStep(2);
+                          navigateStep(2);
                         }
                       }}
                       onSave={(semester) => {
@@ -1960,21 +2058,21 @@ export default function App() {
                         if (editMode === 'grades') {
                           if (!isTrialMode && !checkHasStudentsForGrade(currentControlData.selectedGrade)) {
                             setEditMode('data');
-                            setStep(4);
+                            navigateStep(4);
                             return;
                           }
                           if (schoolData.stage === 'middle' && schoolData.systemType === 'homeschool') {
                             setStep5PrevStep(3);
-                            setStep(7);
+                            navigateStep(7);
                           } else if (schoolData.stage === 'secondary' && schoolData.systemType === 'homeschool') {
                             setStep5PrevStep(3);
-                            setStep(7);
+                            navigateStep(7);
                           } else {
                             setStep5PrevStep(3);
-                            setStep(5);
+                            navigateStep(5);
                           }
                         } else {
-                          setStep(4);
+                          navigateStep(4);
                         }
                       }}
                     />
@@ -1997,7 +2095,7 @@ export default function App() {
                       committeeHead={currentControlData.committeeHead}
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
-                      onBack={() => setStep(3)}
+                      onBack={() => navigateStep(3)}
                       isTrialMode={isTrialMode}
                       onSave={() => {
                         if (!isTrialMode && !hasCurrentStudents) {
@@ -2005,13 +2103,13 @@ export default function App() {
                         }
                         if (schoolData.stage === 'middle' && schoolData.systemType === 'homeschool') {
                           setStep5PrevStep(4);
-                          setStep(7);
+                          navigateStep(7);
                         } else if (schoolData.stage === 'secondary' && schoolData.systemType === 'homeschool') {
                           setStep5PrevStep(4);
-                          setStep(7);
+                          navigateStep(7);
                         } else {
                           setStep5PrevStep(4);
-                          setStep(5);
+                          navigateStep(5);
                         }
                       }}
                       showExamFields={!isFirstOrSecondPrimary}
@@ -2027,27 +2125,27 @@ export default function App() {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(targetStep);
+                        navigateStep(targetStep);
                       }}
                       onEditData={(targetSem?: string) => {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(4);
+                        navigateStep(4);
                       }}
                       onEditAssessments={(schoolData.stage === 'middle' || schoolData.stage === 'secondary') && schoolData.systemType === 'homeschool' ? undefined : (targetSem?: string) => {
                         if (!isTrialMode && !hasCurrentStudents) return;
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(6);
+                        navigateStep(6);
                       }}
                       onEditWrittenExams={schoolData.stage === 'kindergarten' ? undefined : (targetSem?: string) => {
                         if (!isTrialMode && !hasCurrentStudents) return;
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(7);
+                        navigateStep(7);
                       }}
                       onSwitchSemester={(newSem) => {
                         setSchoolData(prev => ({ ...prev, semester: newSem }));
@@ -2062,8 +2160,8 @@ export default function App() {
                       isKindergarten={schoolData.stage === 'kindergarten'}
                       disableExams={isFirstOrSecondPrimary}
                       lang={lang}
-                      onBack={() => setStep(step5PrevStep)}
-                      onSelectAssessments={() => setStep(6)}
+                      onBack={() => navigateStep(step5PrevStep)}
+                      onSelectAssessments={() => navigateStep(6)}
                       onSelectDetailedAssessments={() => {
                         const subjToOpen = currentDetailedSubject || (() => {
                           try {
@@ -2075,9 +2173,9 @@ export default function App() {
                         if (subjToOpen) {
                           handleDetailedSubjectChange(subjToOpen);
                         }
-                        setStep(9);
+                        navigateStep(9);
                       }}
-                      onSelectExams={() => setStep(7)}
+                      onSelectExams={() => navigateStep(7)}
                       isOfficial={!isTrialMode}
                       hasStudents={hasCurrentStudents}
                     />
@@ -2101,7 +2199,7 @@ export default function App() {
                       semester={schoolData.semester || 'first'}
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
-                      onBack={() => setStep(5)}
+                      onBack={() => navigateStep(5)}
                       isTrialMode={isTrialMode}
                       sortBy={currentStageSortBy}
                       onSortChange={handleStageSortChange}
@@ -2109,17 +2207,17 @@ export default function App() {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(4);
+                        navigateStep(4);
                       }}
                       onNavigateToSection={(targetStep, targetSem) => {
                         setSchoolData(prev => ({ ...prev, semester: targetSem }));
-                        setStep(targetStep);
+                        navigateStep(targetStep);
                       }}
                       onEditWrittenExams={schoolData.stage === 'kindergarten' ? undefined : (targetSem?: string) => {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(7);
+                        navigateStep(7);
                       }}
                       onSwitchSemester={(newSem) => {
                         setSchoolData(prev => ({ ...prev, semester: newSem }));
@@ -2135,7 +2233,7 @@ export default function App() {
                         if (resolvedSubj) {
                           handleDetailedSubjectChange(resolvedSubj);
                         }
-                        setStep(9);
+                        navigateStep(9);
                       }}
                     />
                   );
@@ -2161,9 +2259,9 @@ export default function App() {
                       isTrialMode={isTrialMode}
                       onBack={() => {
                         if ((schoolData.stage === 'middle' || schoolData.stage === 'secondary') && schoolData.systemType === 'homeschool') {
-                          setStep(step5PrevStep === 4 ? 4 : 3);
+                          navigateStep(step5PrevStep === 4 ? 4 : 3);
                         } else {
-                          setStep(5);
+                          navigateStep(5);
                         }
                       }}
                       sortBy={currentStageSortBy}
@@ -2172,20 +2270,20 @@ export default function App() {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(4);
+                        navigateStep(4);
                       }}
                       onNavigateToSection={(targetStep, targetSem) => {
                         if ((schoolData.stage === 'middle' || schoolData.stage === 'secondary') && schoolData.systemType === 'homeschool' && (targetStep === 5 || targetStep === 6 || targetStep === 9)) {
                           return;
                         }
                         setSchoolData(prev => ({ ...prev, semester: targetSem }));
-                        setStep(targetStep);
+                        navigateStep(targetStep);
                       }}
                       onEditAssessments={(schoolData.stage === 'middle' || schoolData.stage === 'secondary') && schoolData.systemType === 'homeschool' ? undefined : (targetSem?: string) => {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(6);
+                        navigateStep(6);
                       }}
                       onSwitchSemester={(newSem) => {
                         setSchoolData(prev => ({ ...prev, semester: newSem }));
@@ -2208,25 +2306,25 @@ export default function App() {
                       systemType={schoolData.systemType || 'regular'}
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
-                      onBack={() => setStep(5)}
+                      onBack={() => navigateStep(5)}
                       sortBy={currentStageSortBy}
                       onSortChange={handleStageSortChange}
-                      onNavigateToGeneralAssessments={() => setStep(6)}
+                      onNavigateToGeneralAssessments={() => navigateStep(6)}
                       onEditData={(targetSem?: string) => {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(4);
+                        navigateStep(4);
                       }}
                       onEditWrittenExams={schoolData.stage === 'kindergarten' ? undefined : (targetSem?: string) => {
                         if (targetSem) {
                           setSchoolData(prev => ({ ...prev, semester: targetSem }));
                         }
-                        setStep(7);
+                        navigateStep(7);
                       }}
                       onNavigateToSection={(targetStep, targetSem) => {
                         setSchoolData(prev => ({ ...prev, semester: targetSem }));
-                        setStep(targetStep);
+                        navigateStep(targetStep);
                       }}
                       schoolName={schoolData.schoolName}
                       schoolNameEn={schoolData.schoolNameEn}
@@ -2257,9 +2355,12 @@ export default function App() {
                   );
               }
             })()}
-          </AnimatePresence>
+            </AnimatePresence>
+          </Suspense>
         </main>
-        <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
+        <Suspense fallback={null}>
+          <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
+        </Suspense>
       </div>
     </div>
   );

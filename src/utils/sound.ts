@@ -2,23 +2,8 @@
 
 class SoundManager {
   private audioContext: AudioContext | null = null;
-  private audioPool: HTMLAudioElement[] = [];
-  private poolIndex = 0;
-  private poolSize = 6;
   private lastPlayTime = 0;
   private isInitialized = false;
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      // Pre-warm audio pool for fast, non-blocking playback of the local asset
-      for (let i = 0; i < this.poolSize; i++) {
-        const audio = new Audio('/sounds/click.wav');
-        audio.preload = 'auto';
-        audio.volume = 0.45;
-        this.audioPool.push(audio);
-      }
-    }
-  }
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -75,36 +60,26 @@ class SoundManager {
     if (now - this.lastPlayTime < 35) return;
     this.lastPlayTime = now;
 
-    // Direct Web Audio API click synthesis is completely reliable, fast, and does not depend on network loading
-    this.playSynthesizedClick();
-
-    // Also attempt HTML5 Audio pool if available
-    try {
-      if (this.audioPool.length > 0) {
-        const audio = this.audioPool[this.poolIndex];
-        this.poolIndex = (this.poolIndex + 1) % this.audioPool.length;
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }
-    } catch {
-      // Ignore
-    }
+    // Schedule synthesis asynchronously so click handler and visual paint (INP) are never delayed
+    window.setTimeout(() => {
+      this.playSynthesizedClick();
+    }, 0);
   }
 
   public setupGlobalListener() {
     if (this.isInitialized || typeof window === 'undefined') return;
     this.isInitialized = true;
 
-    // Also listen to pointerdown to unlock audio context immediately on first touch/click
+    // Listen to pointerdown with passive flag to unlock AudioContext without blocking scroll/touch
     const unlockAudio = () => {
-      this.getAudioContext();
-      window.removeEventListener('pointerdown', unlockAudio, true);
-      window.removeEventListener('touchstart', unlockAudio, true);
+      window.setTimeout(() => {
+        this.getAudioContext();
+      }, 0);
     };
-    window.addEventListener('pointerdown', unlockAudio, { capture: true, once: true });
-    window.addEventListener('touchstart', unlockAudio, { capture: true, once: true });
+    window.addEventListener('pointerdown', unlockAudio, { capture: true, once: true, passive: true });
+    window.addEventListener('touchstart', unlockAudio, { capture: true, once: true, passive: true });
 
-    // Capture phase listener to catch all button clicks across the app
+    // Capture phase listener with passive flag to trigger sound without blocking interaction paint
     document.addEventListener(
       'click',
       (e: MouseEvent) => {
@@ -130,7 +105,7 @@ class SoundManager {
 
         this.play();
       },
-      true // useCapture to ensure it triggers before stopPropagation
+      { capture: true, passive: true }
     );
   }
 }

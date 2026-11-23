@@ -11,12 +11,14 @@ import splashScreenshotUrl from '../assets/images/meeting_room_smart.jpg';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 import brandShieldUrl from '../assets/images/brand_shield.png';
 import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
+import privateSchoolExamsUrl from '../assets/images/private_school_exams_1795389408308.jpg';
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
 const SPONSOR_AD_BANNER_CACHE_KEY = 'offline_sponsor_ad_banner_v1';
 const LOGIN_PORTRAIT_CACHE_KEY = 'offline_login_portrait_v1';
 const LOGIN_PORTRAIT_URL = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
+const LOGIN_EXAM_PORTRAIT_CACHE_KEY = 'offline_login_exam_portrait_v1';
 
 async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
   if (blob.type && blob.type.toLowerCase().startsWith('image/')) {
@@ -220,6 +222,10 @@ export function getLoginPortraitSync(): string {
   return memoryCache.get(LOGIN_PORTRAIT_CACHE_KEY) || LOGIN_PORTRAIT_URL;
 }
 
+export function getLoginExamPortraitSync(): string {
+  return memoryCache.get(LOGIN_EXAM_PORTRAIT_CACHE_KEY) || privateSchoolExamsUrl;
+}
+
 export function getSponsorAdBannerSync(): string {
   return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY) || sponsorAdBannerUrl;
 }
@@ -246,6 +252,31 @@ export async function getCachedLoginPortrait(): Promise<string> {
     return dataUrl;
   } catch {
     return LOGIN_PORTRAIT_URL;
+  }
+}
+
+export async function getCachedLoginExamPortrait(): Promise<string> {
+  if (memoryCache.has(LOGIN_EXAM_PORTRAIT_CACHE_KEY)) {
+    return memoryCache.get(LOGIN_EXAM_PORTRAIT_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(LOGIN_EXAM_PORTRAIT_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(LOGIN_EXAM_PORTRAIT_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for login exam portrait:', e);
+  }
+
+  try {
+    const dataUrl = await fetchToDataUrl(privateSchoolExamsUrl);
+    memoryCache.set(LOGIN_EXAM_PORTRAIT_CACHE_KEY, dataUrl);
+    idbSet(LOGIN_EXAM_PORTRAIT_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch {
+    return privateSchoolExamsUrl;
   }
 }
 
@@ -318,10 +349,11 @@ export async function getCachedBrandShield(): Promise<string> {
 export async function preloadAndCacheOfflineAssets(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    // 0. إعطاء الأولوية القصوى لصور نافذة تسجيل الدخول (الشعار + صورة الفصل) قبل تنزيل الخلفيات الكبيرة
+    // 0. إعطاء الأولوية القصوى لصور نافذة تسجيل الدخول (الشعار + صورتا الفصل والامتحانات) قبل تنزيل الخلفيات الكبيرة
     await Promise.allSettled([
       getCachedBrandShield().catch(() => {}),
       getCachedLoginPortrait().catch(() => {}),
+      getCachedLoginExamPortrait().catch(() => {}),
     ]);
 
     // 1. حفظ قوالب الشهادات في IndexedDB

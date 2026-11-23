@@ -3,11 +3,50 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
-import { initButtonSoundEffect } from './utils/sound';
 import { registerSW } from 'virtual:pwa-register';
-import { preloadAndCacheOfflineAssets } from './utils/offlineAssetCache';
-import { checkAndPerformInPlaceUpgrade } from './utils/upgradeManager';
-import { hydrateDeletedSubjectsFromStorage } from './utils/deletedSubjects';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </StrictMode>,
+);
+
+const scheduleIdle = (cb: () => void, timeout = 1500) => {
+  if (typeof window === 'undefined') return;
+  const ric = (window as Window & { requestIdleCallback?: (fn: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+  if (typeof ric === 'function') {
+    ric(cb, { timeout });
+  } else {
+    window.setTimeout(cb, Math.min(timeout, 300));
+  }
+};
+
+// Initialize sound listener shortly after first paint without blocking LCP
+scheduleIdle(() => {
+  import('./utils/sound').then((m) => m.initButtonSoundEffect()).catch(() => {});
+}, 200);
+
+// Run upgrade checks, deleted-subject hydration, and offline asset precaching after page load/idle
+const runDeferredBootstrap = () => {
+  scheduleIdle(() => {
+    import('./utils/upgradeManager').then((m) => m.checkAndPerformInPlaceUpgrade()).catch(() => {});
+    import('./utils/deletedSubjects').then((m) => m.hydrateDeletedSubjectsFromStorage()).catch(() => {});
+  }, 1500);
+
+  scheduleIdle(() => {
+    import('./utils/offlineAssetCache').then((m) => m.preloadAndCacheOfflineAssets()).catch(() => {});
+  }, 3500);
+};
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete') {
+    runDeferredBootstrap();
+  } else {
+    window.addEventListener('load', runDeferredBootstrap, { once: true });
+  }
+}
 
 // التحديث في المكان (In-Place Upgrade) التلقائي وتسجيل الخدمة في وضع الإنتاج فقط لتجنب تعارض الكاش مع معاينة التطوير
 if (import.meta.env.PROD) {
@@ -52,18 +91,3 @@ if (import.meta.env.PROD) {
     }).catch(() => {});
   }
 }
-
-// فحص وحماية ترقية البيانات بدون أي فقدان
-checkAndPerformInPlaceUpgrade().catch(() => {});
-hydrateDeletedSubjectsFromStorage().catch(() => {});
-
-initButtonSoundEffect();
-preloadAndCacheOfflineAssets();
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-);

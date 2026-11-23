@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, PenTool, Sliders, Calendar, PieChart, Palette, Languages, BarChart3, Award } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
-import { GradingSettingsModal } from './GradingSettingsModal';
-import { AdvancedStatsModal } from './AdvancedStatsModal';
 import { getGradingSettings, GradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from '../utils/gradingSettings';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
@@ -15,8 +13,6 @@ import { TooltipMarqueeText } from './TooltipMarqueeText';
 import { ActualGradeTooltip } from './ActualGradeTooltip';
 import { exportStudentsDataToPdf, PdfReportType, RowBgTheme, CustomControlSheetOptions, getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
-import { SeatNumbersModal } from './SeatNumbersModal';
-import { CustomControlSheetModal } from './CustomControlSheetModal';
 import { getStoredSubjectEn, saveStoredSubjectEn, capitalizeEachWord } from '../utils/subjectLanguage';
 import { distributeTotalToDetailedAssessment, isSubjectWithoutWrittenExam } from '../utils/detailedAssessmentsHelper';
 import { sortStudents } from '../utils/studentSorting';
@@ -24,12 +20,17 @@ import { SortButtonMenu } from './SortButtonMenu';
 import { getDeletedSubjectKeys, markSubjectDeleted, clearDeletedSubjects, filterDeletedSubjects } from '../utils/deletedSubjects';
 import { getDefaultSubjectCols } from '../utils/defaultSubjects';
 import { KG_LEARNING_DOMAINS } from '../utils/kgAssessmentsReportHelper';
-import { TopTenCertificatesModal } from './TopTenCertificatesModal';
-import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
-import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
+
+const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
+const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
+const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
+const CustomControlSheetModal = lazy(() => import('./CustomControlSheetModal').then(m => ({ default: m.CustomControlSheetModal })));
+const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
+const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
+const CertificatesSelectionModal = lazy(() => import('./CertificatesSelectionModal').then(m => ({ default: m.CertificatesSelectionModal })));
 
 interface AssessmentsGradesScreenProps {
   data: StudentData[];
@@ -5289,30 +5290,34 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         )}
       </AnimatePresence></PortalModal>
 
-      {!isKindergarten && (
-        <GradingSettingsModal
-          isOpen={isGradingSettingsModalOpen}
-          onClose={() => setIsGradingSettingsModalOpen(false)}
-          lang={lang}
-          stage={stage}
-          semester={semester}
-          selectedGrade={selectedGrade}
-          students={localData}
-          customCols={customCols}
-          defaultSubjectsOverrides={defaultSubjectsOverrides}
-          onSaved={(newSettings) => setGradingSettings(newSettings)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {!isKindergarten && isGradingSettingsModalOpen && (
+          <GradingSettingsModal
+            isOpen={isGradingSettingsModalOpen}
+            onClose={() => setIsGradingSettingsModalOpen(false)}
+            lang={lang}
+            stage={stage}
+            semester={semester}
+            selectedGrade={selectedGrade}
+            students={localData}
+            customCols={customCols}
+            defaultSubjectsOverrides={defaultSubjectsOverrides}
+            onSaved={(newSettings) => setGradingSettings(newSettings)}
+          />
+        )}
 
-      <SeatNumbersModal
-        isOpen={isSeatNumbersModalOpen}
-        onClose={() => setIsSeatNumbersModalOpen(false)}
-        isEnglish={isSeatNumbersEnglish}
-        onSelectModel={async (modelReportType) => {
-          setIsSeatNumbersModalOpen(false);
-          await executePrintOption(modelReportType);
-        }}
-      />
+        {isSeatNumbersModalOpen && (
+          <SeatNumbersModal
+            isOpen={isSeatNumbersModalOpen}
+            onClose={() => setIsSeatNumbersModalOpen(false)}
+            isEnglish={isSeatNumbersEnglish}
+            onSelectModel={async (modelReportType) => {
+              setIsSeatNumbersModalOpen(false);
+              await executePrintOption(modelReportType);
+            }}
+          />
+        )}
+      </Suspense>
       <PasswordModal
         isOpen={showSeatNumbersPasswordModal}
         onClose={() => setShowSeatNumbersPasswordModal(false)}
@@ -5329,33 +5334,39 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         skipActivation={true}
       />
 
-      <CustomControlSheetModal
-        isOpen={isCustomControlSheetModalOpen}
-        onClose={() => setIsCustomControlSheetModalOpen(false)}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester === 'second' ? 'second' : 'first'}
-        onConfirm={async (options) => {
-          await executePrintOption('custom_control_sheet', undefined, options);
-        }}
-      />
+      <Suspense fallback={null}>
+        {isCustomControlSheetModalOpen && (
+          <CustomControlSheetModal
+            isOpen={isCustomControlSheetModalOpen}
+            onClose={() => setIsCustomControlSheetModalOpen(false)}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester === 'second' ? 'second' : 'first'}
+            onConfirm={async (options) => {
+              await executePrintOption('custom_control_sheet', undefined, options);
+            }}
+          />
+        )}
 
-      <GradingSettingsModal
-        mercyOnly
-        isOpen={isMercyPrintModalOpen}
-        onClose={() => {
-          setIsMercyPrintModalOpen(false);
-          executePrintOption('mercy_grades_students');
-        }}
-        lang={lang}
-        stage={stage}
-        semester={semester}
-        selectedGrade={selectedGrade}
-        students={localData}
-        customCols={customCols}
-        defaultSubjectsOverrides={defaultSubjectsOverrides}
-        onSaved={(newSettings) => setGradingSettings(newSettings)}
-      />
+        {isMercyPrintModalOpen && (
+          <GradingSettingsModal
+            mercyOnly
+            isOpen={isMercyPrintModalOpen}
+            onClose={() => {
+              setIsMercyPrintModalOpen(false);
+              executePrintOption('mercy_grades_students');
+            }}
+            lang={lang}
+            stage={stage}
+            semester={semester}
+            selectedGrade={selectedGrade}
+            students={localData}
+            customCols={customCols}
+            defaultSubjectsOverrides={defaultSubjectsOverrides}
+            onSaved={(newSettings) => setGradingSettings(newSettings)}
+          />
+        )}
+      </Suspense>
 
       {hoveredNotesTooltip && (hoveredNotesTooltip.text || hoveredNotesTooltip.subjectsTitle) && (
         <>
@@ -5705,36 +5716,44 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         </AnimatePresence>
       </PortalModal>
 
-      <AdvancedStatsModal
-        isOpen={isAdvancedStatsModalOpen}
-        onClose={() => setIsAdvancedStatsModalOpen(false)}
-        students={localData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={title}
-        administration=""
-        lang={lang}
-      />
+      <Suspense fallback={null}>
+        {isAdvancedStatsModalOpen && (
+          <AdvancedStatsModal
+            isOpen={isAdvancedStatsModalOpen}
+            onClose={() => setIsAdvancedStatsModalOpen(false)}
+            students={localData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={title}
+            administration=""
+            lang={lang}
+          />
+        )}
 
-      <TopTenCertificatesModal
-        isOpen={isTopTenCertModalOpen}
-        onClose={() => setIsTopTenCertModalOpen(false)}
-        students={filteredData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        isDamgOnly={isTopTenCertDamg}
-      />
+        {isTopTenCertModalOpen && (
+          <TopTenCertificatesModal
+            isOpen={isTopTenCertModalOpen}
+            onClose={() => setIsTopTenCertModalOpen(false)}
+            students={filteredData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            isDamgOnly={isTopTenCertDamg}
+          />
+        )}
 
-      <AllStudentsCertificatesModal
-        isOpen={isAllStudentsCertModalOpen}
-        onClose={() => setIsAllStudentsCertModalOpen(false)}
-        students={data}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-      />
+        {isAllStudentsCertModalOpen && (
+          <AllStudentsCertificatesModal
+            isOpen={isAllStudentsCertModalOpen}
+            onClose={() => setIsAllStudentsCertModalOpen(false)}
+            students={data}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+          />
+        )}
+      </Suspense>
 
       <PasswordModal
         isOpen={showEnglishCertPasswordModal}
@@ -5821,13 +5840,17 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
           </motion.div>
         )}
       </AnimatePresence>
-      <CertificatesSelectionModal
-        isOpen={isCertSelectionModalOpen}
-        onClose={() => setIsCertSelectionModalOpen(false)}
-        onSelectTopTen={() => handlePrintOption('top_ten_students_certificates')}
-        onSelectTopTenDamg={() => handlePrintOption('top_ten_damg_students_certificates')}
-        onSelectAllStudents={() => handlePrintOption('all_students_certificates' as any)}
-      />
+      <Suspense fallback={null}>
+        {isCertSelectionModalOpen && (
+          <CertificatesSelectionModal
+            isOpen={isCertSelectionModalOpen}
+            onClose={() => setIsCertSelectionModalOpen(false)}
+            onSelectTopTen={() => handlePrintOption('top_ten_students_certificates')}
+            onSelectTopTenDamg={() => handlePrintOption('top_ten_damg_students_certificates')}
+            onSelectAllStudents={() => handlePrintOption('all_students_certificates' as any)}
+          />
+        )}
+      </Suspense>
     </motion.div>
   );
 };

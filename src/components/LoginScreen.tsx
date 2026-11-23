@@ -4,12 +4,8 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmail
 import { AlertCircle } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { AnimatedBackground } from './AnimatedBackground';
-import {
-  getBrandShieldSync,
-  getCachedBrandShield,
-  getCachedLoginPortrait,
-  getLoginPortraitSync,
-} from '../utils/offlineAssetCache';
+
+const loginLogoDefaultUrl = '/pwa-256x256.png';
 const loginPortraitFallbackUrl = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
 const PLANT_ROSES = [
@@ -72,8 +68,8 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
-  const [logoSrc, setLogoSrc] = useState<string>(() => getBrandShieldSync());
-  const [portraitSrc, setPortraitSrc] = useState<string>(() => getLoginPortraitSync());
+  const [logoSrc, setLogoSrc] = useState<string>(loginLogoDefaultUrl);
+  const [portraitSrc, setPortraitSrc] = useState<string>(loginPortraitFallbackUrl);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -82,18 +78,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    getCachedBrandShield().then((cached) => {
-      if (active && cached) {
-        setLogoSrc(cached);
-      }
-    });
-    getCachedLoginPortrait().then((cached) => {
-      if (active && cached) {
-        setPortraitSrc(cached);
-      }
-    });
-
     // Check redirect result for desktop PWA standalone mode
     getRedirectResult(auth)
       .then((result) => {
@@ -104,14 +88,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
       .catch((err) => {
         console.warn('Redirect auth warning:', err);
       });
-
-    return () => {
-      active = false;
-    };
   }, [onSuccess]);
 
   const handleImageError = () => {
-    if (logoSrc !== '/brand_shield.png' && !logoSrc.startsWith('data:image/')) {
+    if (logoSrc === loginLogoDefaultUrl) {
       setLogoSrc('/brand_shield.png');
     } else if (logoSrc !== '/pwa-192x192.png') {
       setLogoSrc('/pwa-192x192.png');
@@ -206,9 +186,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
       <AnimatedBackground />
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        initial={{ opacity: 1, y: 0, scale: 1 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.55, type: 'spring', bounce: 0.25 }}
         className="relative z-10 w-full md:max-w-[920px] lg:max-w-[1074px] my-auto"
       >
         {/* Clipped Luminous Frame & Split Card */}
@@ -503,20 +482,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             {/* Glowing Floating App Logo */}
             <motion.div
               animate={{
-                y: [0, -8, 0],
-                scale: [1, 1.04, 1],
-                filter: [
-                  'drop-shadow(0 0 8px rgba(251,191,36,0.3))',
-                  'drop-shadow(0 0 24px rgba(251,191,36,0.85))',
-                  'drop-shadow(0 0 8px rgba(251,191,36,0.3))',
-                ],
+                y: [0, -6, 0],
+                scale: [1, 1.03, 1],
               }}
               transition={{
                 y: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
                 scale: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
-                filter: { repeat: Infinity, duration: 3, ease: 'easeInOut' },
               }}
-              className="relative mb-4 md:mb-5"
+              className="relative mb-4 md:mb-5 will-change-transform drop-shadow-[0_0_14px_rgba(251,191,36,0.45)]"
             >
               <div className="w-[84px] h-[84px] sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-950/90 border-2 border-amber-400/50 flex items-center justify-center p-2.5 md:p-3.5 shadow-2xl">
                 <img

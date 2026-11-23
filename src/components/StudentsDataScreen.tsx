@@ -1,5 +1,5 @@
 import { getActiveFooterTagline } from "../utils/adFilter";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
@@ -7,20 +7,21 @@ import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, A
 import { motion, AnimatePresence } from 'motion/react';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
-import { GradingSettingsModal } from './GradingSettingsModal';
-import { SeatNumbersModal } from './SeatNumbersModal';
-import { CustomControlSheetModal } from './CustomControlSheetModal';
-import { AdvancedStatsModal } from './AdvancedStatsModal';
 import { ensureCellVisible } from '../utils/cellNavigation';
 import { exportStudentsDataToPdf, exportExamScheduleToPdf, getSubjectsConfigForStageGrade, PdfReportType, RowBgTheme, CustomControlSheetOptions } from '../utils/exportPdf';
-import { ExportExcelModal } from './ExportExcelModal';
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
-import { TopTenCertificatesModal } from './TopTenCertificatesModal';
-import { AllStudentsCertificatesModal } from './AllStudentsCertificatesModal';
-import { CertificatesSelectionModal } from './CertificatesSelectionModal';
 import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
+
+const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
+const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
+const CustomControlSheetModal = lazy(() => import('./CustomControlSheetModal').then(m => ({ default: m.CustomControlSheetModal })));
+const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
+const ExportExcelModal = lazy(() => import('./ExportExcelModal').then(m => ({ default: m.ExportExcelModal })));
+const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
+const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
+const CertificatesSelectionModal = lazy(() => import('./CertificatesSelectionModal').then(m => ({ default: m.CertificatesSelectionModal })));
 
 interface StudentsDataScreenProps {
   lang: Language;
@@ -5642,15 +5643,19 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         )}
       </AnimatePresence>
 
-      <SeatNumbersModal
-        isOpen={isSeatNumbersModalOpen}
-        onClose={() => setIsSeatNumbersModalOpen(false)}
-        isEnglish={isSeatNumbersEnglish}
-        onSelectModel={async (modelReportType) => {
-          setIsSeatNumbersModalOpen(false);
-          await executePrintOption(modelReportType);
-        }}
-      />
+      <Suspense fallback={null}>
+        {isSeatNumbersModalOpen && (
+          <SeatNumbersModal
+            isOpen={isSeatNumbersModalOpen}
+            onClose={() => setIsSeatNumbersModalOpen(false)}
+            isEnglish={isSeatNumbersEnglish}
+            onSelectModel={async (modelReportType) => {
+              setIsSeatNumbersModalOpen(false);
+              await executePrintOption(modelReportType);
+            }}
+          />
+        )}
+      </Suspense>
       <PasswordModal
         isOpen={showSeatNumbersPasswordModal}
         onClose={() => setShowSeatNumbersPasswordModal(false)}
@@ -5667,54 +5672,64 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         skipActivation={true}
       />
 
-      <CustomControlSheetModal
-        isOpen={isCustomControlSheetModalOpen}
-        onClose={() => setIsCustomControlSheetModalOpen(false)}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester === 'second' ? 'second' : 'first'}
-        onConfirm={async (options) => {
-          await executePrintOption('custom_control_sheet', undefined, options);
-        }}
-      />
+      <Suspense fallback={null}>
+        {isCustomControlSheetModalOpen && (
+          <CustomControlSheetModal
+            isOpen={isCustomControlSheetModalOpen}
+            onClose={() => setIsCustomControlSheetModalOpen(false)}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester === 'second' ? 'second' : 'first'}
+            onConfirm={async (options) => {
+              await executePrintOption('custom_control_sheet', undefined, options);
+            }}
+          />
+        )}
 
-      <GradingSettingsModal
-        mercyOnly
-        isOpen={isMercyPrintModalOpen}
-        onClose={() => {
-          setIsMercyPrintModalOpen(false);
-          executePrintOption('mercy_grades_students');
-        }}
-        lang={lang}
-        stage={stage}
-        semester={semester}
-        selectedGrade={selectedGrade}
-        students={data}
-      />
+        {isMercyPrintModalOpen && (
+          <GradingSettingsModal
+            mercyOnly
+            isOpen={isMercyPrintModalOpen}
+            onClose={() => {
+              setIsMercyPrintModalOpen(false);
+              executePrintOption('mercy_grades_students');
+            }}
+            lang={lang}
+            stage={stage}
+            semester={semester}
+            selectedGrade={selectedGrade}
+            students={data}
+          />
+        )}
 
-      <AdvancedStatsModal
-        isOpen={isAdvancedStatsModalOpen}
-        onClose={() => setIsAdvancedStatsModalOpen(false)}
-        students={data}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-        lang={lang}
-      />
+        {isAdvancedStatsModalOpen && (
+          <AdvancedStatsModal
+            isOpen={isAdvancedStatsModalOpen}
+            onClose={() => setIsAdvancedStatsModalOpen(false)}
+            students={data}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+            lang={lang}
+          />
+        )}
 
-      <TopTenCertificatesModal
-        isOpen={isTopTenCertModalOpen}
-        onClose={() => setIsTopTenCertModalOpen(false)}
-        students={filteredData}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-        isDamgOnly={isTopTenCertDamg}
-      />
+        {isTopTenCertModalOpen && (
+          <TopTenCertificatesModal
+            isOpen={isTopTenCertModalOpen}
+            onClose={() => setIsTopTenCertModalOpen(false)}
+            students={filteredData}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+            isDamgOnly={isTopTenCertDamg}
+          />
+        )}
+      </Suspense>
 
       <PasswordModal
         isOpen={showCustomSheetPasswordModal}
@@ -5786,16 +5801,20 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         )}
       </AnimatePresence>
 
-      <AllStudentsCertificatesModal
-        isOpen={isAllStudentsCertModalOpen}
-        onClose={() => setIsAllStudentsCertModalOpen(false)}
-        students={data}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        semester={semester}
-        schoolName={schoolName}
-        administration={administration}
-      />
+      <Suspense fallback={null}>
+        {isAllStudentsCertModalOpen && (
+          <AllStudentsCertificatesModal
+            isOpen={isAllStudentsCertModalOpen}
+            onClose={() => setIsAllStudentsCertModalOpen(false)}
+            students={data}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            semester={semester}
+            schoolName={schoolName}
+            administration={administration}
+          />
+        )}
+      </Suspense>
       <PasswordModal
         isOpen={showCertificatesPasswordModal}
         onClose={() => setShowCertificatesPasswordModal(false)}
@@ -5812,21 +5831,27 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
       />
 
-      <ExportExcelModal
-        isOpen={isExportExcelModalOpen}
-        onClose={() => setIsExportExcelModalOpen(false)}
-        students={data}
-        stage={stage}
-        selectedGrade={selectedGrade}
-        educationType={educationType}
-      />
-      <CertificatesSelectionModal
-        isOpen={isCertSelectionModalOpen}
-        onClose={() => setIsCertSelectionModalOpen(false)}
-        onSelectTopTen={() => handlePrintOption('top_ten_students_certificates')}
-        onSelectTopTenDamg={() => handlePrintOption('top_ten_damg_students_certificates')}
-        onSelectAllStudents={() => handlePrintOption('all_students_certificates' as any)}
-      />
+      <Suspense fallback={null}>
+        {isExportExcelModalOpen && (
+          <ExportExcelModal
+            isOpen={isExportExcelModalOpen}
+            onClose={() => setIsExportExcelModalOpen(false)}
+            students={data}
+            stage={stage}
+            selectedGrade={selectedGrade}
+            educationType={educationType}
+          />
+        )}
+        {isCertSelectionModalOpen && (
+          <CertificatesSelectionModal
+            isOpen={isCertSelectionModalOpen}
+            onClose={() => setIsCertSelectionModalOpen(false)}
+            onSelectTopTen={() => handlePrintOption('top_ten_students_certificates')}
+            onSelectTopTenDamg={() => handlePrintOption('top_ten_damg_students_certificates')}
+            onSelectAllStudents={() => handlePrintOption('all_students_certificates' as any)}
+          />
+        )}
+      </Suspense>
       <AnimatePresence>
         {downloadSuccess && (
           <motion.div
