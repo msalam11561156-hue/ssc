@@ -170,6 +170,8 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 export type PdfReportType =
   | 'students_data'
   | 'calling_list'
+  | 'answer_sheets_covers'
+  | 'question_sheets_covers'
   | 'seat_numbers'
   | 'seat_numbers_with_schedule'
   | 'seat_numbers_default'
@@ -284,6 +286,8 @@ export function getReportRowBgColors(
     const isStudentDataTheme =
       reportType === 'students_data' ||
       reportType === 'calling_list' ||
+      reportType === 'answer_sheets_covers' ||
+      reportType === 'question_sheets_covers' ||
       reportType === 'secret_numbers' ||
       Boolean(reportType && reportType.startsWith('seat_numbers'));
 
@@ -3941,6 +3945,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         document.fonts.load('bold 20px "Cairo"'),
         document.fonts.load('bold 24px "Cairo"'),
         document.fonts.load('bold 30px "Cairo"'),
+        document.fonts.load('bold 32px "Cairo"'),
         document.fonts.ready,
       ]);
     }
@@ -3967,6 +3972,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   const isPortrait =
     isSeatNumbersCard ||
     reportType === 'calling_list' ||
+    reportType === 'answer_sheets_covers' ||
+    reportType === 'question_sheets_covers' ||
     reportType === 'secret_numbers';
   const widthPx = isNonKgControlSheet ? 2800 : isPortrait ? 1240 : 1754;
   const heightPx = isNonKgControlSheet ? 1980 : isPortrait ? 1754 : 1240;
@@ -4144,6 +4151,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     }
   } else if (
     reportType === 'calling_list' ||
+    reportType === 'answer_sheets_covers' ||
+    reportType === 'question_sheets_covers' ||
     reportType === 'students_data' ||
     reportType === 'secret_numbers' ||
     isNonKgControlSheet
@@ -5919,6 +5928,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     let bannerY = topInfoY + topInfoH + 10;
     if (
       reportType === 'calling_list' ||
+      reportType === 'answer_sheets_covers' ||
+      reportType === 'question_sheets_covers' ||
       reportType === 'students_data' ||
       reportType === 'secret_numbers' ||
       reportType === 'general_statistics' ||
@@ -5937,7 +5948,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     }
 
     // 2. Title Banner (increased height by 40% for subject reports: 56 -> 78)
-    const bannerH = isSubjectReport ? Math.round(56 * 1.4) : 81;
+    const isCoverSheetReport =
+      reportType === 'answer_sheets_covers' || reportType === 'question_sheets_covers';
+    const bannerH = isSubjectReport ? Math.round(56 * 1.4) : isCoverSheetReport ? 92 : 81;
     const bannerGrad = ctx.createLinearGradient(marginX, bannerY, marginX + contentW, bannerY);
     bannerGrad.addColorStop(0, '#361500');
     bannerGrad.addColorStop(0.25, '#5c270d');
@@ -5968,6 +5981,16 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           : `بيانات طلاب ${cleanTitle}`);
     if (reportType === 'calling_list') {
       bannerTitle = `تقارير المناداة - ${cleanTitle}`;
+    } else if (isCoverSheetReport) {
+      const coverPageItems = pagesData[pageIdx] || [];
+      const coverCommLabel =
+        coverPageItems.find((item) => item.student?.name && item.committeeNumText)?.committeeNumText ||
+        coverPageItems[0]?.committeeNumText ||
+        String(pageIdx + 1);
+      bannerTitle =
+        reportType === 'question_sheets_covers'
+          ? `أوراق أسئلة - اللجنة رقم ( ${coverCommLabel} )`
+          : `أوراق إجابة - اللجنة رقم ( ${coverCommLabel} )`;
     } else if ((reportType as string) === 'seat_numbers') {
       bannerTitle = isKindergartenStage ? `أرقام جلوس تلاميذ ${cleanTitle}` : `أرقام جلوس طلاب ${cleanTitle}`;
     } else if (reportType === 'secret_numbers') {
@@ -6143,7 +6166,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         drawCenteredText(ctx, bannerTitle, widthPx / 2, centerY, contentW - 32);
       }
     } else {
-      ctx.font = 'bold 25px "Cairo", sans-serif';
+      ctx.font = isCoverSheetReport
+        ? 'bold 32px "Cairo", sans-serif'
+        : 'bold 25px "Cairo", sans-serif';
       drawCenteredText(ctx, bannerTitle, widthPx / 2, bannerY + bannerH / 2, contentW - 32);
     }
 
@@ -7455,6 +7480,249 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           buildWrittenAttendanceTable(targetStudents, subjKey, subjLbl)
         );
       }
+    } else if (isCoverSheetReport) {
+      const coverItems = pagesData[pageIdx] || [];
+      const toLatinDigits = (val: string) =>
+        val
+          .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+          .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+
+      const seatValues = coverItems
+        .filter((item) => Boolean(item.student?.name))
+        .map((item) =>
+          (
+            item.student.seatNumbers?.[semester] ||
+            (semester === 'first' ? item.student.seatNumber : '') ||
+            ''
+          ).trim()
+        )
+        .filter((s) => s.length > 0);
+
+      let firstSeatLabel = '-';
+      let lastSeatLabel = '-';
+      if (seatValues.length > 0) {
+        const numericEntries = seatValues.map((raw) => ({
+          raw,
+          num: Number(toLatinDigits(raw)),
+        }));
+        if (numericEntries.every((e) => Number.isFinite(e.num))) {
+          let minEntry = numericEntries[0];
+          let maxEntry = numericEntries[0];
+          numericEntries.forEach((entry) => {
+            if (entry.num < minEntry.num) minEntry = entry;
+            if (entry.num > maxEntry.num) maxEntry = entry;
+          });
+          firstSeatLabel = minEntry.raw;
+          lastSeatLabel = maxEntry.raw;
+        } else {
+          firstSeatLabel = seatValues[0];
+          lastSeatLabel = seatValues[seatValues.length - 1];
+        }
+      }
+
+      // 1. Large seat range text below title banner
+      const seatRangeTopGap = 16;
+      const seatRangeH = 48;
+      const seatRangeText = `من رقم جلوس ( ${firstSeatLabel} ) الى رقم جلوس ( ${lastSeatLabel} )`;
+      ctx.save();
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 32px "Cairo", sans-serif';
+      drawCenteredText(
+        ctx,
+        seatRangeText,
+        widthPx / 2,
+        bannerY + bannerH + seatRangeTopGap + seatRangeH / 2,
+        contentW - 24
+      );
+
+      // 2. Horizontal divider (<hr>) below seat range
+      const coverHrY = bannerY + bannerH + seatRangeTopGap + seatRangeH + 12;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(marginX, coverHrY);
+      ctx.lineTo(marginX + contentW, coverHrY);
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Committee Statistics Block ("احصائيات اللجنة :")
+      const validItems = coverItems.filter((item) => Boolean(item.student?.name));
+      const totalComm = validItems.length;
+      const boysComm = validItems.filter(
+        (i) => i.student.gender === 'male' || i.student.gender === 'ذكر'
+      ).length;
+      const girlsComm = validItems.filter(
+        (i) =>
+          i.student.gender === 'female' ||
+          i.student.gender === 'أنثى' ||
+          i.student.gender === 'انثى'
+      ).length;
+      const muslimComm = validItems.filter(
+        (i) => i.student.religion === 'muslim' || (i.student.religion || '').includes('ل')
+      ).length;
+      const christianComm = validItems.filter(
+        (i) => i.student.religion === 'christian' || (i.student.religion || '').includes('ح')
+      ).length;
+
+      let newOrTransComm = 0;
+      let repeatingComm = 0;
+      let exemptionFullComm = 0;
+      let exemptionGradualComm = 0;
+      let damgComm = 0;
+
+      validItems.forEach((i) => {
+        const normStatus = normalizeStatusForGrade(
+          i.student.enrollmentStatus,
+          isFirstGrade,
+          i.student.gender
+        );
+        const rawStatus = (i.student.enrollmentStatus || '').trim();
+        if (
+          rawStatus.includes('دمج') ||
+          normStatus.includes('دمج') ||
+          i.student.enrollmentType?.includes('دمج')
+        ) {
+          damgComm++;
+        }
+        if (normStatus.includes('باق') || rawStatus.includes('باق')) {
+          repeatingComm++;
+        } else {
+          newOrTransComm++;
+        }
+        const exVal = (i.student.exemptionStatus || '').trim();
+        if (exVal === 'كلى' || exVal === 'كلي') exemptionFullComm++;
+        else if (exVal === 'تدريجى' || exVal === 'تدريجي') exemptionGradualComm++;
+      });
+
+      const coverStatsCols = [
+        { label: isKindergartenStage ? 'إجمالي التلاميذ' : 'إجمالي اللجنة', value: String(totalComm) },
+        { label: 'بنين', value: String(boysComm) },
+        { label: 'بنات', value: String(girlsComm) },
+        { label: 'مسلم', value: String(muslimComm) },
+        { label: 'مسيحي', value: String(christianComm) },
+        ...(!isKindergartenStage
+          ? [
+              { label: isFirstGrade ? 'مستجد' : 'منقول', value: String(newOrTransComm) },
+              { label: 'باق', value: String(repeatingComm) },
+              ...(showExemptionStatus
+                ? [
+                    { label: 'إعفاء كلى', value: String(exemptionFullComm) },
+                    { label: 'إعفاء تدريجى', value: String(exemptionGradualComm) },
+                  ]
+                : []),
+            ]
+          : []),
+        { label: 'دمج', value: String(damgComm) },
+      ];
+
+      const drawCoverHeaderGrad = (yTop: number, h: number, isTeal: boolean) => {
+        const g = ctx.createLinearGradient(marginX, yTop, marginX + contentW, yTop);
+        if (isTeal) {
+          g.addColorStop(0, '#5eead4');
+          g.addColorStop(0.5, '#ccfbf1');
+          g.addColorStop(1, '#5eead4');
+        } else {
+          g.addColorStop(0, '#fde2e4');
+          g.addColorStop(0.5, '#e2e8f0');
+          g.addColorStop(1, '#fef3c7');
+        }
+        ctx.fillStyle = g;
+        ctx.fillRect(marginX, yTop, contentW, h);
+      };
+
+      const statsTopY = coverHrY + 22;
+      const statsTitleH = 64;
+      const statsHeadH = 66;
+      const statsValH = 74;
+      const statsTotalH = statsTitleH + statsHeadH + statsValH;
+      const sColW = Math.floor(contentW / coverStatsCols.length);
+      const sColWidths = coverStatsCols.map((_, idx) =>
+        idx === coverStatsCols.length - 1 ? contentW - sColW * (coverStatsCols.length - 1) : sColW
+      );
+
+      ctx.save();
+      drawRoundedRect(ctx, marginX, statsTopY, contentW, statsTotalH, 14);
+      ctx.clip();
+
+      drawCoverHeaderGrad(statsTopY, statsTitleH, true);
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 26px "Cairo", sans-serif';
+      drawCenteredText(
+        ctx,
+        'احصائيات اللجنة',
+        marginX + contentW / 2,
+        statsTopY + statsTitleH / 2,
+        contentW - 24
+      );
+
+      const sHeaderY = statsTopY + statsTitleH;
+      const sValY = sHeaderY + statsHeadH;
+      drawCoverHeaderGrad(sHeaderY, statsHeadH, false);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(marginX, sValY, contentW, statsValH);
+
+      let sRightX = marginX + contentW;
+      coverStatsCols.forEach((sc, idx) => {
+        const w = sColWidths[idx];
+        const x = sRightX - w;
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, sHeaderY, w, statsHeadH);
+        ctx.direction = 'rtl';
+        ctx.fillStyle = '#0f172a';
+        let hFont = coverStatsCols.length >= 10 ? 18 : 21;
+        ctx.font = `bold ${hFont}px "Cairo", sans-serif`;
+        while (hFont > 11 && ctx.measureText(sc.label).width > w - 10) {
+          hFont -= 0.5;
+          ctx.font = `bold ${hFont}px "Cairo", sans-serif`;
+        }
+        drawCenteredText(ctx, sc.label, x + w / 2, sHeaderY + statsHeadH / 2, w - 8);
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, sValY, w, statsValH);
+        ctx.direction = 'ltr';
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 25px "Cairo", monospace';
+        drawCenteredText(ctx, sc.value, x + w / 2, sValY + statsValH / 2, w - 8);
+
+        sRightX -= w;
+      });
+
+      ctx.restore();
+      drawRoundedRect(ctx, marginX, statsTopY, contentW, statsTotalH, 14);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // 4. Horizontal divider (<hr>) and moved signatures line directly under the table
+      const coverSigHrY = statsTopY + statsTotalH + 22;
+      ctx.save();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(marginX, coverSigHrY);
+      ctx.lineTo(marginX + contentW, coverSigHrY);
+      ctx.stroke();
+
+      const coverDataOfficer = dataOfficer.trim() ? dataOfficer.trim() : '................';
+      const coverControlHead = controlHead.trim() ? controlHead.trim() : '................';
+      const coverCommitteeHead = committeeHead.trim() ? committeeHead.trim() : '................';
+      const coverSignaturesText = `مسئول البيانات والمعلومات : ${coverDataOfficer}   رئيس الكنترول : ${coverControlHead}   رئيس اللجنة : ${coverCommitteeHead}`;
+      const coverSigY = coverSigHrY + 28;
+      let coverSigFont = 20;
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = `bold ${coverSigFont}px "Cairo", sans-serif`;
+      while (coverSigFont > 12 && ctx.measureText(coverSignaturesText).width > contentW - 24) {
+        coverSigFont -= 0.5;
+        ctx.font = `bold ${coverSigFont}px "Cairo", sans-serif`;
+      }
+      drawCenteredText(ctx, coverSignaturesText, widthPx / 2, coverSigY, contentW - 24);
+      ctx.restore();
     } else {
     // 3. Table (headerRowH increased by 30%: 52 -> 68)
     const hasKgColorLegend = isControlSheet && isKindergartenStage;
@@ -10979,19 +11247,21 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       ? Math.max(300, rightTargetX - (pageInfoRightEdge + 30))
       : (isControlSheet ? (contentW - 40) : (footerAvailW - 32));
 
-    while (footerFontSize > minFooterFont && ctx.measureText(signaturesFooterText).width > maxSigW) {
-      footerFontSize -= 0.5;
-      ctx.font = `bold ${footerFontSize}px "Cairo", sans-serif`;
-    }
+    if (reportType !== 'answer_sheets_covers' && reportType !== 'question_sheets_covers') {
+      while (footerFontSize > minFooterFont && ctx.measureText(signaturesFooterText).width > maxSigW) {
+        footerFontSize -= 0.5;
+        ctx.font = `bold ${footerFontSize}px "Cairo", sans-serif`;
+      }
 
-    if (isPortrait) {
-      // في ملفات PDF الرأسية فقط: جعل نص مسئول البيانات والمعلومات في يمين الصفحة
-      ctx.textAlign = 'right';
-      ctx.fillText(signaturesFooterText, rightTargetX, footerTextY);
-    } else {
-      // في ملفات PDF الأفقية: في وسط الصفحة
-      ctx.textAlign = 'center';
-      ctx.fillText(signaturesFooterText, centerTargetX, footerTextY);
+      if (isPortrait) {
+        // في ملفات PDF الرأسية فقط: جعل نص مسئول البيانات والمعلومات في يمين الصفحة
+        ctx.textAlign = 'right';
+        ctx.fillText(signaturesFooterText, rightTargetX, footerTextY);
+      } else {
+        // في ملفات PDF الأفقية: في وسط الصفحة
+        ctx.textAlign = 'center';
+        ctx.fillText(signaturesFooterText, centerTargetX, footerTextY);
+      }
     }
 
     // Horizontal Line (<hr>) and Bottom Smaller Text below Footer
@@ -11059,6 +11329,10 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       ? 'أرقام_الجلوس_بجدول_الامتحانات'
       : reportType === 'calling_list'
       ? 'تقارير_المناداة'
+      : reportType === 'answer_sheets_covers'
+      ? 'أغلفة_أوراق_الإجابة'
+      : reportType === 'question_sheets_covers'
+      ? 'أغلفة_أوراق_الأسئلة'
       : reportType === 'seat_numbers_default'
       ? 'أرقام_الجلوس_النموذج_الافتراضي'
       : reportType === 'seat_numbers' || reportType === 'seat_numbers_model_1'

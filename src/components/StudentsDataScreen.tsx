@@ -2450,6 +2450,18 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               bgGradient="bg-[linear-gradient(to_right,#10b981,#059669,#10b981)]"
                             />
                             <ActionMenuButton
+                              onClick={() => handlePrintOption('answer_sheets_covers')}
+                              icon={<Printer className="w-4 h-4" />}
+                              text="أغلفة أوراق الإجابة"
+                              bgGradient="bg-[linear-gradient(to_right,#0891b2,#06b6d4,#0891b2)]"
+                            />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('question_sheets_covers')}
+                              icon={<Printer className="w-4 h-4" />}
+                              text="أغلفة أوراق الأسئلة"
+                              bgGradient="bg-[linear-gradient(to_right,#2563eb,#3b82f6,#2563eb)]"
+                            />
+                            <ActionMenuButton
                               onClick={() => handlePrintOption('seat_numbers')}
                               icon={<Printer className="w-4 h-4" />}
                               text="أرقام الجلوس"
