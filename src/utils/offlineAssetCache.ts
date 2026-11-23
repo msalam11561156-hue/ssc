@@ -12,6 +12,7 @@ import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_exa
 import brandShieldUrl from '../assets/images/brand_shield.png';
 import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
 import privateSchoolExamsUrl from '../assets/images/private_school_exams_1795389408308.jpg';
+import newsMicIconUrl from '../assets/images/news_mic_icon.png';
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
@@ -19,6 +20,7 @@ const SPONSOR_AD_BANNER_CACHE_KEY = 'offline_sponsor_ad_banner_v1';
 const LOGIN_PORTRAIT_CACHE_KEY = 'offline_login_portrait_v1';
 const LOGIN_PORTRAIT_URL = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 const LOGIN_EXAM_PORTRAIT_CACHE_KEY = 'offline_login_exam_portrait_v1';
+const NEWS_MIC_ICON_CACHE_KEY = 'offline_news_mic_icon_v1';
 
 async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
   if (blob.type && blob.type.toLowerCase().startsWith('image/')) {
@@ -230,6 +232,10 @@ export function getSponsorAdBannerSync(): string {
   return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY) || sponsorAdBannerUrl;
 }
 
+export function getNewsMicIconSync(): string {
+  return memoryCache.get(NEWS_MIC_ICON_CACHE_KEY) || newsMicIconUrl;
+}
+
 export async function getCachedLoginPortrait(): Promise<string> {
   if (memoryCache.has(LOGIN_PORTRAIT_CACHE_KEY)) {
     return memoryCache.get(LOGIN_PORTRAIT_CACHE_KEY)!;
@@ -343,6 +349,39 @@ export async function getCachedBrandShield(): Promise<string> {
 }
 
 /**
+ * جلب وحفظ أيقونة أخبار الشريط السفلي (PNG) محلياً على جهاز المستخدم في IndexedDB
+ * مع الرجوع التلقائي لمسار /assets/images/news_mic_icon.png لضمان عرضها بدون اتصال
+ */
+export async function getCachedNewsMicIcon(): Promise<string> {
+  if (memoryCache.has(NEWS_MIC_ICON_CACHE_KEY)) {
+    return memoryCache.get(NEWS_MIC_ICON_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(NEWS_MIC_ICON_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(NEWS_MIC_ICON_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for news mic icon:', e);
+  }
+
+  for (const candidateUrl of [newsMicIconUrl, '/assets/images/news_mic_icon.png']) {
+    try {
+      const dataUrl = await fetchToDataUrl(candidateUrl);
+      memoryCache.set(NEWS_MIC_ICON_CACHE_KEY, dataUrl);
+      idbSet(NEWS_MIC_ICON_CACHE_KEY, dataUrl).catch(() => {});
+      return dataUrl;
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return '/assets/images/news_mic_icon.png';
+}
+
+/**
  * حفظ وتخزين جميع قوالب الشهادات، صور وخلفيات شاشة البداية، والأيقونات على جهاز العميل مسبقاً (Pre-cache)
  * يتم استدعاؤها فور تشغيل التطبيق لضمان الأداء الفائق وعدم فقدان أي ملف
  */
@@ -354,6 +393,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       getCachedBrandShield().catch(() => {}),
       getCachedLoginPortrait().catch(() => {}),
       getCachedLoginExamPortrait().catch(() => {}),
+      getCachedNewsMicIcon().catch(() => {}),
     ]);
 
     // 1. حفظ قوالب الشهادات في IndexedDB
@@ -385,6 +425,7 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
           '/index.html',
           '/manifest.webmanifest',
           '/brand_shield.png',
+          '/assets/images/news_mic_icon.png',
           '/appicon.ico',
           '/favicon.ico',
           '/favicon.svg',

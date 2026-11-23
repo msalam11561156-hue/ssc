@@ -28,6 +28,7 @@ export default defineConfig(() => {
           'brand_shield.png',
           'assets/images/splash_brand_bg.jpg', 
           'assets/images/splash_control_illustration.jpg',
+          'assets/images/news_mic_icon.png',
           'assets/aistudio/asd126_e7a9cb22.jfif',
           'assets/aistudio/Screenshot_12_bc36452f.jpg',
           'docs/control-work-guide.pdf',
