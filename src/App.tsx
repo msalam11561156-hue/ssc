@@ -1519,14 +1519,12 @@ export default function App() {
             <div className="flex items-center gap-2.5 relative z-10 flex-1 overflow-hidden">
               <div className="flex-1 overflow-hidden [container-type:inline-size] [mask-image:linear-gradient(to_right,transparent_0%,black_10%,black_90%,transparent_100%)]" dir="ltr">
                 <div className="whitespace-nowrap animate-header-marquee ml-2">
-                  <motion.h1
-                    animate={{ color: ['#ffffff', '#000000', '#ffffff'] }}
-                    transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
-                    className="font-bold text-base md:text-lg"
+                  <h1
+                    className="font-bold text-base md:text-lg animate-header-title-color"
                     dir={lang === 'ar' ? 'rtl' : 'ltr'}
                   >
                     {t.appTitle}
-                  </motion.h1>
+                  </h1>
                 </div>
               </div>
             </div>

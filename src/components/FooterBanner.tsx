@@ -31,27 +31,27 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
     ? (
       <span className="whitespace-nowrap" dir="rtl">
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           ننوه عناية سيادتكم بأن ترحيل وتحديث بيانات الطلاب للعام الدراسي المقبل سيتم تلقائيًا دون الحاجة إلى إعادة إدخالها مرة أخرى ، سيما أن خوارزميات تطبيق سمارت كنترول هى من تتولى إتمام هذا الإجراء برمجيًا ، تخفيفًا للأعباء وتيسيرًا على السادة القائمين على أعمال الكنترول بالمدارس المصرية.
         </span>
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           تمت اضافة ازرار جديدة الى قائمة المطبوعات والتقارير يظهر الزر الأول بعنوان أغلفة أوراق الإجابة والزر الثانى يظهر بعنوان أغلفة أوراق الأسئلة كما تم إضافة زر جديد بذات القائمة المشار إليها فى الفصل الدراسي الثانى بعنوان مستخرج رسمى لبيان درجات طالب
         </span>
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           لمتابعة الاصدارات الاخرى للتطبيقات التعليمية المختلفة والمتطورة والعصرية يسعدنا إنضمامكم إلينا عبر منصات التواصل الاجتماعى المختلفة
         </span>
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           الدعم الفنى{'\u00A0\u00A0'}01098594956 - 01131097055{'\u00A0'.repeat(11)}تطبيق سمارت كنترول لإدارة أعمال الإمتحانات بلا حدود
         </span>
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           نسعى إلى بناء جسور الثقة والمصداقية التي تقوم على المسئولية والأمانة والمهنية ، مدعومين بأحدث حلول الرقمنة والتكنولوجيا والابتكار لتحقيق التميز والاستدامة حفاظاً على القمة.
         </span>
         {smartControlNewsTag}
-        <span className="drop-shadow-md">
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           تطبيق سمارت كنترول مجانى وسيبقى مجانى.
         </span>
       </span>
@@ -69,16 +69,16 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
     <>
       <div className="w-full px-2 py-1 sm:pb-2 mt-auto bg-transparent flex items-center justify-between gap-1.5 sm:gap-2 relative shrink-0 z-20" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {/* Marquee Banner */}
-        <div className="flex-1 min-w-[140px] overflow-hidden bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-11 sm:h-12 md:h-14 flex items-center relative" dir="ltr">
+        <div className="flex-1 min-w-[140px] overflow-hidden [container-type:inline-size] bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] bg-[length:200%_auto] animate-gradient-x border-[1.5px] border-slate-900 rounded-lg shadow-sm h-11 sm:h-12 md:h-14 flex items-center relative" dir="ltr">
           <style>
             {`
               @keyframes scroll-ltr {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(100vw); }
+                0% { transform: translate3d(-100%, 0, 0); }
+                100% { transform: translate3d(100cqw, 0, 0); }
               }
               @keyframes scroll-rtl {
-                0% { transform: translateX(100vw); }
-                100% { transform: translateX(-100%); }
+                0% { transform: translate3d(100cqw, 0, 0); }
+                100% { transform: translate3d(-100%, 0, 0); }
               }
               @keyframes gradient-x {
                 0%, 100% {
@@ -89,12 +89,22 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
                 }
               }
               .animate-scroll-ltr {
-                animation: scroll-ltr 120s linear infinite;
+                animation: scroll-ltr 105s linear infinite;
                 display: inline-block;
+                width: max-content;
+                will-change: transform;
+                backface-visibility: hidden;
+                -webkit-font-smoothing: antialiased;
+                transform: translate3d(0, 0, 0);
               }
               .animate-scroll-rtl {
-                animation: scroll-rtl 65s linear infinite;
+                animation: scroll-rtl 55s linear infinite;
                 display: inline-block;
+                width: max-content;
+                will-change: transform;
+                backface-visibility: hidden;
+                -webkit-font-smoothing: antialiased;
+                transform: translate3d(0, 0, 0);
               }
               .animate-scroll-ltr:hover,
               .animate-scroll-rtl:hover {
@@ -102,6 +112,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
               }
               .animate-gradient-x {
                 animation: gradient-x 4s ease infinite;
+                will-change: background-position;
               }
             `}
           </style>

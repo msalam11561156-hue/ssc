@@ -98,13 +98,27 @@ body,
 }
 
 @keyframes header-marquee-ltr {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100cqw); }
+  0% { transform: translate3d(-100%, 0, 0); }
+  100% { transform: translate3d(100cqw, 0, 0); }
+}
+
+@keyframes header-title-color {
+  0%, 100% { color: #ffffff; }
+  50% { color: #000000; }
 }
 
 .animate-header-marquee {
-  animation: header-marquee-ltr 45s linear infinite;
+  animation: header-marquee-ltr 40s linear infinite;
   display: inline-block;
+  width: max-content;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  transform: translate3d(0, 0, 0);
+}
+
+.animate-header-title-color {
+  animation: header-title-color 8s ease-in-out infinite;
 }
 
 @keyframes splash-marquee-ltr {
