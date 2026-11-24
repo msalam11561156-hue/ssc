@@ -5687,6 +5687,34 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               return formatNumberDigits(formatted, effectiveSchedNumLang);
             };
 
+            const drawMiniScheduleTimeCell = (
+              targetCtx: CanvasRenderingContext2D,
+              formattedTimeStr: string,
+              centerX: number,
+              centerY: number,
+              textColor: string
+            ) => {
+              const parts = formattedTimeStr.split(':');
+              if (parts.length !== 2) {
+                targetCtx.fillText(formattedTimeStr, centerX, centerY);
+                return;
+              }
+              const hrs = parts[0].trim();
+              const mins = parts[1].trim();
+              targetCtx.save();
+              targetCtx.direction = 'ltr';
+              targetCtx.textBaseline = 'middle';
+              targetCtx.fillStyle = textColor;
+              targetCtx.font = `bold 14px "Cairo", sans-serif`;
+              targetCtx.textAlign = 'center';
+              targetCtx.fillText(':', centerX, centerY);
+              targetCtx.textAlign = 'right';
+              targetCtx.fillText(hrs, centerX - 6, centerY);
+              targetCtx.textAlign = 'left';
+              targetCtx.fillText(mins, centerX + 6, centerY);
+              targetCtx.restore();
+            };
+
             for (let rI = 0; rI < rows.length; rI++) {
               const item = rows[rI];
               const rowBg = rI % 2 === 0 ? themeEvenBg : themeOddBg;
@@ -5725,7 +5753,11 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 for (let colI = 0; colI < rowValues.length; colI++) {
                   const colW = schedColWidths[colI];
                   ctx.strokeRect(cellX, curRowY, colW, rowH);
-                  ctx.fillText(rowValues[colI], cellX + colW / 2, curRowY + rowH / 2, colW - 10);
+                  if ((colI === 4 || colI === 5) && rowValues[colI].includes(':')) {
+                    drawMiniScheduleTimeCell(ctx, rowValues[colI], cellX + colW / 2, curRowY + rowH / 2, cellTextColor);
+                  } else {
+                    ctx.fillText(rowValues[colI], cellX + colW / 2, curRowY + rowH / 2, colW - 10);
+                  }
                   cellX += colW;
                 }
               } else {
@@ -5733,7 +5765,11 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                 for (let colI = 0; colI < rowValues.length; colI++) {
                   const colW = schedColWidths[colI];
                   ctx.strokeRect(cellX - colW, curRowY, colW, rowH);
-                  ctx.fillText(rowValues[colI], cellX - colW / 2, curRowY + rowH / 2);
+                  if ((colI === 4 || colI === 5) && rowValues[colI].includes(':')) {
+                    drawMiniScheduleTimeCell(ctx, rowValues[colI], cellX - colW / 2, curRowY + rowH / 2, cellTextColor);
+                  } else {
+                    ctx.fillText(rowValues[colI], cellX - colW / 2, curRowY + rowH / 2);
+                  }
                   cellX -= colW;
                 }
               }
