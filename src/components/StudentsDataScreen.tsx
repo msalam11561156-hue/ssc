@@ -2121,12 +2121,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
   return (
     <div
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900"
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 flex-1 h-full min-h-0 flex flex-col"
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
-      <div className="bg-[#f8ebff] rounded-[10px] w-full h-full p-6 flex flex-col gap-4 relative overflow-hidden">
+      <div className="bg-[#f8ebff] rounded-[10px] w-full flex-1 min-h-0 p-6 flex flex-col gap-4 relative overflow-hidden">
         {/* Header Row */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#b45309,#d97706,#f59e0b,#d97706,#b45309)] border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
+        <div className="shrink-0 flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#b45309,#d97706,#f59e0b,#d97706,#b45309)] border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
           <div className="text-white drop-shadow-md font-bold text-base md:text-lg text-center md:text-right px-4 flex-1">
             <span style={(stage === 'secondary' || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
@@ -2140,7 +2140,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         </div>
 
         {/* Search & Sort Row */}
-        <div className="flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
+        <div className="shrink-0 flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
           <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-3xl">
             <button
               onClick={onBack}
@@ -3755,7 +3755,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         </div>
 
         {/* Table */}
-        <div className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#0f172a_40%,#ffffff_50%,#0f172a_60%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative">
+        <div className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#0f172a_40%,#ffffff_50%,#0f172a_60%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative flex-1 min-h-0 flex flex-col">
           
         <style>{`
           .sticky-cell-border {
@@ -3804,7 +3804,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             }
           }
         `}</style>
-          <div className="overflow-auto w-full max-h-[65vh] bg-white rounded-[10px]">
+          <div className="overflow-auto w-full flex-1 min-h-[150px] bg-white rounded-[10px]">
             <table className={`w-full text-center text-slate-900 border-collapse ${showExamFields ? 'min-w-[1200px]' : (isKindergarten ? 'min-w-[650px]' : 'min-w-[800px]')}`}>
             <thead className="sticky top-0 z-[60] shadow-[0_2px_10px_rgba(0,0,0,0.15)] bg-white">
               <tr className="bg-[linear-gradient(to_right,rgba(251,113,133,0.7),#c0c0c0,rgba(34,211,238,0.7),#c0c0c0,rgba(251,191,36,0.7),#c0c0c0,rgba(251,113,133,0.7))] bg-[length:200%_auto] animate-shine text-slate-900 text-lg font-bold whitespace-nowrap border-b border-slate-900">

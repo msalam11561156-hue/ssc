@@ -2657,12 +2657,12 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
 
   return (
     <div
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900"
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 flex-1 h-full min-h-0 flex flex-col"
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
-      <div className="bg-[#f8ebff] rounded-[10px] w-full h-full p-6 flex flex-col gap-4 relative overflow-hidden">
+      <div className="bg-[#f8ebff] rounded-[10px] w-full flex-1 min-h-0 p-6 flex flex-col gap-4 relative overflow-hidden">
         {/* Header Row */}
-        <div className="flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
+        <div className="shrink-0 flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
           <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg text-right truncate min-w-0 whitespace-nowrap flex-1">
             <span style={(stage === 'secondary' || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
@@ -2690,7 +2690,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         </div>
 
         {/* Search & Action Row */}
-        <div className="flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
+        <div className="shrink-0 flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
           <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
             <button
               onClick={onBack}
@@ -3385,7 +3385,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
 
         {/* Table */}
         <div 
-          className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#000000_30%,#ffffff_50%,#000000_70%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative"
+          className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#000000_30%,#ffffff_50%,#000000_70%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative flex-1 min-h-0 flex flex-col"
           style={{ animationDuration: '15s' }}
         >
           
@@ -3436,7 +3436,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
             }
           }
         `}</style>
-          <div className="overflow-auto w-full max-h-[65vh] bg-white rounded-[10px]">
+          <div className="overflow-auto w-full flex-1 min-h-[150px] bg-white rounded-[10px]">
             {(() => {
               const showName = isKindergarten ? true : gradingSettings.showName;
               const showSeatNumber = !isKindergarten && gradingSettings.showSeatNumber;

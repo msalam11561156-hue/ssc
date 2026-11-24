@@ -1558,10 +1558,10 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+      <div className={`relative flex flex-col ${step === 0 || [4, 6, 7, 9].includes(step) ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
-          <header className="w-full h-16 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
+          <header className="w-full h-16 shrink-0 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
             <div
               className={`absolute inset-0 z-[-1] bg-gradient-to-r transition-colors duration-300 ${
                 step === 1 ? 'from-fuchsia-500 via-violet-500 to-cyan-500' :
@@ -1910,7 +1910,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7, 9].includes(step) ? 'pt-0.5 pb-0 px-1 sm:pt-[9px] sm:pb-[3px] sm:px-0' : 'p-4 md:p-8'}`}>
+        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : [4, 6, 7, 9].includes(step) ? 'h-full justify-start pt-0.5 pb-0 px-1 sm:pt-[9px] sm:pb-[3px] sm:px-0 overflow-y-auto overflow-x-hidden' : 'justify-center p-4 md:p-8'}`}>
           {step === 10 && (
             <Suspense fallback={null}>
               <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
@@ -1927,7 +1927,7 @@ export default function App() {
               <motion.div
                 key={step}
                 {...FAST_SCREEN_FLIP}
-                className={`w-full flex flex-col items-center ${step === 0 ? 'flex-1 h-full justify-between min-h-0' : ''}`}
+                className={`w-full flex flex-col items-center ${step === 0 ? 'flex-1 h-full justify-between min-h-0' : [4, 6, 7, 9].includes(step) ? 'flex-1 h-full min-h-0' : ''}`}
               >
             {(() => {
               switch (step) {

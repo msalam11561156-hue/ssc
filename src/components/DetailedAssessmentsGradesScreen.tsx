@@ -1537,14 +1537,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   return (
     <div
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 font-sans"
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 font-sans flex-1 h-full min-h-0 flex flex-col"
       dir="rtl"
     >
       {/* Container Card */}
-      <div className="bg-[#f8ebff] rounded-[10px] w-full p-4 sm:p-6 flex flex-col gap-4 relative overflow-hidden">
+      <div className="bg-[#f8ebff] rounded-[10px] w-full flex-1 min-h-0 p-4 sm:p-6 flex flex-col gap-4 relative overflow-hidden">
         
         {/* Main Header Banner */}
-        <div className="flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
+        <div className="shrink-0 flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
           <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg text-right truncate min-w-0 whitespace-nowrap flex-1">
             <span style={(isSecondary || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
@@ -1576,7 +1576,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         </div>
 
         {/* Search & Tool Bar */}
-        <div className="flex flex-wrap items-center justify-between bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 w-full relative z-30">
+        <div className="shrink-0 flex flex-wrap items-center justify-between bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 w-full relative z-30">
           {/* Back & Subject Dropdown & Search */}
           <div className="flex items-stretch gap-2 flex-1 min-w-[260px] flex-wrap md:flex-nowrap">
             <button
@@ -1701,7 +1701,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
         {/* Table Container - Identical styling to AssessmentsGradesScreen with vertical and horizontal scrollbars */}
         <div 
-          className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#000000_30%,#ffffff_50%,#000000_70%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative z-10"
+          className="p-[2px] rounded-xl bg-[linear-gradient(90deg,#000000_30%,#ffffff_50%,#000000_70%)] bg-[length:200%_auto] animate-shine shadow-sm w-full relative z-10 flex-1 min-h-0 flex flex-col"
           style={{ animationDuration: '15s' }}
         >
           <style>{`
@@ -1728,7 +1728,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             }
           `}</style>
           
-          <div className="overflow-auto w-full max-h-[calc(100vh-230px)] min-h-[460px] bg-white rounded-[10px] custom-scrollbar">
+          <div className="overflow-auto w-full flex-1 min-h-[150px] bg-white rounded-[10px] custom-scrollbar">
             <table className="w-full text-center text-slate-900 border-collapse min-w-[1250px] select-none">
               <thead className="sticky top-0 z-[60] shadow-[0_2px_10px_rgba(0,0,0,0.15)] bg-white">
                 {/* Row 1: Super Header: Subject Name with identical styling to AssessmentsGradesScreen */}
