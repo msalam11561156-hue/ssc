@@ -65,9 +65,10 @@ const RIGHT_WING_KF = buildWingKeyframes(-1);
 interface LoginScreenProps {
   onSuccess?: (user: User) => void;
   onContinueWithoutAccount?: () => void;
+  footer?: React.ReactNode;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount, footer }) => {
   const [logoSrc, setLogoSrc] = useState<string>(loginLogoDefaultUrl);
   const [portraitSrc, setPortraitSrc] = useState<string>(loginPortraitFallbackUrl);
   const [isLoading, setIsLoading] = useState(false);
@@ -181,10 +182,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   return (
     <div
       dir="rtl"
-      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-5 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
+      className="min-h-screen min-h-[100dvh] w-full flex flex-col relative overflow-x-clip [color-scheme:light_only]"
     >
       <AnimatedBackground />
 
+      <div className="flex-1 w-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-5">
       <motion.div
         initial={{ opacity: 1, y: 0, scale: 1 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -601,6 +603,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           Mahmoud Sallam : 01098594956 - 01131097055
         </p>
       </div>
+      </div>
+
+      {footer}
     </div>
   );
 };

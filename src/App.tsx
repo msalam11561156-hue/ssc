@@ -16,6 +16,7 @@ import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, testConnection } from './firebase';
 import { LoginScreen } from './components/LoginScreen';
+import { FooterBanner } from './components/FooterBanner';
 import {
   upsertUserProfile,
   subscribeToUserWorkspace,
@@ -40,7 +41,6 @@ const SecondarySystemTypeScreen = lazy(() => import('./components/SecondarySyste
 const SecondaryGrade2SystemScreen = lazy(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
 const SecondaryModernTracksScreen = lazy(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
 const ColorThemeBar = lazy(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
-const FooterBanner = lazy(() => import('./components/FooterBanner').then(m => ({ default: m.FooterBanner })));
 const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
 const BackupReminderModal = lazy(() => import('./components/BackupReminderModal').then(m => ({ default: m.BackupReminderModal })));
 const FooterSettingsModal = lazy(() => import('./components/FooterSettingsModal').then(m => ({ default: m.FooterSettingsModal })));
@@ -617,7 +617,6 @@ export default function App() {
     if (step === 0) {
       const prefetch = () => {
         void import('./components/MainScreen');
-        void import('./components/FooterBanner');
       };
       if (typeof idleWin.requestIdleCallback === 'function') {
         const idleId = idleWin.requestIdleCallback(prefetch, { timeout: 2000 });
@@ -1472,6 +1471,7 @@ export default function App() {
           setStep(0);
           localStorage.setItem('sheet_control_step', '0');
         }}
+        footer={<FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />}
       />
     );
   }
@@ -1480,14 +1480,17 @@ export default function App() {
     return (
       <div
         dir="rtl"
-        className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 relative overflow-hidden [color-scheme:light_only]"
+        className="min-h-screen min-h-[100dvh] w-full flex flex-col relative overflow-x-clip [color-scheme:light_only]"
       >
         <AnimatedBackground />
-        <div className="relative z-10 flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-700/80 rounded-[28px] p-8 shadow-2xl max-w-xs w-full">
-          <BrandHeader variant="gold" />
-          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-bold text-slate-200 text-center">جاري تهيئة الحساب والاتصال بقاعدة البيانات...</p>
+        <div className="flex-1 w-full flex flex-col items-center justify-center p-6">
+          <div className="relative z-10 flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-700/80 rounded-[28px] p-8 shadow-2xl max-w-xs w-full">
+            <BrandHeader variant="gold" />
+            <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-bold text-slate-200 text-center">جاري تهيئة الحساب والاتصال بقاعدة البيانات...</p>
+          </div>
         </div>
+        <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
       </div>
     );
   }
@@ -1495,7 +1498,7 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen min-h-[100dvh]'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
           <header className="w-full h-16 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
@@ -2357,9 +2360,7 @@ export default function App() {
             </AnimatePresence>
           </Suspense>
         </main>
-        <Suspense fallback={null}>
-          <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
-        </Suspense>
+        <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
       </div>
     </div>
   );

@@ -52,6 +52,10 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
         </span>
         {smartControlNewsTag}
         <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
+          لإعداد تحديثات مخصصة تلائم تطلعاتكم يسعدنا تواصلكم معنا
+        </span>
+        {smartControlNewsTag}
+        <span className="[text-shadow:0_2px_4px_rgba(0,0,0,0.28)]">
           تطبيق سمارت كنترول مجانى وسيبقى مجانى.
         </span>
       </span>
