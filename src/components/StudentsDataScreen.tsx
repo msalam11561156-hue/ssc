@@ -2141,7 +2141,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
         {/* Search & Sort Row */}
         <div className="flex flex-row justify-between items-center bg-white border-2 border-slate-900 rounded-xl p-2 sm:p-3 shadow-sm gap-2 sm:gap-4 flex-nowrap w-full">
-          <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-xl">
+          <div className="flex items-stretch gap-1.5 sm:gap-2 flex-1 min-w-0 max-w-3xl">
             <button
               onClick={onBack}
               title={lang === 'ar' ? 'عودة' : 'Back'}
@@ -2187,6 +2187,40 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             />
             <button
               type="button"
+              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+              title={t.sortBy}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500/40 via-white/70 to-pink-500/40 hover:from-blue-500/60 hover:via-white/90 hover:to-pink-500/60 border-2 border-slate-900 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-2.5 cursor-pointer transition-all duration-300 shrink-0 whitespace-nowrap select-none shadow-sm self-stretch"
+            >
+              <span className="text-xs sm:text-sm font-black text-slate-900 flex items-center whitespace-nowrap gap-1">
+                {sortBy.length === 0 ? t.defaultSort : sortBy.map((c, index) => {
+                  const opt = [
+                    { id: 'alphabetical', label: t.sortAlphabetical },
+                    { id: 'name', label: t.sortAlphabetical },
+                    { id: 'gender', label: t.sortGender },
+                    { id: 'status', label: t.sortStatus },
+                    { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء' },
+                    { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب' },
+                    { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد' },
+                    { id: 'religion', label: t.sortReligion },
+                    { id: 'seatNumber', label: (t as any).seatNumber },
+                    { id: 'secretNumber', label: (t as any).secretNumber },
+                    { id: 'studentClass', label: (t as any).sortClass || 'الفصل' },
+                    { id: 'total', label: (t as any).totalSort || 'المجموع' }
+                  ].find(o => o.id === c.id);
+                  return (
+                    <React.Fragment key={c.id}>
+                      <span className="flex items-center gap-1.5 ml-2">
+                        <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs leading-none">{index + 1}</span>
+                        <span>{opt ? opt.label : c.id}</span>
+                        {c.direction === 'desc' ? <ArrowDown className="w-4 h-4 text-slate-700" strokeWidth={3} /> : <ArrowUp className="w-4 h-4 text-slate-700" strokeWidth={3} />}
+                      </span>
+                    </React.Fragment>
+                  );
+                })}
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={() => setNumberLang(prev => prev === 'ar' ? 'en' : 'ar')}
               className={`px-2.5 sm:px-3 border-2 border-slate-900 rounded-lg text-xs sm:text-sm font-black flex items-center justify-center gap-1 transition-colors shrink-0 shadow-sm whitespace-nowrap self-stretch ${
                 numberLang === 'ar' ? 'bg-amber-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
@@ -2203,9 +2237,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setIsToolsMenuOpen(true)}
-                className="bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine text-slate-900 p-2 sm:p-2.5 rounded-[12px] border-2 border-slate-900 hover:bg-slate-100 transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                className="bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine text-slate-900 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 hover:bg-slate-100 transition-colors shadow-sm shrink-0 flex items-center justify-center"
               >
-                <Menu className="w-4 h-4 sm:w-5 sm:h-5 mix-blend-difference text-white" />
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6 mix-blend-difference text-white" />
               </button>
               <AnimatePresence>
                 {isToolsMenuOpen && (
@@ -2398,10 +2432,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPrintMenuOpen(true)}
-                className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
+                className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
                 title={(t as any).printLabel || (lang === 'ar' ? 'طباعة' : 'Print')}
               >
-                <Printer className="w-full h-full p-1.5 drop-shadow-sm" />
+                <Printer className="w-full h-full p-2 drop-shadow-sm" />
               </button>
               <AnimatePresence>
                 {isPrintMenuOpen && (
@@ -3594,39 +3628,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 </div>
               )}
             </AnimatePresence>
-
-            <div 
-              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500/40 via-white/70 to-pink-500/40 hover:from-blue-500/60 hover:via-white/90 hover:to-pink-500/60 border-2 border-slate-900 rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 cursor-pointer transition-all duration-300 shrink-0 whitespace-nowrap select-none"
-            >
-              <span className="text-xs sm:text-sm font-bold text-slate-900 flex items-center whitespace-nowrap gap-1">
-                {sortBy.length === 0 ? t.defaultSort : sortBy.map((c, index) => {
-                  const opt = [
-                    { id: 'alphabetical', label: t.sortAlphabetical },
-                    { id: 'name', label: t.sortAlphabetical },
-                    { id: 'gender', label: t.sortGender },
-                    { id: 'status', label: t.sortStatus },
-                    { id: 'exemptionStatus', label: (t as any).sortExemptionStatus || 'حالة الإعفاء' },
-                    { id: 'studentStatus', label: isKindergarten ? 'حالة التلميذ' : 'حالة الطالب' },
-                    { id: 'enrollmentType', label: (t as any).sortEnrollmentType || (t as any).enrollmentType || 'نوعية القيد' },
-                    { id: 'religion', label: t.sortReligion },
-                    { id: 'seatNumber', label: (t as any).seatNumber },
-                    { id: 'secretNumber', label: (t as any).secretNumber },
-                    { id: 'studentClass', label: (t as any).sortClass || 'الفصل' },
-                    { id: 'total', label: (t as any).totalSort || 'المجموع' }
-                  ].find(o => o.id === c.id);
-                  return (
-                    <React.Fragment key={c.id}>
-                      <span className="flex items-center gap-1.5 ml-2">
-                        <span className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm leading-none">{index + 1}</span>
-                        <span>{opt ? opt.label : c.id}</span>
-                        {c.direction === 'desc' ? <ArrowDown className="w-4 h-4 text-slate-700" strokeWidth={3} /> : <ArrowUp className="w-4 h-4 text-slate-700" strokeWidth={3} />}
-                      </span>
-                    </React.Fragment>
-                  );
-                })}
-              </span>
-            </div>
             <AnimatePresence>
               {isSortMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -3736,19 +3737,19 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             <button
               type="button"
               onClick={() => setIsColorModalOpen(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title="ألوان جداول التحرير والرصد"
             >
-              <Palette className="w-full h-full p-1.5 sm:p-2" />
+              <Palette className="w-full h-full p-2 sm:p-2.5" />
             </button>
 
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title={(t as any).instructionsLabel || (lang === 'ar' ? 'تعليمات' : 'Instructions')}
             >
-              <Info className="w-full h-full p-1" />
+              <Info className="w-full h-full p-1.5" />
             </button>
           </div>
         </div>

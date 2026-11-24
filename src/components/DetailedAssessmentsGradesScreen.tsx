@@ -1658,10 +1658,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
               <button
                 type="button"
                 onClick={() => setIsActionMenuOpen(true)}
-                className="bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine text-slate-900 p-2 sm:p-2.5 rounded-[12px] border-2 border-slate-900 hover:bg-slate-100 transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                className="bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine text-slate-900 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 hover:bg-slate-100 transition-colors shadow-sm shrink-0 flex items-center justify-center"
                 title="القائمة"
               >
-                <Menu className="w-4 h-4 sm:w-5 sm:h-5 mix-blend-difference text-white" />
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6 mix-blend-difference text-white" />
               </button>
             </div>
 
@@ -1670,10 +1670,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
               <button
                 type="button"
                 onClick={() => setIsPrintMenuOpen(true)}
-                className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
+                className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
                 title="طباعة"
               >
-                <Printer className="w-full h-full p-1.5 drop-shadow-sm" />
+                <Printer className="w-full h-full p-2 drop-shadow-sm" />
               </button>
             </div>
 
@@ -1681,20 +1681,20 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             <button
               type="button"
               onClick={() => setShowThemeSelectorModal(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title="ألوان جداول التحرير والرصد"
             >
-              <Palette className="w-full h-full p-1.5 sm:p-2" />
+              <Palette className="w-full h-full p-2 sm:p-2.5" />
             </button>
 
             {/* 4. Instructions Button */}
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title="تعليمات"
             >
-              <Info className="w-full h-full p-1" />
+              <Info className="w-full h-full p-1.5" />
             </button>
           </div>
         </div>

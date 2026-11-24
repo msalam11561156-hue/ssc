@@ -558,50 +558,49 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 md:gap-4 w-full">
               <button
                 type="button"
                 onClick={() => setShowInstructions(true)}
-                className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-12 h-12 rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+                className="h-14 w-full px-4 flex items-center justify-center gap-2 bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 font-bold rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap"
                 title={t.instructionsLabel}
               >
-                <Info className="w-full h-full p-1" />
+                <Info className="w-5 h-5 shrink-0" />
+                <span>{t.instructionsLabel}</span>
               </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 flex-1 w-full">
-                <button
-                  type="button"
-                  onClick={openLogoModal}
-                  className={`h-14 w-full flex items-center justify-center gap-2 font-bold px-4 rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap ${
-                    schoolData.schoolLogo
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white'
-                  }`}
-                >
-                  <ImagePlus className="w-5 h-5 shrink-0" />
-                  <span>{t.schoolLogo}</span>
-                  {schoolData.schoolLogo && (
-                    <Check className="w-5 h-5 text-emerald-100 shrink-0" />
-                  )}
-                </button>
+              <button
+                type="button"
+                onClick={openLogoModal}
+                className={`h-14 w-full flex items-center justify-center gap-2 font-bold px-4 rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap ${
+                  schoolData.schoolLogo
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white'
+                }`}
+              >
+                <ImagePlus className="w-5 h-5 shrink-0" />
+                <span>{t.schoolLogo}</span>
+                {schoolData.schoolLogo && (
+                  <Check className="w-5 h-5 text-emerald-100 shrink-0" />
+                )}
+              </button>
 
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="h-14 w-full px-4 flex items-center justify-center gap-2 bg-gradient-to-r from-[#14b8a6] via-[#d4a373] to-[#c2410c] hover:from-[#0f766e] hover:via-[#bc8c5d] hover:to-[#9a3412] text-white font-bold rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap"
-                >
-                  {lang === 'ar' ? <ArrowRight className="w-5 h-5 shrink-0" /> : <ArrowLeft className="w-5 h-5 shrink-0" />}
-                  <span>{t.back}</span>
-                </button>
-                
-                <button
-                  type="submit"
-                  className="h-14 w-full px-4 flex items-center justify-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white font-bold rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap"
-                >
-                  <span>{t.next}</span>
-                  {lang === 'ar' ? <ArrowLeft className="w-5 h-5 shrink-0" /> : <ArrowRight className="w-5 h-5 shrink-0" />}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onBack}
+                className="h-14 w-full px-4 flex items-center justify-center gap-2 bg-gradient-to-r from-[#14b8a6] via-[#d4a373] to-[#c2410c] hover:from-[#0f766e] hover:via-[#bc8c5d] hover:to-[#9a3412] text-white font-bold rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap"
+              >
+                {lang === 'ar' ? <ArrowRight className="w-5 h-5 shrink-0" /> : <ArrowLeft className="w-5 h-5 shrink-0" />}
+                <span>{t.back}</span>
+              </button>
+              
+              <button
+                type="submit"
+                className="h-14 w-full px-4 flex items-center justify-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#3b82f6] hover:from-[#9333ea] hover:to-[#2563eb] text-white font-bold rounded-lg transition-all active:scale-[0.98] border-[1.5px] border-slate-900 shadow-lg whitespace-nowrap"
+              >
+                <span>{t.next}</span>
+                {lang === 'ar' ? <ArrowLeft className="w-5 h-5 shrink-0" /> : <ArrowRight className="w-5 h-5 shrink-0" />}
+              </button>
             </div>
           </div>
         </form>
