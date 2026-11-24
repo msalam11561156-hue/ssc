@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Language } from '../types';
 import { translations } from '../i18n';
 import defaultIllustrationBg from '../assets/images/control_illustration_1786475473814.jpg';
@@ -447,11 +448,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
       {/* Frame & Action Buttons Area - Centered and flexibly sized to fit any screen */}
       <div className="w-full max-w-5xl mx-auto px-2 sm:px-6 md:px-8 flex-1 min-h-0 flex flex-col items-center justify-center gap-1.5 sm:gap-3 md:gap-4 my-auto overflow-y-auto sm:overflow-hidden py-1 sm:py-2">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, x: -100, scale: 0.9 }}
-          transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+        <div
           className="w-full max-w-[340px] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl aspect-[16/16] sm:aspect-[16/11] max-h-[50vh] sm:max-h-[60vh] relative p-[3px] sm:p-[6px] md:p-[8px] rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shrink-1 flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
         >
           <motion.div
@@ -597,12 +594,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             {/* Subtle Dark Overlay to preserve text contrast & depth */}
             <div className="absolute inset-0 z-[3] bg-slate-900/15 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
-        </motion.div>
+        </div>
 
-      <motion.div
-        initial={{ y: 15, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.6 }}
+      <div
         className="flex flex-col items-center gap-1.5 sm:gap-2.5 w-full shrink-0"
       >
         <div className="flex flex-col items-center gap-1.5 w-full">
@@ -679,17 +673,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             Mahmoud Sallam : 01098594956 - 01131097055
           </span>
         </div>
-      </motion.div>
+      </div>
       </div>
 
       {/* نافذة تنبيه انتهاء الجلسة التجريبية */}
       <AnimatePresence>
         {showDayExpiredModal && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" dir="rtl">
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+            dir="rtl"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-md bg-white border-2 border-slate-900 rounded-[24px] shadow-2xl p-6 text-center flex flex-col items-center"
             >
               <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4 border border-amber-300">
@@ -727,18 +723,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* نافذة تنبيه انتهاء النسخة التجريبية */}
       <AnimatePresence>
         {showAllExpiredModal && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" dir="rtl">
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+            dir="rtl"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-md bg-white border-2 border-slate-900 rounded-[24px] shadow-2xl p-6 text-center flex flex-col items-center"
             >
               <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4 border border-rose-300">
@@ -774,7 +772,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

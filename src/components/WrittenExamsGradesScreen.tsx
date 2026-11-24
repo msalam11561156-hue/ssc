@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
@@ -2659,38 +2660,22 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 100, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-[linear-gradient(90deg,#000000_25%,#ffffff_50%,#000000_75%)] bg-[length:200%_auto] animate-shine"
-      style={{ animationDuration: '15s' }}
+    <div
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900"
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
       <div className="bg-[#f8ebff] rounded-[10px] w-full h-full p-6 flex flex-col gap-4 relative overflow-hidden">
         {/* Header Row */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#be185d,#db2777,#f43f5e,#db2777,#be185d)] bg-[length:200%_auto] animate-shine border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#be185d,#db2777,#f43f5e,#db2777,#be185d)] border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
           <div className="text-white drop-shadow-md font-bold text-base md:text-lg text-center md:text-right px-4 flex-1">
             <span style={(stage === 'secondary' || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
             </span>
           </div>
           <div className="text-white drop-shadow-md font-bold text-base md:text-lg px-4 shrink-0">
-            <motion.div
-              animate={{
-                rotate: [-1.5, 1.5, -1.5],
-                y: [-1, 1, -1]
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3.5,
-                ease: "easeInOut"
-              }}
-              className="origin-center whitespace-nowrap"
-            >
+            <div className="whitespace-nowrap">
               تحرير درجات الإمتحانات التحريرية
-            </motion.div>
+            </div>
           </div>
           <div className="flex items-center gap-2 relative">
             {/* Keeping it simple, no menu needed here for now */}
@@ -2774,16 +2759,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 {isActionMenuOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsActionMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[480px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2937,16 +2918,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 {isPrintMenuOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsPrintMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2993,12 +2970,6 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               icon={<Printer className="w-4 h-4" />}
                               text="أرقام الجلوس"
                               bgGradient="bg-[linear-gradient(to_right,#f59e0b,#d97706,#f59e0b)]"
-                            />
-                            <ActionMenuButton
-                              onClick={() => handlePrintOption('seat_numbers_english')}
-                              icon={<Printer className="w-4 h-4" />}
-                              text="Seat Numbers in English"
-                              bgGradient="bg-[linear-gradient(to_right,#d97706,#b45309,#d97706)]"
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('secret_numbers')}
@@ -3164,14 +3135,20 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#10b981)]"
                             />
                             <ActionMenuButton
+                              onClick={() => handlePrintOption('seat_numbers_english')}
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="SEAT NUMBERS IN ENGLISH"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
+                            />
+                            <ActionMenuButton
                               onClick={() => handlePrintOption('student_semester_grades_certificate_en')}
-                              icon={<Printer className="w-4 h-4" />}
-                              text={
-                                lang === 'ar'
-                                  ? (isFirstSemester ? "شهادة درجات وتقييمات الفصل الدراسي الأول باللغة الإنجليزية" : "شهادة درجات وتقييمات الفصل الدراسي الثانى باللغة الإنجليزية")
-                                  : (isFirstSemester ? "First Semester Grades & Assessments Certificate (English)" : "Second Semester Grades & Assessments Certificate (English)")
-                              }
-                              bgGradient="bg-[linear-gradient(to_right,#4f46e5,#7c3aed,#9333ea)]"
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="CERTIFICATES IN ENGLISH"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
                             />
                           </>
                         )}
@@ -3199,16 +3176,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 {isSubjectPrintMenuOpen && (
                   <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsSubjectPrintMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -3261,16 +3234,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 {selectedPrintSubject && (
                   <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setSelectedPrintSubject(null)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -4283,12 +4252,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isAddFieldModalOpen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setIsAddFieldModalOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden p-[4px] flex flex-col" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -4660,12 +4629,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isSelectEditFieldModalOpen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setIsSelectEditFieldModalOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -4781,12 +4750,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isEditFieldFormOpen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setIsEditFieldFormOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden p-[4px] flex flex-col" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -5192,12 +5161,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isDeleteFieldModalOpen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setIsDeleteFieldModalOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -5245,7 +5214,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isConfirmDeleteModalOpen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => {
               setIsConfirmDeleteModalOpen(false);
               setFieldToDelete(null);
@@ -5253,7 +5222,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col text-center" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -5313,12 +5282,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {isRestoreDefaultsModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setIsRestoreDefaultsModalOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col text-center"
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -5390,17 +5359,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       <PortalModal><AnimatePresence>
         {showInstructions && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-8 bg-slate-900/70 backdrop-blur-sm [perspective:1000px]"
             onClick={() => setShowInstructions(false)}
           >
             <motion.div
-              initial={{ opacity: 0, y: 30, rotateX: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, rotateX: -10, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-3xl flex flex-col max-h-[90vh] rounded-[26px] p-[4px] overflow-hidden shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5443,16 +5407,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         {isColorModalOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsColorModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[552px] z-10"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-3px', animationDuration: '15s' }}></div>
@@ -5525,9 +5485,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         }}
         deviceIdOverride={seatNumbersRandomId}
         isVipOption={true}
-        vipOptionTitle="أرقام الجلوس بالإنجليزية"
+        vipOptionTitle="SEAT NUMBERS IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
         customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x"
         skipActivation={true}
+        showExampleButton={true}
       />
 
       <Suspense fallback={null}>
@@ -5814,17 +5777,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         <AnimatePresence>
           {subjectEnModal && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
               onClick={() => setSubjectEnModal(null)}
             >
               <motion.div
-                initial={{ scale: 0.92, opacity: 0, y: 12 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.92, opacity: 0, y: 12 }}
-                transition={{ duration: 0.25, type: 'spring', bounce: 0.25 }}
+                {...FAST_MODAL_FLIP}
                 className="relative w-full max-w-md rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -5966,8 +5924,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         deviceIdOverride={englishCertRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="الشهادات بالإنجليزية"
+        vipOptionTitle="CERTIFICATES IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي : ID : x"
+        showExampleButton={true}
+        exampleVariant="english_cert"
       />
 
       <PasswordModal
@@ -6034,6 +5996,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         isVipOption={true}
         vipOptionTitle="شهادات التقدير"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
+        showExampleButton={true}
+        exampleVariant="appreciation_cert"
       />
 
       <Suspense fallback={null}>
@@ -6047,6 +6011,6 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           />
         )}
       </Suspense>
-    </motion.div>
+    </div>
   );
 };

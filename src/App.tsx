@@ -1,5 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from './utils/flipAnimation';
 import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/themeConfig';
 import { SchoolData, ControlData, Language, StudentData } from './types';
 import { translations, setCurrentAffiliatedEntity } from './i18n';
@@ -16,7 +17,6 @@ import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, testConnection } from './firebase';
 import { LoginScreen } from './components/LoginScreen';
-import { FooterBanner } from './components/FooterBanner';
 import {
   upsertUserProfile,
   subscribeToUserWorkspace,
@@ -41,6 +41,7 @@ const SecondarySystemTypeScreen = lazy(() => import('./components/SecondarySyste
 const SecondaryGrade2SystemScreen = lazy(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
 const SecondaryModernTracksScreen = lazy(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
 const ColorThemeBar = lazy(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
+const FooterBanner = lazy(() => import('./components/FooterBanner').then(m => ({ default: m.FooterBanner })));
 const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
 const BackupReminderModal = lazy(() => import('./components/BackupReminderModal').then(m => ({ default: m.BackupReminderModal })));
 const FooterSettingsModal = lazy(() => import('./components/FooterSettingsModal').then(m => ({ default: m.FooterSettingsModal })));
@@ -450,9 +451,7 @@ export default function App() {
   }, []);
 
   const navigateStep = React.useCallback((nextStep: number) => {
-    startTransition(() => {
-      setStep(nextStep);
-    });
+    setStep(nextStep);
   }, []);
 
   const handleStartApp = async (isTrial?: boolean) => {
@@ -605,25 +604,90 @@ export default function App() {
     };
   }, [isTrialMode, hasPassedLoginScreen]);
 
-  // التحميل المسبق الهادئ للشاشة التالية أثناء الخمول لإزالة أي تأخير عند التنقل
+  // التحميل المسبق الهادئ للشاشات التالية والمجاورة أثناء الخمول لإزالة أي تأخير عند التنقل
+  const prefetchedChunksRef = React.useRef<Set<string>>(new Set());
   useEffect(() => {
-    const idleWin = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
-    if (!hasPassedLoginScreen) {
-      const id = window.setTimeout(() => {
-        void import('./components/SplashScreen');
-      }, 1500);
-      return () => window.clearTimeout(id);
-    }
-    if (step === 0) {
-      const prefetch = () => {
-        void import('./components/MainScreen');
-      };
+    const idleWin = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    const loadOnce = (key: string, loader: () => Promise<unknown>) => {
+      if (prefetchedChunksRef.current.has(key)) return;
+      prefetchedChunksRef.current.add(key);
+      void loader().catch(() => {
+        prefetchedChunksRef.current.delete(key);
+      });
+    };
+
+    const scheduleIdle = (cb: () => void, fallbackMs: number) => {
       if (typeof idleWin.requestIdleCallback === 'function') {
-        const idleId = idleWin.requestIdleCallback(prefetch, { timeout: 2000 });
+        const idleId = idleWin.requestIdleCallback(cb, { timeout: 1500 });
         return () => idleWin.cancelIdleCallback?.(idleId);
       }
-      const id = window.setTimeout(prefetch, 800);
+      const id = window.setTimeout(cb, fallbackMs);
       return () => window.clearTimeout(id);
+    };
+
+    if (!hasPassedLoginScreen) {
+      return scheduleIdle(() => {
+        loadOnce('splash', () => import('./components/SplashScreen'));
+      }, 900);
+    }
+
+    if (step === 0) {
+      return scheduleIdle(() => {
+        loadOnce('main', () => import('./components/MainScreen'));
+        loadOnce('footer', () => import('./components/FooterBanner'));
+        loadOnce('themeBar', () => import('./components/ColorThemeBar'));
+      }, 400);
+    }
+
+    if (step === 1) {
+      return scheduleIdle(() => {
+        loadOnce('grades', () => import('./components/GradesScreen'));
+        loadOnce('middleSys', () => import('./components/MiddleSystemTypeScreen'));
+        loadOnce('secSys', () => import('./components/SecondarySystemTypeScreen'));
+        loadOnce('themeBar', () => import('./components/ColorThemeBar'));
+      }, 250);
+    }
+
+    if (step === 10 || step === 11) {
+      return scheduleIdle(() => {
+        loadOnce('grades', () => import('./components/GradesScreen'));
+        loadOnce('semester', () => import('./components/SemesterScreen'));
+        loadOnce('secG2', () => import('./components/SecondaryGrade2SystemScreen'));
+      }, 200);
+    }
+
+    if (step === 2) {
+      return scheduleIdle(() => {
+        loadOnce('semester', () => import('./components/SemesterScreen'));
+        loadOnce('secG2', () => import('./components/SecondaryGrade2SystemScreen'));
+        loadOnce('division', () => import('./components/DivisionScreen'));
+        loadOnce('secTracks', () => import('./components/SecondaryModernTracksScreen'));
+        loadOnce('students', () => import('./components/StudentsDataScreen'));
+      }, 200);
+    }
+
+    if (step === 3 || step === 8 || step === 12 || step === 13) {
+      return scheduleIdle(() => {
+        loadOnce('semester', () => import('./components/SemesterScreen'));
+        loadOnce('division', () => import('./components/DivisionScreen'));
+        loadOnce('secTracks', () => import('./components/SecondaryModernTracksScreen'));
+        loadOnce('assOrExam', () => import('./components/AssessmentsOrExamsScreen'));
+        loadOnce('students', () => import('./components/StudentsDataScreen'));
+      }, 200);
+    }
+
+    if (step === 5 || step === 4 || step === 6 || step === 7 || step === 9) {
+      return scheduleIdle(() => {
+        loadOnce('assOrExam', () => import('./components/AssessmentsOrExamsScreen'));
+        loadOnce('students', () => import('./components/StudentsDataScreen'));
+        loadOnce('assessments', () => import('./components/AssessmentsGradesScreen'));
+        loadOnce('writtenExams', () => import('./components/WrittenExamsGradesScreen'));
+        loadOnce('detailedAssessments', () => import('./components/DetailedAssessmentsGradesScreen'));
+      }, 250);
     }
   }, [hasPassedLoginScreen, step]);
 
@@ -1471,7 +1535,6 @@ export default function App() {
           setStep(0);
           localStorage.setItem('sheet_control_step', '0');
         }}
-        footer={<FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />}
       />
     );
   }
@@ -1480,17 +1543,14 @@ export default function App() {
     return (
       <div
         dir="rtl"
-        className="min-h-screen min-h-[100dvh] w-full flex flex-col relative overflow-x-clip [color-scheme:light_only]"
+        className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 relative overflow-hidden [color-scheme:light_only]"
       >
         <AnimatedBackground />
-        <div className="flex-1 w-full flex flex-col items-center justify-center p-6">
-          <div className="relative z-10 flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-700/80 rounded-[28px] p-8 shadow-2xl max-w-xs w-full">
-            <BrandHeader variant="gold" />
-            <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-bold text-slate-200 text-center">جاري تهيئة الحساب والاتصال بقاعدة البيانات...</p>
-          </div>
+        <div className="relative z-10 flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-700/80 rounded-[28px] p-8 shadow-2xl max-w-xs w-full">
+          <BrandHeader variant="gold" />
+          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold text-slate-200 text-center">جاري تهيئة الحساب والاتصال بقاعدة البيانات...</p>
         </div>
-        <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
       </div>
     );
   }
@@ -1498,14 +1558,12 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen min-h-[100dvh]'}`}>
+      <div className={`relative flex flex-col ${step === 0 ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
           <header className="w-full h-16 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
-            <motion.div
-              animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-              transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
-              className={`absolute inset-0 z-[-1] bg-gradient-to-r bg-[length:400%_400%] transition-colors duration-1000 ${
+            <div
+              className={`absolute inset-0 z-[-1] bg-gradient-to-r transition-colors duration-300 ${
                 step === 1 ? 'from-fuchsia-500 via-violet-500 to-cyan-500' :
                 step === 10 ? 'from-indigo-600 via-purple-600 to-amber-600' :
                 step === 11 ? 'from-teal-600 via-indigo-600 to-cyan-600' :
@@ -1535,13 +1593,8 @@ export default function App() {
             <div className="flex items-center gap-2.5 relative z-10">
               <button 
                 onClick={() => setIsMenuOpen(true)}
-                className="h-12 w-12 flex items-center justify-center text-white relative overflow-hidden rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md border-[1.5px] border-white/20 group shrink-0"
+                className="h-12 w-12 flex items-center justify-center text-white relative overflow-hidden rounded-xl transition-transform active:scale-95 shadow-md border-[1.5px] border-white/20 group shrink-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500"
               >
-                <motion.div 
-                  className="absolute inset-0 z-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 bg-[length:200%_auto]"
-                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                />
                 <Menu className="w-[32px] h-[32px] relative z-10 drop-shadow-sm transition-transform group-hover:scale-110" />
               </button>
             </div>
@@ -1552,16 +1605,12 @@ export default function App() {
           {isMenuOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                {...FAST_BACKDROP_FADE}
                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                 onClick={() => setIsMenuOpen(false)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                {...FAST_MODAL_FLIP}
                 className="relative w-full max-w-sm bg-[#1b1e2b] rounded-[24px] p-6 shadow-2xl z-10 flex flex-col gap-4 border border-slate-700/80 max-h-[88vh] overflow-y-auto custom-scrollbar"
               >
                 <BrandHeader variant="gold" />
@@ -1648,16 +1697,12 @@ export default function App() {
           {isResetModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                {...FAST_BACKDROP_FADE}
                 className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
                 onClick={() => setIsResetModalOpen(false)}
               />
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                {...FAST_MODAL_FLIP}
                 className="relative w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl z-10 border-4 border-red-600 ring-4 ring-white shadow-[0_0_0_2px_#dc2626,0_25px_50px_-12px_rgba(0,0,0,0.6)]"
                 dir={lang === 'ar' ? 'rtl' : 'ltr'}
               >
@@ -1879,6 +1924,11 @@ export default function App() {
           )}
           <Suspense fallback={<ScreenSuspenseFallback />}>
             <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                {...FAST_SCREEN_FLIP}
+                className={`w-full flex flex-col items-center ${step === 0 ? 'flex-1 h-full justify-between min-h-0' : ''}`}
+              >
             {(() => {
               switch (step) {
                 case 0:
@@ -2357,10 +2407,13 @@ export default function App() {
                   );
               }
             })()}
+              </motion.div>
             </AnimatePresence>
           </Suspense>
         </main>
-        <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
+        <Suspense fallback={null}>
+          <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
+        </Suspense>
       </div>
     </div>
   );

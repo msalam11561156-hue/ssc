@@ -9,6 +9,7 @@ interface ActionMenuButtonProps {
   style?: React.CSSProperties;
   disabled?: boolean;
   title?: string;
+  disableMarquee?: boolean;
 }
 
 export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
@@ -20,9 +21,10 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
   style,
   disabled = false,
   title,
+  disableMarquee = false,
 }) => {
   const text = rawText.replace(/^طباعة\s*/, '').trim();
-  const isMarquee = text.length > 28;
+  const isMarquee = !disableMarquee && text.length > 28;
 
   if (disabled) {
     return (

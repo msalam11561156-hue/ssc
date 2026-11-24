@@ -7,8 +7,24 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function getCliArg(flag: string): string | undefined {
+  const idx = process.argv.indexOf(flag);
+  if (idx !== -1 && idx + 1 < process.argv.length) {
+    return process.argv[idx + 1];
+  }
+  const eq = process.argv.find((arg) => arg.startsWith(`${flag}=`));
+  return eq ? eq.slice(flag.length + 1) : undefined;
+}
+
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const cliPort = getCliArg('--port');
+const cliHost = getCliArg('--host');
+const PORT = cliPort
+  ? parseInt(cliPort, 10)
+  : process.env.PORT
+    ? parseInt(process.env.PORT, 10)
+    : 3000;
+const HOST = cliHost || '0.0.0.0';
 
 app.use(express.json());
 
@@ -313,16 +329,25 @@ async function startServer() {
   const httpServer = http.createServer(app);
 
   if (!isProd) {
-    const { createServer } = await import('vite');
-    const vite = await createServer({
-      server: { 
-        middlewareMode: true,
-        hmr: false,
-        ws: false,
-        watch: process.env.DISABLE_HMR === 'true' ? null : undefined,
-      },
-      appType: 'spa',
+    let viteInstance: Awaited<ReturnType<typeof import('vite')['createServer']>> | null = null;
+    const viteInitPromise = (async () => {
+      const { createServer } = await import('vite');
+      const vite = await createServer({
+        server: {
+          middlewareMode: true,
+          hmr: false,
+          ws: false,
+          watch: null,
+        },
+        appType: 'spa',
+      });
+      viteInstance = vite;
+      return vite;
+    })().catch((err) => {
+      console.error('Vite initialization failed:', err);
+      throw err;
     });
+
     app.use((req, res, next) => {
       if (
         req.method === 'GET' &&
@@ -333,8 +358,10 @@ async function startServer() {
       }
       return next();
     });
+
     app.get('/@vite/client', async (_req, res, next) => {
       try {
+        const vite = viteInstance || (await viteInitPromise);
         const result = await vite.transformRequest('/@vite/client');
         if (result && typeof result.code === 'string') {
           const patchedCode = result.code.replace(
@@ -347,12 +374,21 @@ async function startServer() {
           }).end(patchedCode);
           return;
         }
-      } catch (e) {
+      } catch {
         // Fallback to vite.middlewares on error
       }
       return next();
     });
-    app.use(vite.middlewares);
+
+    app.use(async (req, res, next) => {
+      try {
+        const vite = viteInstance || (await viteInitPromise);
+        return vite.middlewares(req, res, next);
+      } catch (err) {
+        return next(err);
+      }
+    });
+
     app.use('*', async (req, res, next) => {
       if (req.method !== 'GET') return next();
       // Do not serve index.html for static asset requests (scripts, styles, images, audio, etc.)
@@ -360,6 +396,7 @@ async function startServer() {
         return res.status(404).end();
       }
       try {
+        const vite = viteInstance || (await viteInitPromise);
         let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(req.originalUrl, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
@@ -378,7 +415,7 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, HOST, () => {
     console.log(`Server listening on port ${PORT}`);
   });
 }

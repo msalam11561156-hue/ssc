@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Filter, X, Check, Users, Shield, GraduationCap, School, RotateCcw, Sparkles } from 'lucide-react';
 import { Language, StudentData, EducationType } from '../types';
 import { translations, isInternationalSchool } from '../i18n';
@@ -176,19 +177,14 @@ export const FilterButtonMenu: React.FC<FilterButtonMenuProps> = ({
 
       <AnimatePresence>
         {isMenuOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
               onClick={() => setIsMenuOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 20 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: 20 }}
-              transition={{ type: 'spring', duration: 0.5, bounce: 0.3 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-2xl bg-white rounded-[28px] shadow-2xl border-2 border-slate-900 overflow-hidden flex flex-col"
             >
               {/* Header with vibrant cheerful gradient */}

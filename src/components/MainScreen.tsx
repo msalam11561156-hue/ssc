@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { SchoolData, ControlData, Language } from '../types';
 import { translations, setCurrentAffiliatedEntity, syncEntityInputText } from '../i18n';
 import { ArrowLeft, ArrowRight, ClipboardList, Info, X, Languages, Check, ImagePlus, Upload, Trash2 } from 'lucide-react';
@@ -326,24 +327,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -50, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-      className="w-full max-w-4xl mx-auto relative p-[8px] rounded-3xl overflow-hidden shadow-2xl"
+    <div
+      className="w-full max-w-4xl mx-auto relative p-[8px] rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white/40 via-slate-800/40 to-white/25"
     >
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
-      />
-      
       <div className="rounded-2xl p-8 md:p-12 border-[1.5px] border-slate-900 relative z-10 overflow-hidden w-full h-full">
-        <motion.div
-          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-          transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
-          className="absolute inset-0 z-[-1] bg-gradient-to-r from-fuchsia-300 via-violet-300 to-cyan-300 bg-[length:400%_400%]"
+        <div
+          className="absolute inset-0 z-[-1] bg-gradient-to-r from-fuchsia-300 via-violet-300 to-cyan-300"
         />
         
         {/* Title */}
@@ -354,7 +343,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
             title={t.schoolLogo}
             className="relative group rounded-full p-[4px] cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-[0_0_25px_rgba(168,85,247,0.9),0_0_45px_rgba(59,130,246,0.7)]"
           >
-            <div className="absolute inset-0 rounded-full animate-pulse bg-gradient-to-tr from-fuchsia-500 via-amber-300 to-cyan-400 blur-md opacity-90 pointer-events-none" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-fuchsia-500 via-amber-300 to-cyan-400 blur-md opacity-85 pointer-events-none" />
             <div className="relative w-24 h-24 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center overflow-hidden shadow-inner z-10">
               {schoolData.schoolLogo ? (
                 <img
@@ -368,20 +357,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
             </div>
           </button>
 
-          <motion.div
-            animate={{ x: [-8, 8, -8] }}
-            transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
-            className="relative inline-block pb-4"
-          >
+          <div className="relative inline-block pb-4">
             <h2 className="text-3xl font-extrabold text-[#2d3748] px-4 flex items-center justify-center gap-3"><ClipboardList className="w-8 h-8 text-[#a855f7]" />{t.mainScreenTitle}</h2>
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#a855f7] to-transparent overflow-hidden rounded-full">
-              <motion.div
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-                className="w-full h-full bg-white shadow-[0_0_10px_3px_rgba(168,85,247,0.8)]"
-              />
-            </div>
-          </motion.div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#a855f7] to-transparent overflow-hidden rounded-full" />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -631,17 +610,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
       <AnimatePresence>
         {showLogoModal && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
             onClick={() => setShowLogoModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 12 }}
-              transition={{ duration: 0.25, type: 'spring', bounce: 0.25 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-md rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
               onClick={(e) => e.stopPropagation()}
             >
@@ -756,17 +730,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
 
         {activeEnModal && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
             onClick={() => setActiveEnModal(null)}
           >
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 12 }}
-              transition={{ duration: 0.25, type: 'spring', bounce: 0.25 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-md rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
               onClick={(e) => e.stopPropagation()}
             >
@@ -886,17 +855,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
 
         {showInstructions && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-slate-900/70 backdrop-blur-sm rounded-[10px] [perspective:1000px]"
+            {...FAST_BACKDROP_FADE}
+            className="absolute inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-slate-900/70 backdrop-blur-sm rounded-[10px]"
             onClick={() => setShowInstructions(false)}
           >
             <motion.div
-              initial={{ rotateX: 90, opacity: 0 }}
-              animate={{ rotateX: 0, opacity: 1 }}
-              exit={{ rotateX: -90, opacity: 0 }}
-              transition={{ duration: 1.2, type: "spring", bounce: 0.3 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-lg rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[8px]"
               onClick={(e) => e.stopPropagation()}
             >
@@ -923,6 +887,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };

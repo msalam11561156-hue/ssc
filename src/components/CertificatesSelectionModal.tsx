@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { createPortal } from 'react-dom';
 import { Award, Trophy, X } from 'lucide-react';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -27,19 +28,14 @@ export const CertificatesSelectionModal: React.FC<CertificatesSelectionModalProp
     <PortalModal>
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4 [perspective:1000px]" dir="rtl">
+          <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4" dir="rtl">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
               onClick={onClose}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 20 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-[32px] p-1 shadow-2xl w-full max-w-[480px] z-10"
             >
               <div className="absolute inset-0 rounded-[32px] bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>

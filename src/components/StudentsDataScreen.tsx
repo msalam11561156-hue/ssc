@@ -5,6 +5,7 @@ import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { ensureCellVisible } from '../utils/cellNavigation';
@@ -986,6 +987,30 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     }
   };
 
+  const [showSeatNumbersScheduleEnPasswordModal, setShowSeatNumbersScheduleEnPasswordModal] = useState(false);
+  const [seatNumbersScheduleEnRandomId, setSeatNumbersScheduleEnRandomId] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('sheet_control_seat_numbers_schedule_en_random_id');
+      const parsed = saved ? parseInt(saved, 10) : 0;
+      if (parsed >= 800 && parsed <= 899) return parsed;
+      const newId = Math.floor(Math.random() * 100) + 800;
+      localStorage.setItem('sheet_control_seat_numbers_schedule_en_random_id', String(newId));
+      return newId;
+    } catch {
+      return 850;
+    }
+  });
+
+  const isSeatNumbersScheduleEnUnlocked = () => {
+    try {
+      const currentMainId = getDeviceId();
+      const unlockedId = localStorage.getItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id');
+      return unlockedId === String(currentMainId);
+    } catch {
+      return false;
+    }
+  };
+
   const [showEnglishCertPasswordModal, setShowEnglishCertPasswordModal] = useState(false);
   const [englishCertRandomId, setEnglishCertRandomId] = useState<number>(() => {
     try {
@@ -1068,6 +1093,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     if (stage !== 'kindergarten') {
       if (reportType === 'seat_numbers_with_schedule') {
         await executePrintOption('seat_numbers_with_schedule');
+        return;
+      }
+      if (reportType === 'seat_numbers_with_schedule_english') {
+        if (isOfficial && !isSeatNumbersScheduleEnUnlocked()) {
+          setShowSeatNumbersScheduleEnPasswordModal(true);
+          return;
+        }
+        await executePrintOption('seat_numbers_with_schedule_english');
         return;
       }
       if (reportType === 'seat_numbers') {
@@ -2087,38 +2120,22 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 100, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-[linear-gradient(90deg,#0f172a_25%,#ffffff_50%,#0f172a_75%)] bg-[length:200%_auto] animate-shine"
-      style={{ animationDuration: '15s' }}
+    <div
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900"
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
     >
       <div className="bg-[#f8ebff] rounded-[10px] w-full h-full p-6 flex flex-col gap-4 relative overflow-hidden">
         {/* Header Row */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#b45309,#d97706,#f59e0b,#d97706,#b45309)] bg-[length:200%_auto] animate-shine border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-center bg-[linear-gradient(to_right,#b45309,#d97706,#f59e0b,#d97706,#b45309)] border-2 border-slate-900 rounded-xl p-3 shadow-sm gap-4 relative overflow-hidden">
           <div className="text-white drop-shadow-md font-bold text-base md:text-lg text-center md:text-right px-4 flex-1">
             <span style={(stage === 'secondary' || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
             </span>
           </div>
           <div className="text-white drop-shadow-md font-bold text-base md:text-lg px-4 shrink-0">
-            <motion.div
-              animate={{
-                rotate: [-1.5, 1.5, -1.5],
-                y: [-1, 1, -1]
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3.5,
-                ease: "easeInOut"
-              }}
-              className="origin-center whitespace-nowrap"
-            >
+            <div className="whitespace-nowrap">
               تحرير البيانات
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -2194,16 +2211,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 {isToolsMenuOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsToolsMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-sm"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2394,16 +2407,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 {isPrintMenuOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsPrintMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2472,13 +2481,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               icon={<Printer className="w-4 h-4" />}
                               text="أرقام الجلوس بجدول الإمتحانات"
                               bgGradient="bg-[linear-gradient(to_right,#f59e0b,#ea580c,#f59e0b)]"
-                            />
-                            <ActionMenuButton
-                              onClick={() => handlePrintOption('seat_numbers_english')}
-                              icon={<Printer className="w-4 h-4" />}
-                              text="Seat Numbers in English"
-                              bgGradient="bg-[linear-gradient(to_right,#d97706,#b45309,#d97706)]"
-                              className="!text-[19.8px]"
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('secret_numbers')}
@@ -2630,14 +2632,28 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#10b981)]"
                             />
                             <ActionMenuButton
+                              onClick={() => handlePrintOption('seat_numbers_with_schedule_english')}
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
+                            />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('seat_numbers_english')}
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="SEAT NUMBERS IN ENGLISH"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
+                            />
+                            <ActionMenuButton
                               onClick={() => handlePrintOption('student_semester_grades_certificate_en')}
-                              icon={<Printer className="w-4 h-4" />}
-                              text={
-                                lang === 'ar'
-                                  ? (isFirstSemester ? "شهادة درجات وتقييمات الفصل الدراسي الأول باللغة الإنجليزية" : "شهادة درجات وتقييمات الفصل الدراسي الثانى باللغة الإنجليزية")
-                                  : (isFirstSemester ? "First Semester Grades & Assessments Certificate (English)" : "Second Semester Grades & Assessments Certificate (English)")
-                              }
-                              bgGradient="bg-[linear-gradient(to_right,#4f46e5,#7c3aed,#9333ea)]"
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="CERTIFICATES IN ENGLISH"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
                             />
                           </>
                         )}
@@ -2665,16 +2681,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 {isSubjectPrintMenuOpen && (
                   <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setIsSubjectPrintMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2740,16 +2752,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 {selectedPrintSubject && (
                   <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      {...FAST_BACKDROP_FADE}
                       className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                       onClick={() => setSelectedPrintSubject(null)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                      animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+                      {...FAST_MODAL_FLIP}
                       className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px]"
                     >
                       <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2837,18 +2845,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {isStatsMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                     onClick={() => setIsStatsMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.2, rotateX: 180, rotateY: 180, y: 300 }}
-                    animate={{ opacity: 1, scale: 1, rotateX: 0, rotateY: 0, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.2, rotateX: -180, rotateY: -180, y: 300 }}
-                    transition={{ type: "spring", duration: 2.5, bounce: 0.4 }}
-                    className="relative w-full max-w-md rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col [perspective:1000px]"
+                    {...FAST_MODAL_FLIP}
+                    className="relative w-full max-w-md rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col"
                   >
                     <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#ef4444_75%,#000000_100%)] pointer-events-none" />
 
@@ -3087,16 +3090,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {isDetailedStatsMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                     onClick={() => setIsDetailedStatsMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                    {...FAST_MODAL_FLIP}
                     className="relative w-full max-w-3xl rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
                   >
                     <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#3b82f6_75%,#000000_100%)] pointer-events-none" />
@@ -3237,16 +3236,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {isExemptionStatsMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                     onClick={() => setIsExemptionStatsMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                    {...FAST_MODAL_FLIP}
                     className="relative w-full max-w-3xl rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
                   >
                     <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#0284c7_75%,#000000_100%)] pointer-events-none" />
@@ -3335,16 +3330,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {isEnrollmentTypeStatsMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                     onClick={() => setIsEnrollmentTypeStatsMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                    {...FAST_MODAL_FLIP}
                     className="relative w-full max-w-3xl rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
                   >
                     <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#10b981_75%,#000000_100%)] pointer-events-none" />
@@ -3444,16 +3435,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {isDamgStatsMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                     onClick={() => setIsDamgStatsMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                    {...FAST_MODAL_FLIP}
                     className="relative w-full max-w-3xl rounded-[32px] p-[8px] shadow-[0_0_50px_-10px_rgba(255,255,255,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
                   >
                     <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_50%,#a855f7_75%,#000000_100%)] pointer-events-none" />
@@ -3608,12 +3595,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               )}
             </AnimatePresence>
 
-            <motion.div 
+            <div 
               onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
               className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500/40 via-white/70 to-pink-500/40 hover:from-blue-500/60 hover:via-white/90 hover:to-pink-500/60 border-2 border-slate-900 rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 cursor-pointer transition-all duration-300 shrink-0 whitespace-nowrap select-none"
-              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              style={{ backgroundSize: "200% 200%" }}
             >
               <span className="text-xs sm:text-sm font-bold text-slate-900 flex items-center whitespace-nowrap gap-1">
                 {sortBy.length === 0 ? t.defaultSort : sortBy.map((c, index) => {
@@ -3642,22 +3626,17 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   );
                 })}
               </span>
-            </motion.div>
+            </div>
             <AnimatePresence>
               {isSortMenuOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...FAST_BACKDROP_FADE}
                     className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                     onClick={() => setIsSortMenuOpen(false)}
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-                    animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
-                    transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+                    {...FAST_MODAL_FLIP}
                     className="relative w-full max-w-xs rounded-3xl overflow-hidden p-1.5 shadow-[0_0_40px_-10px_rgba(0,0,0,0.3)] flex flex-col"
                   >
                     {/* Moving Light Border */}
@@ -4200,12 +4179,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {studentToDelete && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             onClick={() => setStudentToDelete(null)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[120] flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative rounded-3xl shadow-2xl w-fit min-w-[340px] sm:min-w-[520px] max-w-[95vw] overflow-hidden p-[4px] flex flex-col text-center" 
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -4259,16 +4238,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm [perspective:1000px]"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
             >
               {/* Slow Moving Light Glow */}
@@ -4358,16 +4332,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isNationalIdModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm [perspective:1000px]"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
             >
               {/* Slow Moving Light Glow */}
@@ -4457,18 +4426,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isDefaultValuesModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm [perspective:1000px]"
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
             onClick={() => setIsDefaultValuesModalOpen(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
-              transition={{ type: "spring", duration: 0.7, bounce: 0.35 }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
             >
@@ -4660,17 +4624,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isExamScheduleModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm [perspective:1000px]"
             onClick={() => setIsExamScheduleModalOpen(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, rotateX: 90 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 0.95, opacity: 0, rotateX: -90 }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-6xl rounded-[24px] shadow-2xl overflow-hidden p-0 flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5069,17 +5028,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {showInstructions && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-8 bg-slate-900/70 backdrop-blur-sm [perspective:1000px]"
             onClick={() => setShowInstructions(false)}
           >
             <motion.div
-              initial={{ rotateX: 90, opacity: 0 }}
-              animate={{ rotateX: 0, opacity: 1 }}
-              exit={{ rotateX: -90, opacity: 0 }}
-              transition={{ duration: 1.2, type: "spring", bounce: 0.3 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-2xl rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[8px]"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5117,16 +5071,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         {isColorModalOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsColorModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[552px] z-10"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-3px', animationDuration: '15s' }}></div>
@@ -5176,14 +5126,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
           return (
           <motion.div 
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" 
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
             onClick={() => setIsCommitteeSizeModalOpen(false)}
           >
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-2xl rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5370,14 +5319,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isSeatNumModalOpen && (
           <motion.div 
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" 
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
             onClick={() => setIsSeatNumModalOpen(false)}
           >
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5430,14 +5378,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {isSecretNumModalOpen && (
           <motion.div 
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" 
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
             onClick={() => setIsSecretNumModalOpen(false)}
           >
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5584,17 +5531,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       <AnimatePresence>
         {studentNameEnModal && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
             onClick={() => setStudentNameEnModal(null)}
           >
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 12 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 12 }}
-              transition={{ duration: 0.25, type: 'spring', bounce: 0.25 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-md rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
               onClick={(e) => e.stopPropagation()}
             >
@@ -5689,9 +5631,31 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         }}
         deviceIdOverride={seatNumbersRandomId}
         isVipOption={true}
-        vipOptionTitle="أرقام الجلوس بالإنجليزية"
+        vipOptionTitle="SEAT NUMBERS IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
         customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x"
         skipActivation={true}
+        showExampleButton={true}
+      />
+      <PasswordModal
+        isOpen={showSeatNumbersScheduleEnPasswordModal}
+        onClose={() => setShowSeatNumbersScheduleEnPasswordModal(false)}
+        onSuccess={() => {
+          localStorage.setItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id', String(getDeviceId()));
+          localStorage.removeItem('sheet_control_seat_numbers_schedule_en_random_id');
+          setShowSeatNumbersScheduleEnPasswordModal(false);
+          executePrintOption('seat_numbers_with_schedule_english');
+        }}
+        deviceIdOverride={seatNumbersScheduleEnRandomId}
+        isVipOption={true}
+        vipOptionTitle="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+        showFullVipTitle={true}
+        modalLang="en"
+        customWhatsappMessage="السلام عليكم .. أود تحميل أرقام الجلوس بجدول الإمتحانات باللغة الإنجليزية - معرف جهازي : ID : x"
+        skipActivation={true}
+        showExampleButton={true}
+        exampleVariant="seat_numbers_with_schedule"
       />
 
       <Suspense fallback={null}>
@@ -5784,8 +5748,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         deviceIdOverride={englishCertRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="الشهادات بالإنجليزية"
+        vipOptionTitle="CERTIFICATES IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي : ID : x"
+        showExampleButton={true}
+        exampleVariant="english_cert"
       />
 
       <PasswordModal
@@ -5851,6 +5819,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         isVipOption={true}
         vipOptionTitle="شهادات التقدير"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
+        showExampleButton={true}
+        exampleVariant="appreciation_cert"
       />
 
       <Suspense fallback={null}>
@@ -5886,6 +5856,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };

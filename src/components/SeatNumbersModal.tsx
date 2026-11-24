@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { X, Printer, Award } from 'lucide-react';
 import { PdfReportType } from '../utils/exportPdf';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -19,8 +20,6 @@ export const SeatNumbersModal: React.FC<SeatNumbersModalProps> = ({
   onSelectModel,
   isEnglish = false,
 }) => {
-  if (!isOpen) return null;
-
   const models: {
     reportType: PdfReportType;
     englishReportType: PdfReportType;
@@ -81,11 +80,16 @@ export const SeatNumbersModal: React.FC<SeatNumbersModalProps> = ({
 
   const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" dir="rtl">
+      {isOpen && (
+      <motion.div
+        {...FAST_BACKDROP_FADE}
+        className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+        dir="rtl"
+        onClick={onClose}
+      >
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 15 }}
+          {...FAST_MODAL_FLIP}
+          onClick={(e) => e.stopPropagation()}
           className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[500px] overflow-hidden"
         >
           {/* Animated gradient ring */}
@@ -135,7 +139,8 @@ export const SeatNumbersModal: React.FC<SeatNumbersModalProps> = ({
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
+      )}
     </AnimatePresence>
   );
 

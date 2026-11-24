@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowDownUp, ArrowDown, ArrowUp, X, Check } from 'lucide-react';
 import { Language, EducationType } from '../types';
 import { translations, isInternationalSchool } from '../i18n';
@@ -82,19 +83,14 @@ export const SortButtonMenu: React.FC<SortButtonMenuProps> = ({
 
       <AnimatePresence>
         {isSortMenuOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsSortMenuOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
-              transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+              {...FAST_MODAL_FLIP}
               className="relative w-full max-w-xs rounded-3xl overflow-hidden p-1.5 shadow-[0_0_40px_-10px_rgba(0,0,0,0.3)] flex flex-col"
             >
               {/* Moving Light Border */}

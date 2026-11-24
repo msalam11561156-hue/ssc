@@ -1,5 +1,5 @@
 import { DetailedAssessmentItem, StudentData } from '../types';
-import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme, getSubjectsConfigForStageGrade, getMiddleActualMaxGrade } from './exportPdf';
+import { buildPdfFromJpegPages, base64ToUint8Array, getReportRowBgColors, RowBgTheme, getSubjectsConfigForStageGrade, getMiddleActualMaxGrade, setActivePdfNumberLang } from './exportPdf';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from './deletedSubjects';
@@ -2845,7 +2845,15 @@ export async function exportStudentSemesterGradesCertificatePdf(
     title: propTitle,
   } = options;
 
+  const isEn = Boolean(options.isEnglishCertificate);
+  const prevWindowActivePdfNumberLang =
+    typeof window !== 'undefined' ? (window as any)._activePdfNumberLang : undefined;
+  if (isEn) {
+    setActivePdfNumberLang('en');
+  }
+
   try {
+    try {
     if (typeof document !== 'undefined' && document.fonts) {
       await document.fonts.ready;
     }
@@ -3122,7 +3130,6 @@ export async function exportStudentSemesterGradesCertificatePdf(
       year = parseInt(y, 10);
     }
   } catch {}
-  const isEn = Boolean(options.isEnglishCertificate);
   const dateDisplay = isEn ? `${day} / ${month} / ${year}` : `${day} - ${month} - ${year} م`;
 
   const isMiddleStage = stage === 'middle' || stage === 'prep';
@@ -6205,7 +6212,12 @@ export async function exportStudentSemesterGradesCertificatePdf(
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } finally {
+    if (isEn) {
+      setActivePdfNumberLang(prevWindowActivePdfNumberLang);
+    }
+  }
 }
 
 export interface ExportStudentSuccessStatementPdfOptions {

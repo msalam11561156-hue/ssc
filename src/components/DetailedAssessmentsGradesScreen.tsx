@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { 
   ArrowRight, 
   Search, 
@@ -1535,41 +1536,25 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 100, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -100, scale: 0.9 }}
-      transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-[linear-gradient(90deg,#000000_25%,#ffffff_50%,#000000_75%)] bg-[length:200%_auto] animate-shine font-sans my-4"
-      style={{ animationDuration: '15s' }}
+    <div
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 font-sans my-4"
       dir="rtl"
     >
       {/* Container Card */}
       <div className="bg-[#f8ebff] rounded-[10px] w-full p-4 sm:p-6 flex flex-col gap-4 relative overflow-hidden">
         
         {/* Main Header Banner */}
-        <div className="flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] bg-[length:200%_auto] animate-shine border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
+        <div className="flex flex-row justify-between items-center bg-[linear-gradient(to_right,#0d9488,#14b8a6,#5eead4,#14b8a6,#0d9488)] border-2 border-slate-900 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-md gap-2 sm:gap-4 relative overflow-hidden w-full flex-nowrap">
           <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg text-right truncate min-w-0 whitespace-nowrap flex-1">
             <span style={(isSecondary || title.includes('المرحلة الثانوية')) ? { fontSize: '85%' } : undefined} className="inline-block truncate max-w-full align-middle">
               {title}
             </span>
           </div>
           <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-            <motion.div
-              animate={{
-                rotate: [-1.5, 1.5, -1.5],
-                y: [-1, 1, -1]
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3.5,
-                ease: "easeInOut"
-              }}
-              className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg flex items-center gap-1.5 sm:gap-2 whitespace-nowrap origin-center"
-            >
+            <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
               <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-black/60 shrink-0" />
               <span>تحرير التقييمات - تفصيلا - لكل مادة دراسية</span>
-            </motion.div>
+            </div>
 
             {onNavigateToGeneralAssessments && (
               <div className="relative p-[2px] rounded-xl overflow-hidden shrink-0 shadow-sm">
@@ -2511,16 +2496,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {showThemeSelectorModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setShowThemeSelectorModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[552px] z-10"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-3px', animationDuration: '15s' }}></div>
@@ -2559,16 +2540,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {isActionMenuOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsActionMenuOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[480px]"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2726,16 +2703,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {isPrintMenuOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsPrintMenuOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[480px]"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -2947,60 +2920,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                       }
                       bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#10b981)]"
                     />
-                    <ActionMenuButton
-                      onClick={async () => {
-                        setIsPrintMenuOpen(false);
-                        const printFn = async () => {
-                          try {
-                            const isHs = Boolean(systemType === 'homeschool' || (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool'))));
-                            const isMidHs = isMiddle && isHs;
-                            await exportStudentSemesterGradesCertificatePdf({
-                              students: sortStudents(localData, sortBy, semester, lang),
-                              semester,
-                              selectedGrade,
-                              stage,
-                              schoolName,
-                              schoolNameEn,
-                              administration,
-                              administrationEn,
-                              schoolLogo,
-                              dataOfficer,
-                              dataOfficerEn,
-                              controlHead,
-                              controlHeadEn,
-                              committeeHead,
-                              committeeHeadEn,
-                              rowTheme: (localStorage.getItem('pdf_print_row_theme') as RowBgTheme) || undefined,
-                              isEnglishCertificate: true,
-                              systemType: systemType || (isHs ? 'homeschool' : 'regular'),
-                              title,
-                              isHomeschool: isHs,
-                              isMiddleHomeschool: isMidHs,
-                            });
-                          } catch (e) {
-                            console.error('Failed to export student semester grades certificate PDF (EN)', e);
-                          }
-                        };
-
-                        if (isOfficial && !isEnglishCertUnlocked()) {
-                          setPendingPrintCallback(() => printFn);
-                          setShowEnglishCertPasswordModal(true);
-                        } else {
-                          printFn();
-                        }
-                      }}
-                      icon={<Printer className="w-4 h-4" />}
-                      text={
-                        lang === 'ar'
-                          ? (semester === 'second'
-                              ? 'شهادة درجات وتقييمات الفصل الدراسي الثانى باللغة الإنجليزية'
-                              : 'شهادة درجات وتقييمات الفصل الدراسي الأول باللغة الإنجليزية')
-                          : (semester === 'second'
-                              ? 'Second Semester Grades & Assessments Certificate (English)'
-                              : 'First Semester Grades & Assessments Certificate (English)')
-                      }
-                      bgGradient="bg-[linear-gradient(to_right,#4f46e5,#7c3aed,#9333ea)]"
-                    />
                   </>
                 )}
 
@@ -3017,6 +2936,57 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                   text="شهادات التقدير"
                   bgGradient="bg-[linear-gradient(to_right,#ca8a04,#f59e0b,#3b82f6)]"
                 />
+
+                {!isKindergarten && (
+                  <ActionMenuButton
+                    onClick={async () => {
+                      setIsPrintMenuOpen(false);
+                      const printFn = async () => {
+                        try {
+                          const isHs = Boolean(systemType === 'homeschool' || (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool'))));
+                          const isMidHs = isMiddle && isHs;
+                          await exportStudentSemesterGradesCertificatePdf({
+                            students: sortStudents(localData, sortBy, semester, lang),
+                            semester,
+                            selectedGrade,
+                            stage,
+                            schoolName,
+                            schoolNameEn,
+                            administration,
+                            administrationEn,
+                            schoolLogo,
+                            dataOfficer,
+                            dataOfficerEn,
+                            controlHead,
+                            controlHeadEn,
+                            committeeHead,
+                            committeeHeadEn,
+                            rowTheme: (localStorage.getItem('pdf_print_row_theme') as RowBgTheme) || undefined,
+                            isEnglishCertificate: true,
+                            systemType: systemType || (isHs ? 'homeschool' : 'regular'),
+                            title,
+                            isHomeschool: isHs,
+                            isMiddleHomeschool: isMidHs,
+                          });
+                        } catch (e) {
+                          console.error('Failed to export student semester grades certificate PDF (EN)', e);
+                        }
+                      };
+
+                      if (isOfficial && !isEnglishCertUnlocked()) {
+                        setPendingPrintCallback(() => printFn);
+                        setShowEnglishCertPasswordModal(true);
+                      } else {
+                        printFn();
+                      }
+                    }}
+                    icon={<Printer className="w-4 h-4 shrink-0" />}
+                    text="CERTIFICATES IN ENGLISH"
+                    bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                    className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                    disableMarquee
+                  />
+                )}
 
                 {/* زر الإغلاق الدائري */}
                 <div className="relative mt-2 pt-4 flex justify-center w-full shrink-0">
@@ -3043,16 +3013,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {isSubjectPrintModalOpen && (
           <div className="fixed inset-0 z-[125] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsSubjectPrintModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[480px] z-10"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -3112,16 +3078,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {showInstructions && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir="rtl">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setShowInstructions(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative rounded-3xl p-1 shadow-2xl w-full max-w-[520px]"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -3294,16 +3256,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         {isSubjectDropdownOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 [perspective:1000px]" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              {...FAST_BACKDROP_FADE}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setIsSubjectDropdownOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateX: 90 }}
-              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-              exit={{ opacity: 0, scale: 0.9, rotateX: -90 }}
+              {...FAST_MODAL_FLIP}
               className="relative bg-white rounded-3xl p-1 shadow-2xl w-full max-w-[460px] z-10"
             >
               <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(to_right,#000000,#ffffff,#000000)] bg-[length:200%_auto] animate-shine opacity-100" style={{ zIndex: -1, margin: '-8px', animationDuration: '15s' }}></div>
@@ -3380,8 +3338,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         deviceIdOverride={englishCertRandomId}
         skipActivation={true}
         isVipOption={true}
-        vipOptionTitle="الشهادات بالإنجليزية"
+        vipOptionTitle="CERTIFICATES IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات باللغة الانجليزية - معرف جهازي :"
+        showExampleButton={true}
+        exampleVariant="english_cert"
       />
 
       <PasswordModal
@@ -3398,6 +3360,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         isVipOption={true}
         vipOptionTitle="شهادات التقدير"
         customWhatsappMessage="السلام عليكم .. أود تحميل شهادات التقدير - معرف جهازي : ID : x"
+        showExampleButton={true}
+        exampleVariant="appreciation_cert"
       />
 
       {/* شهادات التقدير */}
@@ -3449,6 +3413,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           />
         )}
       </Suspense>
-    </motion.div>
+    </div>
   );
 };

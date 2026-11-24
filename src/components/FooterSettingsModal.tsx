@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { X, Lock } from 'lucide-react';
 import { 
   verifyActivationPassword, 
@@ -81,8 +82,6 @@ export const FooterSettingsModal: React.FC<FooterSettingsModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleToggleClick = () => {
     if (isAlreadyUnlocked()) {
       onToggle(!enabled);
@@ -93,21 +92,19 @@ export const FooterSettingsModal: React.FC<FooterSettingsModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-[634px] bg-white rounded-3xl p-6 shadow-2xl z-10 overflow-hidden"
-          dir="rtl"
-        >
+      <AnimatePresence>
+        {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            {...FAST_MODAL_FLIP}
+            className="relative w-full max-w-[634px] bg-white rounded-3xl p-6 shadow-2xl z-10 overflow-hidden"
+            dir="rtl"
+          >
           <div className="flex items-start justify-between mb-6">
             <div>
               <h3 className="font-black text-lg text-slate-900">تذييل التقارير الإفتراضي</h3>
@@ -147,8 +144,10 @@ export const FooterSettingsModal: React.FC<FooterSettingsModalProps> = ({
               )}
             </button>
           </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+        )}
+      </AnimatePresence>
 
       <PasswordModal
         isOpen={showPasswordPrompt}

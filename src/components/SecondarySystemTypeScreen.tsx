@@ -66,49 +66,27 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
         />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, x: 100, scale: 0.95 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        exit={{ opacity: 0, x: -100, scale: 0.9 }}
-        transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-        className="w-full relative p-[8px] rounded-3xl overflow-hidden shadow-2xl"
+      <div
+        className="w-full relative p-[8px] rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white/40 via-slate-800/40 to-white/25"
       >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
-        />
-
-        <div className={`rounded-2xl p-6 sm:p-10 md:p-12 border-[2px] ${currentTheme.borderStroke} relative z-10 overflow-hidden w-full h-full transition-colors duration-500`}>
-          {/* Animated Background Gradient */}
-          <motion.div
-            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-            transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
-            className={`absolute inset-0 z-[-2] ${currentTheme.gradientBg} bg-[length:400%_400%] transition-all duration-700`}
+        <div className={`rounded-2xl p-6 sm:p-10 md:p-12 border-[2px] ${currentTheme.borderStroke} relative z-10 overflow-hidden w-full h-full transition-colors duration-300`}>
+          {/* Background Gradient */}
+          <div
+            className={`absolute inset-0 z-[-2] ${currentTheme.gradientBg} transition-colors duration-300`}
           />
 
           {/* Refined Glassmorphic Backdrop Overlay */}
-          <div className={`absolute inset-0 z-[-1] ${currentTheme.backdropOverlay} pointer-events-none transition-all duration-500`} />
+          <div className={`absolute inset-0 z-[-1] ${currentTheme.backdropOverlay} pointer-events-none transition-colors duration-300`} />
 
           {/* Title with exact requested text formatting */}
           <div className="flex flex-col items-center justify-center mb-8 sm:mb-10 text-center">
-            <motion.div
-              animate={{ y: [-2, 2, -2] }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="relative inline-block pb-4"
-            >
-              <h2 className={`text-[21px] sm:text-[26px] md:text-[30px] leading-snug font-black ${currentTheme.titleShadow} px-4 flex items-center justify-center gap-3 transition-colors duration-500`}>
-                <GraduationCap className={`w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] md:w-[32px] md:h-[32px] ${currentTheme.titleIconColor} transition-colors duration-500`} />
+            <div className="relative inline-block pb-4">
+              <h2 className={`text-[21px] sm:text-[26px] md:text-[30px] leading-snug font-black ${currentTheme.titleShadow} px-4 flex items-center justify-center gap-3 transition-colors duration-300`}>
+                <GraduationCap className={`w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] md:w-[32px] md:h-[32px] ${currentTheme.titleIconColor} transition-colors duration-300`} />
                 {isAr ? 'الثانوية العامة ( البكالوريا ) : نظام القيد' : 'General Secondary (Baccalaureate): Enrollment System'}
               </h2>
-              <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${currentTheme.titleUnderline} overflow-hidden rounded-full transition-all duration-500`}>
-                <motion.div
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
-                  className={`w-full h-full ${currentTheme.runnerGlow}`}
-                />
-              </div>
-            </motion.div>
+              <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${currentTheme.titleUnderline} overflow-hidden rounded-full`} />
+            </div>
           </div>
 
           {/* Three Options: منتظمين vs منازل vs خدمات */}
@@ -234,7 +212,7 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

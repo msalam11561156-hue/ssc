@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Bell, Clock, CheckCircle2, X } from 'lucide-react';
 import { getBrandShieldSync } from '../utils/offlineAssetCache';
 
@@ -18,8 +19,6 @@ export const BackupReminderModal: React.FC<BackupReminderModalProps> = ({
 }) => {
   const [selected, setSelected] = useState<string>(currentInterval);
 
-  if (!isOpen) return null;
-
   const options = [
     { id: 'off', label: 'إيقاف' },
     { id: '1m', label: 'كل دقيقة' },
@@ -36,20 +35,18 @@ export const BackupReminderModal: React.FC<BackupReminderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl z-10 overflow-hidden border-2 border-black flex flex-col max-h-[90vh]"
-      >
+    <AnimatePresence>
+      {isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <motion.div
+          {...FAST_BACKDROP_FADE}
+          className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          {...FAST_MODAL_FLIP}
+          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl z-10 overflow-hidden border-2 border-black flex flex-col max-h-[90vh]"
+        >
         {/* Header */}
         <div className="p-5 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between border-b-2 border-black">
           <div className="flex items-center gap-3">
@@ -138,7 +135,9 @@ export const BackupReminderModal: React.FC<BackupReminderModalProps> = ({
             حفظ إعدادات الإشعار
           </button>
         </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+      )}
+    </AnimatePresence>
   );
 };

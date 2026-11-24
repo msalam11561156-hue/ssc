@@ -13,6 +13,7 @@ import {
   exportTopTenCertificatesPdf 
 } from '../utils/topTenCertificatesHelper';
 import { formatNumberDigits } from '../utils/numberLangHelper';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 
 interface TopTenCertificatesModalProps {
   isOpen: boolean;
@@ -131,8 +132,6 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
     };
   }, [isOpen, selectedIndex, currentStudent, schoolData, selectedGrade, design]);
 
-  if (!isOpen) return null;
-
   const handleExportAll = async () => {
     setIsExportingAll(true);
     try {
@@ -185,17 +184,18 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
 
   return (
     <PortalModal>
-      <div 
-        className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 md:p-6 overflow-y-auto"
-        dir="rtl"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-6xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl border-2 border-yellow-500/40 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
-        >
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="top-ten-certs-backdrop"
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 md:p-6 overflow-y-auto"
+            dir="rtl"
+          >
+            <motion.div
+              {...FAST_MODAL_FLIP}
+              className="relative w-full max-w-6xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl border-2 border-yellow-500/40 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+            >
           {/* Hidden Canvas for High-Resolution Export / Preview */}
           <canvas ref={canvasRef} className="hidden" />
 
@@ -378,8 +378,10 @@ export const TopTenCertificatesModal: React.FC<TopTenCertificatesModalProps> = (
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PortalModal>
   );
 };

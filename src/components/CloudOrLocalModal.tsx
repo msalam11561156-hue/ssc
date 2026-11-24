@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Cloud, HardDrive, CheckCircle2, ShieldCheck, WifiOff, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { Language } from '../types';
 
@@ -18,20 +19,17 @@ export const CloudOrLocalModal: React.FC<CloudOrLocalModalProps> = ({
   onSelectLocal,
   lang = 'ar',
 }) => {
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div 
+      {isOpen && (
+      <motion.div
+        {...FAST_BACKDROP_FADE}
         className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md"
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 20 }}
-          transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
+          {...FAST_MODAL_FLIP}
           onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-4xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-indigo-500/40 rounded-[28px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] p-6 md:p-8 flex flex-col text-slate-100 overflow-hidden"
         >
@@ -167,7 +165,8 @@ export const CloudOrLocalModal: React.FC<CloudOrLocalModalProps> = ({
             Smart Control 0.1 Examination Management System • Secure & Reliable
           </div>
         </motion.div>
-      </div>
+      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

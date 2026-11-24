@@ -174,6 +174,7 @@ export type PdfReportType =
   | 'question_sheets_covers'
   | 'seat_numbers'
   | 'seat_numbers_with_schedule'
+  | 'seat_numbers_with_schedule_english'
   | 'seat_numbers_default'
   | 'seat_numbers_model_1'
   | 'seat_numbers_model_2'
@@ -985,7 +986,7 @@ function drawSeatNumberCardModel1(
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = 'bold 14px "Cairo", sans-serif';
-  ctx.fillText(`العام الدراسي 2025 / 2026 م`, col1CenterX, cardY + 506);
+  ctx.fillText(isEnglish ? 'Academic Year 2026 / 2027' : `العام الدراسي 2025 / 2026 م`, col1CenterX, cardY + 506);
 
   // 4. Right / Main Content Column (like Main Column in 1.jfif)
   const mainLeftX = dividerX + 35;
@@ -3362,12 +3363,32 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     examSchedule: propExamSchedule,
   } = options;
 
-  activePdfNumberLang = numberLang || (typeof window !== 'undefined' ? (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar' : 'ar');
+  const isForcedEnglishPdf = Boolean(
+    reportType &&
+      (reportType.startsWith('seat_numbers_english') ||
+        reportType === 'seat_numbers_with_schedule_english' ||
+        reportType === 'student_semester_grades_certificate_en' ||
+        reportType === 'student_semester_grades_assessments_certificate_en' ||
+        reportType === 'student_semester_grades_assessments_certificate_detailed_en')
+  );
+  const resolvedNumberLang: NumberLang = isForcedEnglishPdf
+    ? 'en'
+    : numberLang ||
+      (typeof window !== 'undefined'
+        ? (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar'
+        : 'ar');
 
-  const fmtNum = (v: any) => {
-    const s = typeof v === 'number' ? formatToOneDecimal(v) : String(v ?? '');
-    return activePdfNumberLang ? formatNumberDigits(s, activePdfNumberLang) : s;
-  };
+  const prevActivePdfNumberLang = activePdfNumberLang;
+  const prevWindowActivePdfNumberLang =
+    typeof window !== 'undefined' ? (window as any)._activePdfNumberLang : undefined;
+
+  setActivePdfNumberLang(resolvedNumberLang);
+
+  try {
+    const fmtNum = (v: any) => {
+      const s = typeof v === 'number' ? formatToOneDecimal(v) : String(v ?? '');
+      return activePdfNumberLang ? formatNumberDigits(s, activePdfNumberLang) : s;
+    };
 
   const isCustomControlSheet = reportType === 'custom_control_sheet';
   const semester = isCustomControlSheet ? 'second' : propSemester;
@@ -3964,7 +3985,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
   // A4 Portrait for seat_numbers, calling_list, and secret_numbers; A4 Landscape for other reports; A1 Landscape for non-Kindergarten control_sheet
   const isNonKgControlSheet = isControlSheet && !isKindergartenStage;
-  const isSeatNumbersWithSchedule = reportType === 'seat_numbers_with_schedule';
+  const isSeatNumbersWithScheduleEn = reportType === 'seat_numbers_with_schedule_english';
+  const isSeatNumbersWithSchedule = reportType === 'seat_numbers_with_schedule' || isSeatNumbersWithScheduleEn;
   const isSeatNumbersCard =
     reportType === 'seat_numbers' ||
     isSeatNumbersWithSchedule ||
@@ -5364,9 +5386,12 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             console.error(e);
           }
         }
+        const isEnglishScheduleCard = isSeatNumbersWithScheduleEn;
         const sortedSched = sortExamScheduleItemsLocal(schedList);
         const rawCleanTitle = (title || '').trim();
-        const cleanTitle = rawCleanTitle;
+        const cleanTitle = isEnglishScheduleCard
+          ? translateCardTitleToEnglish(rawCleanTitle, stage, selectedGrade, semester, stageEn)
+          : rawCleanTitle;
 
         const pageStudents =
           students.length > 0
@@ -5374,7 +5399,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             : [
                 {
                   id: 'empty',
-                  name: 'لا يوجد',
+                  name: isEnglishScheduleCard ? 'No Students' : 'لا يوجد',
                   nationalId: '',
                   gender: 'male',
                   enrollmentStatus: '',
@@ -5476,14 +5501,18 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             globalStudentIdx,
             {
               cleanTitle,
-              administration,
-              schoolName,
-              dataOfficer,
-              controlHead,
-              committeeHead,
+              administration: isEnglishScheduleCard ? administrationEn || administration : administration,
+              schoolName: isEnglishScheduleCard ? schoolNameEn || schoolName : schoolName,
+              dataOfficer: isEnglishScheduleCard ? dataOfficerEn || dataOfficer : dataOfficer,
+              controlHead: isEnglishScheduleCard ? controlHeadEn || controlHead : controlHead,
+              committeeHead: isEnglishScheduleCard ? committeeHeadEn || committeeHead : committeeHead,
               statusText,
               exemptionText: showExemptionStatus
-                ? (student.exemptionStatus === 'كلي' ? 'كلى' : student.exemptionStatus === 'تدريجي' ? 'تدريجى' : student.exemptionStatus || '-')
+                ? (() => {
+                    const exRaw = student.exemptionStatus === 'كلي' ? 'كلى' : student.exemptionStatus === 'تدريجي' ? 'تدريجى' : (student.exemptionStatus || '');
+                    if (isEnglishScheduleCard) return exRaw === 'كلى' ? 'Full' : exRaw === 'تدريجى' ? 'Gradual' : '-';
+                    return exRaw || '-';
+                  })()
                 : undefined,
               showExemptionStatus,
               enrollmentTypeText,
@@ -5494,7 +5523,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               qrImage,
               ministryLogoImage,
               schoolLogoImage,
-              isEnglish: false,
+              isEnglish: isEnglishScheduleCard,
               isNoQr: false,
               model: 'default',
               selectedGrade,
@@ -5542,15 +5571,22 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           })();
 
           const semName = semester === 'first' ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثاني';
-          const yearsDisplay = activePdfNumberLang ? formatNumberDigits('2026 - 2027', activePdfNumberLang) : '2026 - 2027';
+          const effectiveSchedNumLang: NumberLang = isEnglishScheduleCard ? 'en' : (activePdfNumberLang || 'ar');
+          const yearsDisplay = isEnglishScheduleCard
+            ? '2026 - 2027'
+            : (activePdfNumberLang ? formatNumberDigits('2026 - 2027', activePdfNumberLang) : '2026 - 2027');
 
-          ctx.direction = 'rtl';
+          const schedBannerTitle = isEnglishScheduleCard
+            ? `Exam Schedule - ${translateCardTitleToEnglish(rawCleanTitle, stage, selectedGrade, semester, stageEn)}`
+            : `جدول امتحانات ${stageDisplayName} - ${selectedGrade || ''} - ${semName} - ${yearsDisplay}`;
+
+          ctx.direction = isEnglishScheduleCard ? 'ltr' : 'rtl';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#ffffff';
           ctx.font = `bold 19.5px "Cairo", sans-serif`;
           ctx.fillText(
-            `جدول امتحانات ${stageDisplayName} - ${selectedGrade || ''} - ${semName} - ${yearsDisplay}`,
+            schedBannerTitle,
             bannerX + contentW / 2,
             tableTopY + bannerH / 2
           );
@@ -5558,25 +5594,37 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           // Schedule Table Columns & Headers Row
           const schedHeaderY = tableTopY + bannerH;
           const schedColWidths = [45, 140, 160, 160, 110, 110, 443];
-          const schedColHeaders = ['م', 'اليوم', 'التاريخ', 'الفترة', 'من', 'إلى', 'المادة الدراسية'];
+          const schedColHeaders = isEnglishScheduleCard
+            ? ['No.', 'Day', 'Date', 'Period', 'From', 'To', 'Subject']
+            : ['م', 'اليوم', 'التاريخ', 'الفترة', 'من', 'إلى', 'المادة الدراسية'];
 
-          let curX = marginX + contentW;
           ctx.fillStyle = '#f1f5f9';
           ctx.fillRect(marginX, schedHeaderY, contentW, schedHeaderH);
           ctx.strokeStyle = '#000000'; // حدود داخلية سوداء slim
           ctx.lineWidth = 0.8;
 
-          ctx.direction = 'rtl';
+          ctx.direction = isEnglishScheduleCard ? 'ltr' : 'rtl';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#0f172a';
           ctx.font = `bold 16px "Cairo", sans-serif`;
 
-          for (let colI = 0; colI < schedColHeaders.length; colI++) {
-            const colW = schedColWidths[colI];
-            ctx.strokeRect(curX - colW, schedHeaderY, colW, schedHeaderH);
-            ctx.fillText(schedColHeaders[colI], curX - colW / 2, schedHeaderY + schedHeaderH / 2);
-            curX -= colW;
+          if (isEnglishScheduleCard) {
+            let curX = marginX;
+            for (let colI = 0; colI < schedColHeaders.length; colI++) {
+              const colW = schedColWidths[colI];
+              ctx.strokeRect(curX, schedHeaderY, colW, schedHeaderH);
+              ctx.fillText(schedColHeaders[colI], curX + colW / 2, schedHeaderY + schedHeaderH / 2);
+              curX += colW;
+            }
+          } else {
+            let curX = marginX + contentW;
+            for (let colI = 0; colI < schedColHeaders.length; colI++) {
+              const colW = schedColWidths[colI];
+              ctx.strokeRect(curX - colW, schedHeaderY, colW, schedHeaderH);
+              ctx.fillText(schedColHeaders[colI], curX - colW / 2, schedHeaderY + schedHeaderH / 2);
+              curX -= colW;
+            }
           }
 
           // Draw Schedule Rows (خلفية الصفوف حسب بالتة ألوان المطبوعات rowTheme)
@@ -5588,15 +5636,43 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             ctx.strokeStyle = '#000000'; // حدود داخلية سوداء slim
             ctx.lineWidth = 0.8;
             ctx.strokeRect(marginX, curRowY, contentW, rowH);
-            ctx.direction = 'rtl';
+            ctx.direction = isEnglishScheduleCard ? 'ltr' : 'rtl';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#64748b';
             ctx.font = `bold 15px "Cairo", sans-serif`;
-            ctx.fillText('لا توجد مواد مجدولة في جدول الامتحانات', marginX + contentW / 2, curRowY + rowH / 2);
+            ctx.fillText(
+              isEnglishScheduleCard
+                ? 'No subjects scheduled in the exam schedule'
+                : 'لا توجد مواد مجدولة في جدول الامتحانات',
+              marginX + contentW / 2,
+              curRowY + rowH / 2
+            );
             curRowY += rowH;
           } else {
-            const formatDateRTLLocal = (dStr: string) => {
+            const translateDayEn = (dayAr: string) => {
+              const d = (dayAr || '').trim();
+              if (d === 'السبت') return 'Saturday';
+              if (d === 'الأحد' || d === 'الاحد') return 'Sunday';
+              if (d === 'الإثنين' || d === 'الاثنين') return 'Monday';
+              if (d === 'الثلاثاء') return 'Tuesday';
+              if (d === 'الأربعاء' || d === 'الاربعاء') return 'Wednesday';
+              if (d === 'الخميس') return 'Thursday';
+              if (d === 'الجمعة') return 'Friday';
+              return d || '-';
+            };
+
+            const translatePeriodEn = (perAr: string) => {
+              const p = (perAr || '').trim();
+              if (p === 'الفترة الأولى' || p === 'الفترة الاولى') return 'First Period';
+              if (p === 'الفترة الثانية') return 'Second Period';
+              if (p === 'الفترة الثالثة') return 'Third Period';
+              if (p === 'الفترة الرابعة') return 'Fourth Period';
+              if (p === 'الفترة الخامسة') return 'Fifth Period';
+              return p || '-';
+            };
+
+            const formatDateLocal = (dStr: string) => {
               if (!dStr) return '-';
               const cleanStr = dStr.trim();
               const parts = cleanStr.split(/[-/]/);
@@ -5608,7 +5684,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
                   formatted = `${parts[0]} / ${parts[1]} / ${parts[2]}`;
                 }
               }
-              return activePdfNumberLang ? formatNumberDigits(formatted, activePdfNumberLang) : formatted;
+              return formatNumberDigits(formatted, effectiveSchedNumLang);
             };
 
             for (let rI = 0; rI < rows.length; rI++) {
@@ -5624,28 +5700,42 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               ctx.lineWidth = 0.8;
               ctx.strokeRect(marginX, curRowY, contentW, rowH);
 
+              const subjectDisplay = isEnglishScheduleCard
+                ? (getStoredSubjectEn(undefined, item.subject) || item.subject || '-')
+                : (item.subject || '-');
+
               const rowValues = [
-                activePdfNumberLang ? formatNumberDigits(String(rI + 1), activePdfNumberLang) : String(rI + 1),
-                item.day || '-',
-                formatDateRTLLocal(item.date),
-                item.period || '-',
-                item.fromTime ? (activePdfNumberLang ? formatNumberDigits(item.fromTime, activePdfNumberLang) : item.fromTime) : '-',
-                item.toTime ? (activePdfNumberLang ? formatNumberDigits(item.toTime, activePdfNumberLang) : item.toTime) : '-',
-                item.subject || '-',
+                formatNumberDigits(String(rI + 1), effectiveSchedNumLang),
+                isEnglishScheduleCard ? translateDayEn(item.day) : (item.day || '-'),
+                formatDateLocal(item.date),
+                isEnglishScheduleCard ? translatePeriodEn(item.period) : (item.period || '-'),
+                item.fromTime ? formatNumberDigits(item.fromTime, effectiveSchedNumLang) : '-',
+                item.toTime ? formatNumberDigits(item.toTime, effectiveSchedNumLang) : '-',
+                subjectDisplay,
               ];
 
-              let cellX = marginX + contentW;
-              ctx.direction = 'rtl';
+              ctx.direction = isEnglishScheduleCard ? 'ltr' : 'rtl';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillStyle = cellTextColor;
               ctx.font = `bold 14px "Cairo", sans-serif`;
 
-              for (let colI = 0; colI < rowValues.length; colI++) {
-                const colW = schedColWidths[colI];
-                ctx.strokeRect(cellX - colW, curRowY, colW, rowH);
-                ctx.fillText(rowValues[colI], cellX - colW / 2, curRowY + rowH / 2);
-                cellX -= colW;
+              if (isEnglishScheduleCard) {
+                let cellX = marginX;
+                for (let colI = 0; colI < rowValues.length; colI++) {
+                  const colW = schedColWidths[colI];
+                  ctx.strokeRect(cellX, curRowY, colW, rowH);
+                  ctx.fillText(rowValues[colI], cellX + colW / 2, curRowY + rowH / 2, colW - 10);
+                  cellX += colW;
+                }
+              } else {
+                let cellX = marginX + contentW;
+                for (let colI = 0; colI < rowValues.length; colI++) {
+                  const colW = schedColWidths[colI];
+                  ctx.strokeRect(cellX - colW, curRowY, colW, rowH);
+                  ctx.fillText(rowValues[colI], cellX - colW / 2, curRowY + rowH / 2);
+                  cellX -= colW;
+                }
               }
               curRowY += rowH;
             }
@@ -11325,7 +11415,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   const safeTitle = baseTitleForFile.replace(/[\\/:*?"<>|]/g, '_');
   const safeSubject = (subjectLabelDisplay || '').replace(/[\\/:*?"<>|]/g, '_');
   const filePrefix =
-    reportType === 'seat_numbers_with_schedule'
+    reportType === 'seat_numbers_with_schedule_english'
+      ? 'Seat_Numbers_With_Exam_Schedule_English'
+      : reportType === 'seat_numbers_with_schedule'
       ? 'أرقام_الجلوس_بجدول_الامتحانات'
       : reportType === 'calling_list'
       ? 'تقارير_المناداة'
@@ -11410,7 +11502,13 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } finally {
+    activePdfNumberLang = prevActivePdfNumberLang;
+    if (typeof window !== 'undefined') {
+      (window as any)._activePdfNumberLang = prevWindowActivePdfNumberLang;
+    }
+  }
 }
 
 export {

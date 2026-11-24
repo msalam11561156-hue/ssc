@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Clock, AlertTriangle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { syncTimeWithServer, checkTimeTampering } from '../utils/activationManager';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 
 interface TimeTamperModalProps {
   isOpen: boolean;
@@ -12,8 +13,6 @@ export const TimeTamperModal: React.FC<TimeTamperModalProps> = ({ isOpen, onReso
   const [isChecking, setIsChecking] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleRecheck = async () => {
     setIsChecking(true);
@@ -40,15 +39,17 @@ export const TimeTamperModal: React.FC<TimeTamperModalProps> = ({ isOpen, onReso
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      {isOpen && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          transition={{ duration: 0.3, type: 'spring', bounce: 0.25 }}
-          className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden"
-          dir="rtl"
+          key="time-tamper-backdrop"
+          {...FAST_BACKDROP_FADE}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
         >
+          <motion.div
+            {...FAST_MODAL_FLIP}
+            className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden"
+            dir="rtl"
+          >
           {/* خلفية جمالية */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -118,8 +119,9 @@ export const TimeTamperModal: React.FC<TimeTamperModalProps> = ({ isOpen, onReso
               <span>{isChecking ? 'جارٍ التحقق من الوقت...' : 'التحقق وتحديث الوقت الآن'}</span>
             </button>
           </div>
+          </motion.div>
         </motion.div>
-      </div>
+      )}
     </AnimatePresence>
   );
 };

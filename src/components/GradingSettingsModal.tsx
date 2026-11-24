@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { createPortal } from 'react-dom';
 import { Sliders, Lock, Unlock, Eye, EyeOff, Check, X, ShieldAlert, KeyRound, User, Hash, AlertCircle, AlertTriangle, TrendingUp, Percent, BookOpen } from 'lucide-react';
 import { 
@@ -210,17 +211,17 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <PortalModal>
       <AnimatePresence>
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        {isOpen && (
+        <motion.div
+          {...FAST_BACKDROP_FADE}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        >
           {!mercyOnly && (
           <motion.div
-            initial={{ scale: 0.9, y: 20, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 20, opacity: 0 }}
+            {...FAST_MODAL_FLIP}
             onClick={(e) => e.stopPropagation()}
             className="relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden p-[4px] flex flex-col"
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
@@ -561,15 +562,14 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
             );
 
             return (
-            <div
+            <motion.div
+              {...FAST_BACKDROP_FADE}
               className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
               onClick={handleCloseMercyModal}
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
             >
               <motion.div
-                initial={{ scale: 0.9, y: 20, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                {...FAST_MODAL_FLIP}
                 onClick={(e) => e.stopPropagation()}
                 className="relative rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden p-[4px] flex flex-col"
               >
@@ -819,10 +819,11 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                   </div>
                 </div>
               </motion.div>
-            </div>
+            </motion.div>
             );
           })()}
-        </div>
+        </motion.div>
+        )}
       </AnimatePresence>
     </PortalModal>
   );

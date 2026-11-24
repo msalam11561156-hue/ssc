@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { FileSpreadsheet, X, Check } from 'lucide-react';
 import { StudentData, EducationType } from '../types';
 import { isInternationalSchool } from '../i18n';
 import * as XLSX from 'xlsx';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 
 interface ExportExcelModalProps {
   isOpen: boolean;
@@ -23,8 +25,6 @@ export const ExportExcelModal: React.FC<ExportExcelModalProps> = ({
   const [selectedColsFirst, setSelectedColsFirst] = useState<string[]>([]);
   const [selectedColsSecond, setSelectedColsSecond] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
-
-  if (!isOpen) return null;
 
   const isInternational = isInternationalSchool(educationType);
   const columns = [
@@ -48,8 +48,18 @@ export const ExportExcelModal: React.FC<ExportExcelModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" dir="rtl">
-      <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl">
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="export-excel-backdrop"
+          {...FAST_BACKDROP_FADE}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          dir="rtl"
+        >
+          <motion.div
+            {...FAST_MODAL_FLIP}
+            className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl"
+          >
         <h2 className="text-xl font-black mb-4">تصدير شيت الكنترول إلى Excel</h2>
         
         <div className="mb-4">
@@ -86,7 +96,9 @@ export const ExportExcelModal: React.FC<ExportExcelModalProps> = ({
           <button onClick={onClose} className="px-4 py-2 rounded-xl bg-gray-200">إلغاء</button>
           <button onClick={handleExport} disabled={isExporting} className="px-4 py-2 rounded-xl bg-green-600 text-white">تصدير الآن</button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

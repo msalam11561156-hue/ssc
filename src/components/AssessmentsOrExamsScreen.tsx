@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowRight, ArrowLeft, ClipboardList, PenTool, Layers, Info, X, Check } from 'lucide-react';
 import { translations } from '../i18n';
 import { Language } from '../types';
@@ -61,35 +62,20 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, x: 100, scale: 0.95 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        exit={{ opacity: 0, x: -100, scale: 0.9 }}
-        transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
-        className="w-full max-w-2xl mx-auto relative p-[8px] rounded-3xl overflow-hidden shadow-2xl"
+      <div
+        className="w-full max-w-2xl mx-auto relative p-[8px] rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white/40 via-slate-800/40 to-white/25"
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
       >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] aspect-square bg-[conic-gradient(transparent_270deg,#ffffff_360deg)]"
-        />
-        
         <div className="rounded-2xl p-8 md:p-12 border-[1.5px] border-slate-900 relative z-10 overflow-hidden w-full h-full">
-          <motion.div
-            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-            transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
-            className="absolute inset-0 z-[-1] bg-gradient-to-r from-slate-400 via-rose-600 to-[#d4a373] bg-[length:400%_400%]"
+          <div
+            className="absolute inset-0 z-[-1] bg-gradient-to-r from-slate-400 via-rose-600 to-[#d4a373]"
           />
 
           <AnimatePresence mode="wait">
             {viewMode === 'main' ? (
               <motion.div
                 key="main-view"
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ duration: 0.25 }}
+                {...FAST_SCREEN_FLIP}
                 className="w-full flex flex-col items-center"
               >
                 <div className="flex flex-col gap-6 w-full max-w-sm mx-auto mt-8">
@@ -183,10 +169,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
             ) : (
               <motion.div
                 key="assessments-sub-view"
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ duration: 0.25 }}
+                {...FAST_SCREEN_FLIP}
                 className="w-full flex flex-col items-center"
               >
                 <div className="flex flex-col gap-6 w-full max-w-sm mx-auto mt-8">
@@ -244,16 +227,17 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
 
       {/* Modal نافذة إشعار شاشة التقييمات تفصيلاً */}
       <AnimatePresence>
         {showDetailedModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              {...FAST_MODAL_FLIP}
               className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full border-2 border-slate-900 shadow-2xl relative text-center"
               dir="rtl"
             >
@@ -285,7 +269,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                 حسناً
               </button>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

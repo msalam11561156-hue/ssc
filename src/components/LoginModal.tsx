@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Shield, Lock, Mail, User, ArrowLeft, X, Check, AlertCircle } from 'lucide-react';
 import { Language } from '../types';
 import brandShield from '../assets/images/brand_shield.png';
@@ -24,8 +25,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [role, setRole] = useState<'admin' | 'teacher' | 'viewer'>('admin');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,16 +54,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div 
+      {isOpen && (
+      <motion.div
+        {...FAST_BACKDROP_FADE}
         className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ type: 'spring', duration: 0.4 }}
+          {...FAST_MODAL_FLIP}
           onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-indigo-500/50 rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] p-6 md:p-8 flex flex-col text-slate-100 overflow-hidden"
         >
@@ -198,7 +196,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </button>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

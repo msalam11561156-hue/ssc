@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import {
   FolderOutput,
   UploadCloud,
@@ -40,8 +41,6 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  if (!isOpen) return null;
 
   const handleFile = (file: File) => {
     if (!file) return;
@@ -120,24 +119,21 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 font-arabic" dir="rtl">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-slate-950/75 backdrop-blur-md"
-        onClick={() => !isProcessing && onClose()}
-      />
+    <AnimatePresence>
+      {isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 font-arabic" dir="rtl">
+        {/* Backdrop */}
+        <motion.div
+          {...FAST_BACKDROP_FADE}
+          className="absolute inset-0 bg-slate-950/75 backdrop-blur-md"
+          onClick={() => !isProcessing && onClose()}
+        />
 
-      {/* Modal Dialog Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.94, y: 15 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
-      >
+        {/* Modal Dialog Card */}
+        <motion.div
+          {...FAST_MODAL_FLIP}
+          className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl z-10 border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+        >
         {/* Header with vibrant amber/orange gradient */}
         <div className="relative overflow-hidden bg-gradient-to-l from-orange-600 via-amber-600 to-amber-700 px-6 py-5 text-white flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
@@ -371,7 +367,9 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
             )}
           </div>
         )}
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+      )}
+    </AnimatePresence>
   );
 };

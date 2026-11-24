@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sliders, Printer, X, Check } from 'lucide-react';
 import { CustomControlSheetOptions } from '../utils/exportPdf';
 import { formatNumberDigits } from '../utils/numberLangHelper';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 
 interface CustomControlSheetModalProps {
   isOpen: boolean;
@@ -26,8 +28,6 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
   const [includeNonAddedSubjects, setIncludeNonAddedSubjects] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  if (!isOpen) return null;
-
   const handlePrint = async () => {
     try {
       setIsExporting(true);
@@ -48,11 +48,18 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
   const semLabel = semester === 'first' ? 'الفصل الدراسي الأول' : 'الفصل الدراسي الثانى';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-right flex flex-col max-h-[90vh]"
-        dir="rtl"
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="custom-control-sheet-backdrop"
+          {...FAST_BACKDROP_FADE}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+        >
+          <motion.div
+            {...FAST_MODAL_FLIP}
+            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-right flex flex-col max-h-[90vh]"
+            dir="rtl"
+          >
         {/* رأس النافذة */}
         <div className="relative bg-gradient-to-r from-sky-700 via-indigo-700 to-sky-700 p-5 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -244,7 +251,9 @@ export const CustomControlSheetModal: React.FC<CustomControlSheetModalProps> = (
             <span>طباعة شيت كنترول مخصص</span>
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

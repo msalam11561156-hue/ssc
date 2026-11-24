@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
+import { preloadAndCacheOfflineAssets } from './utils/offlineAssetCache';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -36,7 +37,7 @@ const runDeferredBootstrap = () => {
   }, 1500);
 
   scheduleIdle(() => {
-    import('./utils/offlineAssetCache').then((m) => m.preloadAndCacheOfflineAssets()).catch(() => {});
+    preloadAndCacheOfflineAssets();
   }, 3500);
 };
 

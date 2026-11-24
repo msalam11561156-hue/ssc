@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, User } from 'firebase/auth';
 import { AlertCircle } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
@@ -65,10 +66,9 @@ const RIGHT_WING_KF = buildWingKeyframes(-1);
 interface LoginScreenProps {
   onSuccess?: (user: User) => void;
   onContinueWithoutAccount?: () => void;
-  footer?: React.ReactNode;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount, footer }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
   const [logoSrc, setLogoSrc] = useState<string>(loginLogoDefaultUrl);
   const [portraitSrc, setPortraitSrc] = useState<string>(loginPortraitFallbackUrl);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +77,48 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+
+  const [offlineBootCount, setOfflineBootCount] = useState<number>(() => {
+    return parseInt(localStorage.getItem('smart_control_offline_boot_count') || '0', 10);
+  });
+  const [showMandatoryUpdateModal, setShowMandatoryUpdateModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      localStorage.setItem('smart_control_offline_boot_count', '0');
+      setOfflineBootCount(0);
+      setShowMandatoryUpdateModal(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    const isOnline = navigator.onLine;
+    if (isOnline) {
+      localStorage.setItem('smart_control_offline_boot_count', '0');
+      setOfflineBootCount(0);
+      setShowMandatoryUpdateModal(false);
+    } else {
+      const countedThisSession = sessionStorage.getItem('smart_control_offline_boot_counted');
+      if (!countedThisSession) {
+        sessionStorage.setItem('smart_control_offline_boot_counted', 'true');
+        const currentCount = parseInt(localStorage.getItem('smart_control_offline_boot_count') || '0', 10) + 1;
+        localStorage.setItem('smart_control_offline_boot_count', currentCount.toString());
+        setOfflineBootCount(currentCount);
+        if (currentCount >= 25) {
+          setShowMandatoryUpdateModal(true);
+        }
+      } else {
+        const currentCount = parseInt(localStorage.getItem('smart_control_offline_boot_count') || '0', 10);
+        if (currentCount >= 25) {
+          setShowMandatoryUpdateModal(true);
+        }
+      }
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
 
   useEffect(() => {
     // Check redirect result for desktop PWA standalone mode
@@ -101,6 +143,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
 
   const handleGoogleLogin = async () => {
     if (isLoading) return;
+    if (!navigator.onLine && offlineBootCount >= 25) {
+      setShowMandatoryUpdateModal(true);
+      return;
+    }
     setErrorMsg(null);
     setIsLoading(true);
     try {
@@ -182,14 +228,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   return (
     <div
       dir="rtl"
-      className="min-h-screen min-h-[100dvh] w-full flex flex-col relative overflow-x-clip [color-scheme:light_only]"
+      className="min-h-screen min-h-[100dvh] w-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-5 relative overflow-x-hidden overflow-y-auto [color-scheme:light_only]"
     >
       <AnimatedBackground />
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center p-2 sm:p-4 md:p-5">
       <motion.div
-        initial={{ opacity: 1, y: 0, scale: 1 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        {...FAST_SCREEN_FLIP}
         className="relative z-10 w-full md:max-w-[920px] lg:max-w-[1074px] my-auto"
       >
         {/* Clipped Luminous Frame & Split Card */}
@@ -585,7 +629,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
 
             <button
               type="button"
-              onClick={() => onContinueWithoutAccount?.()}
+              onClick={() => {
+                if (!navigator.onLine && offlineBootCount >= 25) {
+                  setShowMandatoryUpdateModal(true);
+                  return;
+                }
+                onContinueWithoutAccount?.();
+              }}
               disabled={isLoading}
               className="w-full h-12 md:h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-[1.05rem] border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
@@ -603,9 +653,44 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
           Mahmoud Sallam : 01098594956 - 01131097055
         </p>
       </div>
-      </div>
 
-      {footer}
+      <AnimatePresence>
+        {showMandatoryUpdateModal && (
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+            dir="rtl"
+          >
+            <motion.div
+              {...FAST_MODAL_FLIP}
+              className="bg-slate-900 border-2 border-red-500/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center flex flex-col items-center gap-4"
+            >
+              <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                <AlertCircle className="w-8 h-8 animate-pulse" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">تحديث مطلوب</h3>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-semibold">
+                يجب تشغيل الانترنت لتحديث التطبيق .. تلقائيا
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.onLine) {
+                    localStorage.setItem('smart_control_offline_boot_count', '0');
+                    setOfflineBootCount(0);
+                    setShowMandatoryUpdateModal(false);
+                  } else {
+                    alert('لا يوجد اتصال بالإنترنت حالياً. يرجى توصيل الإنترنت لإتمام التحديث والمتابعة.');
+                  }
+                }}
+                className="w-full mt-2 py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-lg transition-all cursor-pointer"
+              >
+                حسنا
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

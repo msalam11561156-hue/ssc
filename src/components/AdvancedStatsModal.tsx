@@ -7,6 +7,7 @@ import {
   CheckCircle, FileText, PieChart, ShieldAlert, Layers
 } from 'lucide-react';
 import { formatNumberDigits } from '../utils/numberLangHelper';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 
 interface AdvancedStatsModalProps {
   isOpen: boolean;
@@ -37,9 +38,7 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'risk' | 'bellcurve' | 'subjects' | 'ministerial' | 'comparison'>('overview');
 
-  if (!isOpen) return null;
-
-  const totalStudents = students.length;
+  const totalStudents = isOpen ? students.length : 0;
   const presentStudents = students.filter(s => {
     const status = s.studentStatus || s.enrollmentStatus || '';
     return !status.includes('غائب') && !status.includes('منقطع');
@@ -107,14 +106,18 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
 
   return (
     <PortalModal>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-6xl bg-white rounded-[28px] shadow-2xl border-4 border-teal-600 overflow-hidden flex flex-col max-h-[92vh]"
-          dir="rtl"
-        >
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="advanced-stats-backdrop"
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto"
+          >
+            <motion.div
+              {...FAST_MODAL_FLIP}
+              className="relative w-full max-w-6xl bg-white rounded-[28px] shadow-2xl border-4 border-teal-600 overflow-hidden flex flex-col max-h-[92vh]"
+              dir="rtl"
+            >
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-700 via-emerald-700 to-cyan-800 text-white p-6 flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
@@ -478,8 +481,10 @@ export const AdvancedStatsModal: React.FC<AdvancedStatsModalProps> = ({
             إغلاق
           </button>
         </div>
-      </motion.div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PortalModal>
   );
 };

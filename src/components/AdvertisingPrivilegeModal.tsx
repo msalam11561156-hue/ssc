@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { X, Megaphone, Save, RotateCcw, Plus, Trash2, LayoutTemplate, Eye } from 'lucide-react';
 import { getDeviceId } from '../utils/activationManager';
 import { PasswordModal } from './PasswordModal';
@@ -126,8 +127,6 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const [errorIndex, setErrorIndex] = useState<number | null>(null);
 
 
@@ -176,21 +175,19 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-[1209px] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-yellow-300 via-red-400 to-teal-400 rounded-3xl p-6 md:p-8 shadow-2xl z-10 border-2 border-black text-slate-900 custom-scrollbar"
-          dir="rtl"
-        >
+      <AnimatePresence>
+        {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            {...FAST_MODAL_FLIP}
+            className="relative w-full max-w-[1209px] max-h-[90vh] overflow-y-auto bg-gradient-to-br from-yellow-300 via-red-400 to-teal-400 rounded-3xl p-6 md:p-8 shadow-2xl z-10 border-2 border-black text-slate-900 custom-scrollbar"
+            dir="rtl"
+          >
           <div className="flex items-start justify-between mb-5">
             <div className="flex flex-col w-full">
               <div className="flex items-center gap-3 mb-3">
@@ -244,9 +241,9 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
                       if (errorIndex === index) setErrorIndex(null);
                     }}
                     placeholder={[
-                      "مثال : على محمد أبو طالب - معلم خبير مادة الرياضيات - 010000000000 - 0110000000000",
-                      "مثال : مكتبة الشروق للخدمات التعليمية - 010000000000 - 0110000000000",
-                      "مثال : مركز الصفوة لتعليم اللغات والبرمجة - 010000000000 - 0110000000000"
+                      "نموذج : محمد على رضوان - معلم خبير مادة الرياضيات - 010000000000 - 0110000000000",
+                      "نموذج : مكتبة الشروق للخدمات التعليمية - 010000000000 - 0110000000000",
+                      "نموذج : مركز الصفوة لتعليم اللغات والبرمجة - 010000000000 - 0110000000000"
                     ][index % 3]}
                     rows={1}
                     className={`w-2/3 rounded-2xl border-2 p-3 text-[12px] font-semibold text-slate-950 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-black resize-none ${
@@ -266,7 +263,11 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
           {/* Action Buttons */}
           <div className="flex items-center justify-between mt-6">
             <div className="flex flex-col gap-2">
-              <button onClick={addSlot} className="py-3 px-6 rounded-xl border-2 border-dashed border-black text-slate-950 font-bold flex items-center gap-2 hover:bg-black/5">
+              <button 
+                onClick={addSlot} 
+                disabled={!enabled}
+                className={`py-3 px-6 rounded-xl border-2 border-dashed border-black font-bold flex items-center gap-2 transition-all ${enabled ? 'text-slate-950 hover:bg-black/5 cursor-pointer' : 'text-slate-500 bg-slate-200/50 cursor-not-allowed opacity-60'}`}
+              >
                 <Plus className="w-5 h-5" /> إضافة إعلان جديد
               </button>
 
@@ -286,7 +287,7 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
                 className="w-28 md:w-32 py-3 px-3 rounded-xl border-2 border-black bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-sm md:text-base shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-amber-500/30 hover:shadow-lg"
                 title="عرض نموذج توضيحي للامتياز الإعلاني في بطاقة رقم الجلوس"
               >
-                <Eye className="w-5 h-5 shrink-0 text-slate-950" /> <span>مثال</span>
+                <Eye className="w-5 h-5 shrink-0 text-slate-950" /> <span>نموذج</span>
               </button>
 
               <button 
@@ -298,22 +299,22 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+        )}
+      </AnimatePresence>
 
       {/* نافذة عرض نموذج الامتياز الإعلاني - خلفيتها صورة المرفق */}
       <AnimatePresence>
         {showExampleModal && (
-          <div 
+          <motion.div
+            {...FAST_BACKDROP_FADE}
             className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-5 md:p-8 bg-slate-950/85 backdrop-blur-md"
             dir="rtl"
             onClick={() => setShowExampleModal(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 15 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
+              {...FAST_MODAL_FLIP}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-5xl rounded-2xl md:rounded-3xl border-3 border-amber-400 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col"
               style={{
@@ -348,7 +349,7 @@ export const AdvertisingPrivilegeModal: React.FC<AdvertisingPrivilegeModalProps>
                 </div>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

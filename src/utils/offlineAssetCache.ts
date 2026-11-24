@@ -11,7 +11,7 @@ import splashScreenshotUrl from '../assets/images/meeting_room_smart.jpg';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 import brandShieldUrl from '../assets/images/brand_shield.png';
 import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
-import privateSchoolExamsUrl from '../assets/images/private_school_exams_1795389408308.jpg';
+const privateSchoolExamsUrl = sponsorAdBannerUrl;
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
@@ -404,8 +404,121 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
       }).catch(() => {});
     }
 
-    await Promise.allSettled([certsPromise, splashPromise, adExamplePromise, sponsorBannerPromise]);
+    await Promise.allSettled([
+      certsPromise,
+      splashPromise,
+      adExamplePromise,
+      sponsorBannerPromise,
+      getCachedEnglishSeatExample().catch(() => {}),
+      getCachedEnglishSeatScheduleExample().catch(() => {}),
+      getCachedEnglishCertExample().catch(() => {}),
+      getCachedAppreciationCertExample().catch(() => {}),
+    ]);
   } catch (e) {
     console.warn('Preload offline assets warning:', e);
+  }
+}
+
+const ENGLISH_SEAT_EXAMPLE_CACHE_KEY = 'offline_english_seat_example_v1';
+const ENGLISH_SEAT_EXAMPLE_URL = '/assets/aistudio/Screenshot_1_33782f4f.jpg';
+
+export async function getCachedEnglishSeatExample(): Promise<string> {
+  if (memoryCache.has(ENGLISH_SEAT_EXAMPLE_CACHE_KEY)) {
+    return memoryCache.get(ENGLISH_SEAT_EXAMPLE_CACHE_KEY)!;
+  }
+  try {
+    const idbData = await idbGet(ENGLISH_SEAT_EXAMPLE_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(ENGLISH_SEAT_EXAMPLE_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for english seat example:', e);
+  }
+  try {
+    const dataUrl = await fetchToDataUrl(ENGLISH_SEAT_EXAMPLE_URL);
+    memoryCache.set(ENGLISH_SEAT_EXAMPLE_CACHE_KEY, dataUrl);
+    idbSet(ENGLISH_SEAT_EXAMPLE_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return ENGLISH_SEAT_EXAMPLE_URL;
+  }
+}
+
+const ENGLISH_CERT_EXAMPLE_CACHE_KEY = 'offline_english_cert_example_v2';
+const ENGLISH_CERT_EXAMPLE_URL = '/assets/aistudio/1234_fe7474fc.jpg';
+
+export async function getCachedEnglishCertExample(): Promise<string> {
+  if (memoryCache.has(ENGLISH_CERT_EXAMPLE_CACHE_KEY)) {
+    return memoryCache.get(ENGLISH_CERT_EXAMPLE_CACHE_KEY)!;
+  }
+  try {
+    const idbData = await idbGet(ENGLISH_CERT_EXAMPLE_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(ENGLISH_CERT_EXAMPLE_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for english cert example:', e);
+  }
+  try {
+    const dataUrl = await fetchToDataUrl(ENGLISH_CERT_EXAMPLE_URL);
+    memoryCache.set(ENGLISH_CERT_EXAMPLE_CACHE_KEY, dataUrl);
+    idbSet(ENGLISH_CERT_EXAMPLE_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return ENGLISH_CERT_EXAMPLE_URL;
+  }
+}
+
+const APPRECIATION_CERT_EXAMPLE_CACHE_KEY = 'offline_appreciation_cert_example_v1';
+const APPRECIATION_CERT_EXAMPLE_URL = '/assets/aistudio/Screenshot_39_f29a76cd.jpg';
+
+export async function getCachedAppreciationCertExample(): Promise<string> {
+  if (memoryCache.has(APPRECIATION_CERT_EXAMPLE_CACHE_KEY)) {
+    return memoryCache.get(APPRECIATION_CERT_EXAMPLE_CACHE_KEY)!;
+  }
+  try {
+    const idbData = await idbGet(APPRECIATION_CERT_EXAMPLE_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(APPRECIATION_CERT_EXAMPLE_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for appreciation cert example:', e);
+  }
+  try {
+    const dataUrl = await fetchToDataUrl(APPRECIATION_CERT_EXAMPLE_URL);
+    memoryCache.set(APPRECIATION_CERT_EXAMPLE_CACHE_KEY, dataUrl);
+    idbSet(APPRECIATION_CERT_EXAMPLE_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return APPRECIATION_CERT_EXAMPLE_URL;
+  }
+}
+
+const ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY = 'offline_english_seat_schedule_example_v1';
+const ENGLISH_SEAT_SCHEDULE_EXAMPLE_URL = '/assets/aistudio/Screenshot_17_c02a8e5f.jpg';
+
+export async function getCachedEnglishSeatScheduleExample(): Promise<string> {
+  if (memoryCache.has(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY)) {
+    return memoryCache.get(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY)!;
+  }
+  try {
+    const idbData = await idbGet(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for english seat schedule example:', e);
+  }
+  try {
+    const dataUrl = await fetchToDataUrl(ENGLISH_SEAT_SCHEDULE_EXAMPLE_URL);
+    memoryCache.set(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY, dataUrl);
+    idbSet(ENGLISH_SEAT_SCHEDULE_EXAMPLE_CACHE_KEY, dataUrl).catch(() => {});
+    return dataUrl;
+  } catch (err) {
+    return ENGLISH_SEAT_SCHEDULE_EXAMPLE_URL;
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { Clock, ShieldCheck, CheckCircle2, X, Bell } from 'lucide-react';
 import { playClickSound } from '../utils/sound';
 import { getBrandShieldSync } from '../utils/offlineAssetCache';
@@ -25,8 +26,6 @@ export const AutoBackupModal: React.FC<AutoBackupModalProps> = ({ isOpen, onClos
     setIntervalOption(savedInterval);
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleSave = () => {
     playClickSound();
     localStorage.setItem('sheet_control_auto_backup_enabled', isEnabled ? 'true' : 'false');
@@ -48,14 +47,19 @@ export const AutoBackupModal: React.FC<AutoBackupModalProps> = ({ isOpen, onClos
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+    <AnimatePresence>
+      {isOpen && (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-right"
-        dir="rtl"
+        {...FAST_BACKDROP_FADE}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={() => { playClickSound(); onClose(); }}
       >
+        <motion.div
+          {...FAST_MODAL_FLIP}
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-right"
+          dir="rtl"
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
           <div className="flex items-center gap-3">
@@ -178,7 +182,9 @@ export const AutoBackupModal: React.FC<AutoBackupModalProps> = ({ isOpen, onClos
             حفظ الإعدادات
           </button>
         </div>
+        </motion.div>
       </motion.div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
