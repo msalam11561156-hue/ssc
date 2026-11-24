@@ -1537,7 +1537,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   return (
     <div
-      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 font-sans my-4"
+      className="w-[96%] sm:w-[95vw] max-w-[95vw] mx-auto relative rounded-2xl shadow-2xl p-[6px] bg-slate-900 font-sans"
       dir="rtl"
     >
       {/* Container Card */}

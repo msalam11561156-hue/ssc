@@ -1910,7 +1910,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7].includes(step) ? 'p-1 sm:py-6 sm:px-0' : 'p-4 md:p-8'}`}>
+        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : 'justify-center'} ${step === 0 ? '' : [4, 6, 7, 9].includes(step) ? 'pt-0.5 pb-0.5 px-1 sm:pt-[18px] sm:pb-[10px] sm:px-0' : 'p-4 md:p-8'}`}>
           {step === 10 && (
             <Suspense fallback={null}>
               <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
