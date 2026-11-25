@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -596,35 +596,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     window.addEventListener('row_theme_updated', handler);
     return () => window.removeEventListener('row_theme_updated', handler);
   }, []);
-  const [studentNameEnModal, setStudentNameEnModal] = useState<{
-    studentId: string;
-    arName: string;
-    index: number;
-  } | null>(null);
-  const [tempStudentNameEn, setTempStudentNameEn] = useState('');
-
-  const capitalizeEachWord = (val: string) =>
-    val.replace(/(^|[\s.\-/]+)([a-z])/g, (_, sep, char) => sep + char.toUpperCase());
-
-  const openStudentNameEnModal = (student: StudentData, index: number) => {
-    setTempStudentNameEn(capitalizeEachWord(student.nameEn || ''));
-    setStudentNameEnModal({
-      studentId: student.id,
-      arName: student.name || (isKindergarten ? `تلميذ رقم ${index + 1}` : `طالب رقم ${index + 1}`),
-      index,
-    });
-  };
-
-  const handleSaveStudentNameEn = () => {
-    if (!studentNameEnModal) return;
-    const trimmed = capitalizeEachWord(tempStudentNameEn.trim());
-    onChange(
-      data.map((s) =>
-        s.id === studentNameEnModal.studentId ? { ...s, nameEn: trimmed } : s
-      )
-    );
-    setStudentNameEnModal(null);
-  };
   
   const [isSeatNumModalOpen, setIsSeatNumModalOpen] = useState(false);
   const [isSecretNumModalOpen, setIsSecretNumModalOpen] = useState(false);
@@ -4006,40 +3977,19 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         ensureCellVisible(e.target);
                       }}
                       onPaste={(e) => handlePaste(e, student.id, "name", idx, 0)}
-                      className="w-full h-full bg-transparent border-none pl-[76px] pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
+                      className="w-full h-full bg-transparent border-none pl-11 pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
                     />
-                    <div dir="ltr" className="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingStudentState({ student, rowNumber: idx + 1 });
-                        }}
-                        title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
-                        className="w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openStudentNameEnModal(student, idx);
-                        }}
-                        title={
-                          student.nameEn?.trim()
-                            ? `الاسم بالإنجليزية: ${student.nameEn}`
-                            : (isKindergarten ? 'تحرير اسم التلميذ باللغة الإنجليزية' : 'تحرير اسم الطالب باللغة الإنجليزية')
-                        }
-                        className={`w-7 h-7 rounded-lg border border-slate-900 flex items-center justify-center transition-all shadow-sm active:scale-95 ${
-                          student.nameEn?.trim()
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700'
-                            : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700'
-                        }`}
-                      >
-                        <Languages className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingStudentState({ student, rowNumber: idx + 1 });
+                      }}
+                      title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                   </td>
                   <td className={`p-0 border-2 border-slate-900 relative group/cell focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[210px] max-w-[210px] w-[210px]' : 'min-w-[192px] max-w-[192px] w-[192px]'}`}>
                     <input 
@@ -5659,86 +5609,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
                   >
                     <X className="w-8 h-8" strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Student Name in English Modal */}
-      <AnimatePresence>
-        {studentNameEnModal && (
-          <motion.div
-            {...FAST_BACKDROP_FADE}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
-            onClick={() => setStudentNameEnModal(null)}
-          >
-            <motion.div
-              {...FAST_MODAL_FLIP}
-              className="relative w-full max-w-md rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="absolute inset-[-100%] animate-[spin_6s_linear_infinite] bg-[conic-gradient(from_0deg,#a855f7_0%,#ffffff_25%,#3b82f6_50%,#ffffff_75%,#a855f7_100%)] pointer-events-none" />
-
-              <div className="relative z-10 w-full p-6 rounded-2xl bg-white flex flex-col gap-5" dir="rtl">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white border border-slate-900 flex items-center justify-center shadow-sm shrink-0">
-                      <Languages className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-extrabold text-slate-900">
-                        {isKindergarten ? 'تحرير اسم التلميذ باللغة الإنجليزية' : 'تحرير اسم الطالب باللغة الإنجليزية'}
-                      </h3>
-                      <p className="text-xs font-bold text-purple-700">
-                        {studentNameEnModal.arName}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2.5" dir="ltr">
-                  <label className="block text-xs font-extrabold text-slate-700 text-left">
-                    Student Name ( in English )
-                  </label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    autoFocus
-                    value={tempStudentNameEn}
-                    onChange={(e) => setTempStudentNameEn(capitalizeEachWord(e.target.value))}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSaveStudentNameEn();
-                      }
-                    }}
-                    placeholder="e.g. Mohamed Ahmed Mahmoud"
-                    className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-3 px-4 text-left font-bold text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-inner"
-                  />
-                </div>
-
-                <p className="text-[11px] font-bold text-slate-500 leading-relaxed text-right">
-                  سيتم استخدام القيم المحفوظة باللغة الإنجليزية عند طباعة أرقام الجلوس باللغة الإنجليزية  وعند طباعة شهادات الطلاب باللغة الإنجليزية.
-                </p>
-
-                <div className="flex items-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSaveStudentNameEn}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-xl border-[1.5px] border-slate-900 shadow-md transition-all active:scale-95"
-                  >
-                    <Check className="w-5 h-5" />
-                    <span>حفظ</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStudentNameEnModal(null)}
-                    className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold border-[1.5px] border-slate-900 transition-all active:scale-95"
-                  >
-                    إلغاء
                   </button>
                 </div>
               </div>
