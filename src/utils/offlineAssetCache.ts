@@ -11,13 +11,16 @@ import splashScreenshotUrl from '../assets/images/meeting_room_smart.jpg';
 import adPrivilegeExampleUrl from '../assets/images/ad_privilege_seat_number_example.jpg';
 import brandShieldUrl from '../assets/images/brand_shield.png';
 import sponsorAdBannerUrl from '../assets/images/sponsor_ad_banner.jpg';
+import loginPortraitEnhancedUrl from '../assets/images/login_classroom_enhanced_1795622866575.jpg';
 const privateSchoolExamsUrl = sponsorAdBannerUrl;
 
 const memoryCache = new Map<string, string>();
 const BRAND_SHIELD_CACHE_KEY = 'offline_brand_shield_v2';
 const SPONSOR_AD_BANNER_CACHE_KEY = 'offline_sponsor_ad_banner_v1';
-const LOGIN_PORTRAIT_CACHE_KEY = 'offline_login_portrait_v1';
-const LOGIN_PORTRAIT_URL = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
+const LOGIN_PORTRAIT_CACHE_KEY = 'offline_login_portrait_v2';
+const LOGIN_PORTRAIT_URL = loginPortraitEnhancedUrl;
+const LOGIN_LOGO_CACHE_KEY = 'offline_login_logo_v1';
+const LOGIN_LOGO_URL = '/pwa-256x256.png';
 const LOGIN_EXAM_PORTRAIT_CACHE_KEY = 'offline_login_exam_portrait_v1';
 
 async function detectImageMimeFromBlob(blob: Blob, url: string): Promise<string | null> {
@@ -137,12 +140,50 @@ export async function getCachedCertificateTemplate(design: 'classic' | 'royal'):
 
 export type SplashType = 'blue_shield' | 'illustration' | 'brand' | 'modern_control' | 'gold_shield' | 'cloud_dashboard' | 'screenshot';
 
+export const SPLASH_SLIDE_ORDER: SplashType[] = [
+  'blue_shield',
+  'illustration',
+  'brand',
+  'modern_control',
+  'gold_shield',
+  'cloud_dashboard',
+  'screenshot',
+];
+
+function getSplashCacheKey(type: SplashType): string {
+  return `offline_splash_bg_${type}_v20`;
+}
+
+function getSplashAssetUrl(type: SplashType): string {
+  switch (type) {
+    case 'blue_shield':
+      return splashBlueShieldUrl;
+    case 'illustration':
+      return splashIllustrationUrl;
+    case 'brand':
+      return splashBrandBgUrl;
+    case 'modern_control':
+      return splashModernControlUrl;
+    case 'gold_shield':
+      return splashGoldShieldUrl;
+    case 'screenshot':
+      return splashScreenshotUrl;
+    case 'cloud_dashboard':
+    default:
+      return splashCloudDashboardUrl;
+  }
+}
+
+export function getSplashBackgroundSync(type: SplashType): string {
+  return memoryCache.get(getSplashCacheKey(type)) || getSplashAssetUrl(type);
+}
+
 /**
  * جلب وحفظ خلفيات شاشة البداية الافتتاحية محلياً على جهاز العميل (IndexedDB)
  * لضمان التحميل الفوري وعدم فقدانها أبداً في وضع عدم الاتصال
  */
 export async function getCachedSplashBackground(type: SplashType): Promise<string> {
-  const cacheKey = `offline_splash_bg_${type}_v19`;
+  const cacheKey = getSplashCacheKey(type);
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -158,27 +199,14 @@ export async function getCachedSplashBackground(type: SplashType): Promise<strin
     console.warn('IDB read warning for splash background:', e);
   }
 
-  const targetUrl = 
-    type === 'blue_shield' 
-      ? splashBlueShieldUrl 
-      : type === 'illustration' 
-      ? splashIllustrationUrl 
-      : type === 'brand' 
-      ? splashBrandBgUrl 
-      : type === 'modern_control'
-      ? splashModernControlUrl
-      : type === 'gold_shield'
-      ? splashGoldShieldUrl
-      : type === 'screenshot'
-      ? splashScreenshotUrl
-      : splashCloudDashboardUrl;
+  const targetUrl = getSplashAssetUrl(type);
 
   try {
     const dataUrl = await fetchToDataUrl(targetUrl);
     memoryCache.set(cacheKey, dataUrl);
     idbSet(cacheKey, dataUrl).catch(() => {});
     return dataUrl;
-  } catch (err) {
+  } catch {
     return targetUrl;
   }
 }
@@ -222,12 +250,45 @@ export function getLoginPortraitSync(): string {
   return memoryCache.get(LOGIN_PORTRAIT_CACHE_KEY) || LOGIN_PORTRAIT_URL;
 }
 
+export function getLoginLogoSync(): string {
+  return memoryCache.get(LOGIN_LOGO_CACHE_KEY) || LOGIN_LOGO_URL;
+}
+
 export function getLoginExamPortraitSync(): string {
   return memoryCache.get(LOGIN_EXAM_PORTRAIT_CACHE_KEY) || privateSchoolExamsUrl;
 }
 
 export function getSponsorAdBannerSync(): string {
   return memoryCache.get(SPONSOR_AD_BANNER_CACHE_KEY) || sponsorAdBannerUrl;
+}
+
+export async function getCachedLoginLogo(): Promise<string> {
+  if (memoryCache.has(LOGIN_LOGO_CACHE_KEY)) {
+    return memoryCache.get(LOGIN_LOGO_CACHE_KEY)!;
+  }
+
+  try {
+    const idbData = await idbGet(LOGIN_LOGO_CACHE_KEY);
+    if (idbData && typeof idbData === 'string' && idbData.startsWith('data:image/')) {
+      memoryCache.set(LOGIN_LOGO_CACHE_KEY, idbData);
+      return idbData;
+    }
+  } catch (e) {
+    console.warn('IDB read warning for login logo:', e);
+  }
+
+  for (const candidateUrl of [LOGIN_LOGO_URL, brandShieldUrl, '/brand_shield.png']) {
+    try {
+      const dataUrl = await fetchToDataUrl(candidateUrl);
+      memoryCache.set(LOGIN_LOGO_CACHE_KEY, dataUrl);
+      idbSet(LOGIN_LOGO_CACHE_KEY, dataUrl).catch(() => {});
+      return dataUrl;
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return LOGIN_LOGO_URL;
 }
 
 export async function getCachedLoginPortrait(): Promise<string> {
@@ -349,29 +410,30 @@ export async function getCachedBrandShield(): Promise<string> {
 export async function preloadAndCacheOfflineAssets(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    // 0. إعطاء الأولوية القصوى لصور نافذة تسجيل الدخول (الشعار + صورتا الفصل والامتحانات) قبل تنزيل الخلفيات الكبيرة
+    // 0. إعطاء الأولوية القصوى لصور نافذة تسجيل الدخول وأول صورة في معرض الشاشة الافتتاحية
     await Promise.allSettled([
+      getCachedLoginLogo().catch(() => {}),
       getCachedBrandShield().catch(() => {}),
       getCachedLoginPortrait().catch(() => {}),
       getCachedLoginExamPortrait().catch(() => {}),
+      getCachedSplashBackground('blue_shield').catch(() => {}),
     ]);
 
-    // 1. حفظ قوالب الشهادات في IndexedDB
-    const certsPromise = Promise.allSettled([
-      getCachedCertificateTemplate('royal'),
-      getCachedCertificateTemplate('classic'),
-    ]);
+    // 1. حفظ باقي صور معرض الشاشة الافتتاحية بالترتيب لضمان جاهزيتها الفورية قبل التنقل
+    const splashPromise = (async () => {
+      for (const type of SPLASH_SLIDE_ORDER) {
+        if (type === 'blue_shield') continue;
+        await getCachedSplashBackground(type).catch(() => {});
+      }
+    })();
 
-    // 2. حفظ صور الشاشة الافتتاحية السبع في IndexedDB
-    const splashPromise = Promise.allSettled([
-      getCachedSplashBackground('blue_shield'),
-      getCachedSplashBackground('illustration'),
-      getCachedSplashBackground('brand'),
-      getCachedSplashBackground('modern_control'),
-      getCachedSplashBackground('gold_shield'),
-      getCachedSplashBackground('cloud_dashboard'),
-      getCachedSplashBackground('screenshot'),
-    ]);
+    // 2. حفظ قوالب الشهادات في IndexedDB بعد بدء تجهيز المعرض
+    const certsPromise = splashPromise.then(() =>
+      Promise.allSettled([
+        getCachedCertificateTemplate('royal'),
+        getCachedCertificateTemplate('classic'),
+      ])
+    );
 
     // 3. حفظ نموذج الامتياز الإعلاني وصورة نافذة (هذا البرنامج برعاية) في IndexedDB
     const adExamplePromise = getCachedAdPrivilegeExample().catch(() => {});
@@ -385,18 +447,27 @@ export async function preloadAndCacheOfflineAssets(): Promise<void> {
           '/index.html',
           '/manifest.webmanifest',
           '/brand_shield.png',
+          loginPortraitEnhancedUrl,
           '/appicon.ico',
           '/favicon.ico',
           '/favicon.svg',
+          '/pwa-32x32.png',
+          '/pwa-48x48.png',
+          '/pwa-96x96.png',
           '/pwa-192x192.png',
+          '/pwa-256x256.png',
           '/pwa-512x512.png',
           '/pwa-maskable-512x512.png',
           '/apple-touch-icon.png',
           '/sounds/click.wav',
         ];
+        cache.delete('/assets/aistudio/Screenshot_12_bc36452f.jpg').catch(() => {});
         for (const asset of shellAssets) {
           try {
-            await cache.add(asset);
+            const existing = await cache.match(asset);
+            if (!existing) {
+              await cache.add(asset);
+            }
           } catch {
             // تجاهل أي فشل فردي عند عدم توفر اتصال
           }

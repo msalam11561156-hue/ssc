@@ -5,9 +5,17 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmail
 import { AlertCircle } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { AnimatedBackground } from './AnimatedBackground';
+import {
+  getCachedBrandShield,
+  getCachedLoginLogo,
+  getCachedLoginPortrait,
+  getLoginLogoSync,
+  getLoginPortraitSync,
+} from '../utils/offlineAssetCache';
+
+import loginPortraitFallbackUrl from '../assets/images/login_classroom_enhanced_1795622866575.jpg';
 
 const loginLogoDefaultUrl = '/pwa-256x256.png';
-const loginPortraitFallbackUrl = '/assets/aistudio/Screenshot_12_bc36452f.jpg';
 
 const PLANT_ROSES = [
   { id: 'rose-top', x: 374, y: 282, baseRotate: -8, scale: 0.94, duration: 5.6, delay: 0 },
@@ -69,10 +77,11 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueWithoutAccount }) => {
-  const [logoSrc, setLogoSrc] = useState<string>(loginLogoDefaultUrl);
-  const [portraitSrc, setPortraitSrc] = useState<string>(loginPortraitFallbackUrl);
+  const [logoSrc, setLogoSrc] = useState<string>(() => getLoginLogoSync());
+  const [portraitSrc, setPortraitSrc] = useState<string>(() => getLoginPortraitSync());
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [mandatoryModalHint, setMandatoryModalHint] = useState<string | null>(null);
 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -84,10 +93,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   const [showMandatoryUpdateModal, setShowMandatoryUpdateModal] = useState<boolean>(false);
 
   useEffect(() => {
+    let cancelled = false;
+    getCachedLoginLogo()
+      .then((cached) => {
+        if (!cancelled && cached) setLogoSrc(cached);
+      })
+      .catch(() => {});
+    getCachedLoginPortrait()
+      .then((cached) => {
+        if (!cancelled && cached) setPortraitSrc(cached);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const handleOnline = () => {
       localStorage.setItem('smart_control_offline_boot_count', '0');
       setOfflineBootCount(0);
       setShowMandatoryUpdateModal(false);
+      setMandatoryModalHint(null);
     };
 
     window.addEventListener('online', handleOnline);
@@ -97,6 +124,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
       localStorage.setItem('smart_control_offline_boot_count', '0');
       setOfflineBootCount(0);
       setShowMandatoryUpdateModal(false);
+      setMandatoryModalHint(null);
     } else {
       const countedThisSession = sessionStorage.getItem('smart_control_offline_boot_counted');
       if (!countedThisSession) {
@@ -121,6 +149,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   }, []);
 
   useEffect(() => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return;
+    }
     // Check redirect result for desktop PWA standalone mode
     getRedirectResult(auth)
       .then((result) => {
@@ -134,11 +165,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
   }, [onSuccess]);
 
   const handleImageError = () => {
-    if (logoSrc === loginLogoDefaultUrl) {
-      setLogoSrc('/brand_shield.png');
-    } else if (logoSrc !== '/pwa-192x192.png') {
-      setLogoSrc('/pwa-192x192.png');
-    }
+    getCachedBrandShield()
+      .then((shield) => {
+        if (shield && shield !== logoSrc) {
+          setLogoSrc(shield);
+        } else if (logoSrc === loginLogoDefaultUrl) {
+          setLogoSrc('/brand_shield.png');
+        } else if (logoSrc !== '/pwa-192x192.png') {
+          setLogoSrc('/pwa-192x192.png');
+        }
+      })
+      .catch(() => {
+        if (logoSrc === loginLogoDefaultUrl) {
+          setLogoSrc('/brand_shield.png');
+        } else if (logoSrc !== '/pwa-192x192.png') {
+          setLogoSrc('/pwa-192x192.png');
+        }
+      });
   };
 
   const handleGoogleLogin = async () => {
@@ -260,10 +303,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                   fetchPriority="high"
                   loading="eager"
                   decoding="sync"
+                  referrerPolicy="no-referrer"
                   onError={() => {
-                    if (portraitSrc !== loginPortraitFallbackUrl) {
-                      setPortraitSrc(loginPortraitFallbackUrl);
-                    }
+                    getCachedLoginPortrait()
+                      .then((cached) => {
+                        if (cached && cached !== portraitSrc) {
+                          setPortraitSrc(cached);
+                        } else if (portraitSrc !== loginPortraitFallbackUrl) {
+                          setPortraitSrc(loginPortraitFallbackUrl);
+                        }
+                      })
+                      .catch(() => {
+                        if (portraitSrc !== loginPortraitFallbackUrl) {
+                          setPortraitSrc(loginPortraitFallbackUrl);
+                        }
+                      });
                   }}
                   className="w-full h-full object-cover object-center block"
                 />
@@ -610,7 +664,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               rel="noopener noreferrer"
               aria-label="شرح التطبيق"
               title="شرح التطبيق"
-              className="w-full h-12 md:h-14 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:via-rose-500 hover:to-red-600 text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center gap-2.5 shadow-[0_6px_20px_-4px_rgba(220,38,38,0.5)] transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full h-[53px] md:h-[62px] rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:via-rose-500 hover:to-red-600 text-white font-bold text-sm border border-white/85 hover:border-white flex items-center justify-center gap-2.5 shadow-[0_6px_20px_-4px_rgba(220,38,38,0.5)] transition-all active:scale-[0.98] cursor-pointer"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -637,7 +691,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                 onContinueWithoutAccount?.();
               }}
               disabled={isLoading}
-              className="w-full h-12 md:h-14 rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-[1.05rem] border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+              className="w-full h-[53px] md:h-[62px] rounded-2xl bg-slate-800/85 hover:bg-slate-700/90 text-slate-200 hover:text-white font-bold text-[1.05rem] border border-white/85 hover:border-white flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               <span>متابعة</span>
             </button>
@@ -672,6 +726,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
               <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-semibold">
                 يجب تشغيل الانترنت لتحديث التطبيق .. تلقائيا
               </p>
+              {mandatoryModalHint && (
+                <p className="text-rose-300 text-xs sm:text-sm font-bold bg-rose-500/15 border border-rose-500/40 rounded-xl px-3 py-2 w-full">
+                  {mandatoryModalHint}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -679,8 +738,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
                     localStorage.setItem('smart_control_offline_boot_count', '0');
                     setOfflineBootCount(0);
                     setShowMandatoryUpdateModal(false);
+                    setMandatoryModalHint(null);
                   } else {
-                    alert('لا يوجد اتصال بالإنترنت حالياً. يرجى توصيل الإنترنت لإتمام التحديث والمتابعة.');
+                    setMandatoryModalHint('لا يوجد اتصال بالإنترنت حالياً. يرجى توصيل الإنترنت لإتمام التحديث والمتابعة.');
                   }
                 }}
                 className="w-full mt-2 py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-lg transition-all cursor-pointer"

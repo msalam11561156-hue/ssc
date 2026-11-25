@@ -236,7 +236,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                           onClose();
                           onNavigateToStudent(issue.studentId, issue.studentName);
                         }}
-                        className="shrink-0 self-end sm:self-center inline-flex items-center justify-center gap-1.5 min-h-[40px] px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black border border-slate-900 transition-all active:scale-95 shadow-sm"
+                        className="shrink-0 self-end sm:self-center inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3.5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black border border-slate-900 transition-all active:scale-95 shadow-sm"
                       >
                         <span>انتقال للطالب</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />

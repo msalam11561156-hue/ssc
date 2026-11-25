@@ -186,6 +186,39 @@ body,
   animation: pulse-slow 4s ease-in-out infinite;
 }
 
+@keyframes audit-row-glow {
+  0%, 100% {
+    background-color: #fefce8;
+    box-shadow: inset 0 2px 0 rgba(245, 158, 11, 0.35), inset 0 -2px 0 rgba(245, 158, 11, 0.35), inset 0 0 10px rgba(251, 191, 36, 0.25);
+  }
+  50% {
+    background-color: #fde047;
+    box-shadow: inset 0 3px 0 #d97706, inset 0 -3px 0 #d97706, inset 0 0 26px rgba(245, 158, 11, 0.85);
+  }
+}
+
+tr.audit-row-glow,
+tr.audit-row-glow > td {
+  animation: audit-row-glow 1.25s ease-in-out infinite !important;
+}
+
+tr.audit-row-glow > td {
+  background-image: none !important;
+}
+
+tr.audit-row-glow,
+tr.audit-row-glow > td,
+tr.audit-row-glow > td > span,
+tr.audit-row-glow > td > input,
+tr.audit-row-glow > td > select {
+  color: #0f172a !important;
+}
+
+tr.audit-row-glow button,
+tr.audit-row-glow button * {
+  color: #ffffff !important;
+}
+
 @keyframes button-marquee-ltr {
   0% {
     transform: translateX(-50%);

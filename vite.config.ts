@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        injectRegister: null,
         includeAssets: [
           'favicon.ico', 
           'appicon.ico', 
@@ -26,10 +26,10 @@ export default defineConfig(() => {
           'pwa-512x512.png', 
           'pwa-maskable-512x512.png', 
           'brand_shield.png',
-          'assets/images/splash_brand_bg.jpg', 
-          'assets/images/splash_control_illustration.jpg',
-          'assets/aistudio/asd126_e7a9cb22.jfif',
-          'assets/aistudio/Screenshot_12_bc36452f.jpg',
+          'assets/aistudio/Screenshot_1_33782f4f.jpg',
+          'assets/aistudio/1234_fe7474fc.jpg',
+          'assets/aistudio/Screenshot_39_f29a76cd.jpg',
+          'assets/aistudio/Screenshot_17_c02a8e5f.jpg',
           'docs/control-work-guide.pdf',
           'sounds/click.wav'
         ],
@@ -94,23 +94,13 @@ export default defineConfig(() => {
           maximumFileSizeToCacheInBytes: 25 * 1024 * 1024,
           runtimeCaching: [
             {
-              // Navigation requests (HTML document): NetworkFirst falling back immediately to cache when offline
-              urlPattern: ({ request }) => request.mode === 'navigate',
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'app-pages-cache',
-                networkTimeoutSeconds: 2.5,
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              // Local static scripts, CSS stylesheets and workers
-              urlPattern: ({ request }) =>
-                request.destination === 'script' ||
-                request.destination === 'style' ||
-                request.destination === 'worker',
+              // Local static scripts, CSS stylesheets and workers (including dev modules & dynamic screen chunks)
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                !url.pathname.startsWith('/api/') &&
+                (request.destination === 'script' ||
+                  request.destination === 'style' ||
+                  request.destination === 'worker'),
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'app-static-assets',
@@ -120,15 +110,16 @@ export default defineConfig(() => {
               },
             },
             {
-              // Images and Media (including sounds)
-              urlPattern: ({ request }) =>
-                request.destination === 'image' ||
-                request.destination === 'audio',
+              // Images and Media (including sounds and local assets)
+              urlPattern: ({ url, request }) =>
+                url.origin === self.location.origin &&
+                (request.destination === 'image' ||
+                  request.destination === 'audio'),
               handler: 'CacheFirst',
               options: {
                 cacheName: 'app-media-cache',
                 expiration: {
-                  maxEntries: 120,
+                  maxEntries: 160,
                   maxAgeSeconds: 60 * 60 * 24 * 60, // 60 days
                 },
                 cacheableResponse: {

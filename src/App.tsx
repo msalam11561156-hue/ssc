@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from './utils/flipAnimation';
 import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/themeConfig';
@@ -15,8 +15,10 @@ import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTria
 import { idbSet, idbGet, idbRemove } from './utils/idbStorage';
 import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { auth, testConnection } from './firebase';
+import { auth, testConnection, isOfflineOrNetworkError } from './firebase';
 import { LoginScreen } from './components/LoginScreen';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { lazyWithRetry, prefetchAllScreensForOffline } from './utils/prefetchScreens';
 import {
   upsertUserProfile,
   subscribeToUserWorkspace,
@@ -26,28 +28,28 @@ import {
   clearUserSyncCache,
 } from './utils/firebaseSync';
 
-const SplashScreen = lazy(() => import('./components/SplashScreen').then(m => ({ default: m.SplashScreen })));
-const MainScreen = lazy(() => import('./components/MainScreen').then(m => ({ default: m.MainScreen })));
-const GradesScreen = lazy(() => import('./components/GradesScreen').then(m => ({ default: m.GradesScreen })));
-const DivisionScreen = lazy(() => import('./components/DivisionScreen').then(m => ({ default: m.DivisionScreen })));
-const SemesterScreen = lazy(() => import('./components/SemesterScreen').then(m => ({ default: m.SemesterScreen })));
-const StudentsDataScreen = lazy(() => import('./components/StudentsDataScreen').then(m => ({ default: m.StudentsDataScreen })));
-const AssessmentsOrExamsScreen = lazy(() => import('./components/AssessmentsOrExamsScreen').then(m => ({ default: m.AssessmentsOrExamsScreen })));
-const AssessmentsGradesScreen = lazy(() => import('./components/AssessmentsGradesScreen').then(m => ({ default: m.AssessmentsGradesScreen })));
-const WrittenExamsGradesScreen = lazy(() => import('./components/WrittenExamsGradesScreen').then(m => ({ default: m.WrittenExamsGradesScreen })));
-const DetailedAssessmentsGradesScreen = lazy(() => import('./components/DetailedAssessmentsGradesScreen').then(m => ({ default: m.DetailedAssessmentsGradesScreen })));
-const MiddleSystemTypeScreen = lazy(() => import('./components/MiddleSystemTypeScreen').then(m => ({ default: m.MiddleSystemTypeScreen })));
-const SecondarySystemTypeScreen = lazy(() => import('./components/SecondarySystemTypeScreen').then(m => ({ default: m.SecondarySystemTypeScreen })));
-const SecondaryGrade2SystemScreen = lazy(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
-const SecondaryModernTracksScreen = lazy(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
-const ColorThemeBar = lazy(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
-const FooterBanner = lazy(() => import('./components/FooterBanner').then(m => ({ default: m.FooterBanner })));
-const BackupRestoreModal = lazy(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
-const BackupReminderModal = lazy(() => import('./components/BackupReminderModal').then(m => ({ default: m.BackupReminderModal })));
-const FooterSettingsModal = lazy(() => import('./components/FooterSettingsModal').then(m => ({ default: m.FooterSettingsModal })));
-const AdvertisingPrivilegeModal = lazy(() => import('./components/AdvertisingPrivilegeModal').then(m => ({ default: m.AdvertisingPrivilegeModal })));
-const SponsorAdCard = lazy(() => import('./components/SponsorAdCard').then(m => ({ default: m.SponsorAdCard })));
-const SponsorSettingsModal = lazy(() => import('./components/SponsorSettingsModal').then(m => ({ default: m.SponsorSettingsModal })));
+const SplashScreen = lazyWithRetry(() => import('./components/SplashScreen').then(m => ({ default: m.SplashScreen })));
+const MainScreen = lazyWithRetry(() => import('./components/MainScreen').then(m => ({ default: m.MainScreen })));
+const GradesScreen = lazyWithRetry(() => import('./components/GradesScreen').then(m => ({ default: m.GradesScreen })));
+const DivisionScreen = lazyWithRetry(() => import('./components/DivisionScreen').then(m => ({ default: m.DivisionScreen })));
+const SemesterScreen = lazyWithRetry(() => import('./components/SemesterScreen').then(m => ({ default: m.SemesterScreen })));
+const StudentsDataScreen = lazyWithRetry(() => import('./components/StudentsDataScreen').then(m => ({ default: m.StudentsDataScreen })));
+const AssessmentsOrExamsScreen = lazyWithRetry(() => import('./components/AssessmentsOrExamsScreen').then(m => ({ default: m.AssessmentsOrExamsScreen })));
+const AssessmentsGradesScreen = lazyWithRetry(() => import('./components/AssessmentsGradesScreen').then(m => ({ default: m.AssessmentsGradesScreen })));
+const WrittenExamsGradesScreen = lazyWithRetry(() => import('./components/WrittenExamsGradesScreen').then(m => ({ default: m.WrittenExamsGradesScreen })));
+const DetailedAssessmentsGradesScreen = lazyWithRetry(() => import('./components/DetailedAssessmentsGradesScreen').then(m => ({ default: m.DetailedAssessmentsGradesScreen })));
+const MiddleSystemTypeScreen = lazyWithRetry(() => import('./components/MiddleSystemTypeScreen').then(m => ({ default: m.MiddleSystemTypeScreen })));
+const SecondarySystemTypeScreen = lazyWithRetry(() => import('./components/SecondarySystemTypeScreen').then(m => ({ default: m.SecondarySystemTypeScreen })));
+const SecondaryGrade2SystemScreen = lazyWithRetry(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
+const SecondaryModernTracksScreen = lazyWithRetry(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
+const ColorThemeBar = lazyWithRetry(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
+const FooterBanner = lazyWithRetry(() => import('./components/FooterBanner').then(m => ({ default: m.FooterBanner })));
+const BackupRestoreModal = lazyWithRetry(() => import('./components/BackupRestoreModal').then(m => ({ default: m.BackupRestoreModal })));
+const BackupReminderModal = lazyWithRetry(() => import('./components/BackupReminderModal').then(m => ({ default: m.BackupReminderModal })));
+const FooterSettingsModal = lazyWithRetry(() => import('./components/FooterSettingsModal').then(m => ({ default: m.FooterSettingsModal })));
+const AdvertisingPrivilegeModal = lazyWithRetry(() => import('./components/AdvertisingPrivilegeModal').then(m => ({ default: m.AdvertisingPrivilegeModal })));
+const SponsorAdCard = lazyWithRetry(() => import('./components/SponsorAdCard').then(m => ({ default: m.SponsorAdCard })));
+const SponsorSettingsModal = lazyWithRetry(() => import('./components/SponsorSettingsModal').then(m => ({ default: m.SponsorSettingsModal })));
 
 const ScreenSuspenseFallback = () => (
   <div className="w-full min-h-[260px] flex items-center justify-center p-8">
@@ -604,92 +606,32 @@ export default function App() {
     };
   }, [isTrialMode, hasPassedLoginScreen]);
 
-  // التحميل المسبق الهادئ للشاشات التالية والمجاورة أثناء الخمول لإزالة أي تأخير عند التنقل
-  const prefetchedChunksRef = React.useRef<Set<string>>(new Set());
+  // التحميل المسبق الشامل لكافة الشاشات والأصول أثناء الخمول (بدءاً من شاشة تسجيل الدخول) للعمل بدون إنترنت
   useEffect(() => {
     const idleWin = window as Window & {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
       cancelIdleCallback?: (id: number) => void;
     };
 
-    const loadOnce = (key: string, loader: () => Promise<unknown>) => {
-      if (prefetchedChunksRef.current.has(key)) return;
-      prefetchedChunksRef.current.add(key);
-      void loader().catch(() => {
-        prefetchedChunksRef.current.delete(key);
-      });
+    const runPrefetch = () => {
+      void prefetchAllScreensForOffline();
     };
 
-    const scheduleIdle = (cb: () => void, fallbackMs: number) => {
-      if (typeof idleWin.requestIdleCallback === 'function') {
-        const idleId = idleWin.requestIdleCallback(cb, { timeout: 1500 });
-        return () => idleWin.cancelIdleCallback?.(idleId);
-      }
-      const id = window.setTimeout(cb, fallbackMs);
-      return () => window.clearTimeout(id);
+    let cancelIdle: (() => void) | undefined;
+    if (typeof idleWin.requestIdleCallback === 'function') {
+      const idleId = idleWin.requestIdleCallback(runPrefetch, { timeout: 1200 });
+      cancelIdle = () => idleWin.cancelIdleCallback?.(idleId);
+    } else {
+      const timerId = window.setTimeout(runPrefetch, 700);
+      cancelIdle = () => window.clearTimeout(timerId);
+    }
+
+    window.addEventListener('online', runPrefetch);
+    return () => {
+      cancelIdle?.();
+      window.removeEventListener('online', runPrefetch);
     };
-
-    if (!hasPassedLoginScreen) {
-      return scheduleIdle(() => {
-        loadOnce('splash', () => import('./components/SplashScreen'));
-      }, 900);
-    }
-
-    if (step === 0) {
-      return scheduleIdle(() => {
-        loadOnce('main', () => import('./components/MainScreen'));
-        loadOnce('footer', () => import('./components/FooterBanner'));
-        loadOnce('themeBar', () => import('./components/ColorThemeBar'));
-      }, 400);
-    }
-
-    if (step === 1) {
-      return scheduleIdle(() => {
-        loadOnce('grades', () => import('./components/GradesScreen'));
-        loadOnce('middleSys', () => import('./components/MiddleSystemTypeScreen'));
-        loadOnce('secSys', () => import('./components/SecondarySystemTypeScreen'));
-        loadOnce('themeBar', () => import('./components/ColorThemeBar'));
-      }, 250);
-    }
-
-    if (step === 10 || step === 11) {
-      return scheduleIdle(() => {
-        loadOnce('grades', () => import('./components/GradesScreen'));
-        loadOnce('semester', () => import('./components/SemesterScreen'));
-        loadOnce('secG2', () => import('./components/SecondaryGrade2SystemScreen'));
-      }, 200);
-    }
-
-    if (step === 2) {
-      return scheduleIdle(() => {
-        loadOnce('semester', () => import('./components/SemesterScreen'));
-        loadOnce('secG2', () => import('./components/SecondaryGrade2SystemScreen'));
-        loadOnce('division', () => import('./components/DivisionScreen'));
-        loadOnce('secTracks', () => import('./components/SecondaryModernTracksScreen'));
-        loadOnce('students', () => import('./components/StudentsDataScreen'));
-      }, 200);
-    }
-
-    if (step === 3 || step === 8 || step === 12 || step === 13) {
-      return scheduleIdle(() => {
-        loadOnce('semester', () => import('./components/SemesterScreen'));
-        loadOnce('division', () => import('./components/DivisionScreen'));
-        loadOnce('secTracks', () => import('./components/SecondaryModernTracksScreen'));
-        loadOnce('assOrExam', () => import('./components/AssessmentsOrExamsScreen'));
-        loadOnce('students', () => import('./components/StudentsDataScreen'));
-      }, 200);
-    }
-
-    if (step === 5 || step === 4 || step === 6 || step === 7 || step === 9) {
-      return scheduleIdle(() => {
-        loadOnce('assOrExam', () => import('./components/AssessmentsOrExamsScreen'));
-        loadOnce('students', () => import('./components/StudentsDataScreen'));
-        loadOnce('assessments', () => import('./components/AssessmentsGradesScreen'));
-        loadOnce('writtenExams', () => import('./components/WrittenExamsGradesScreen'));
-        loadOnce('detailedAssessments', () => import('./components/DetailedAssessmentsGradesScreen'));
-      }, 250);
-    }
-  }, [hasPassedLoginScreen, step]);
+  }, []);
 
   const fallbackControlEntry =
     controlDataByStage[''] || Object.values(controlDataByStage)[0];
@@ -931,11 +873,13 @@ export default function App() {
     }, 1200);
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          await upsertUserProfile(user);
-        } catch (err) {
-          if (err instanceof Error) {
-            setFatalError(err);
+        if (typeof navigator === 'undefined' || navigator.onLine) {
+          try {
+            await upsertUserProfile(user);
+          } catch (err) {
+            if (err instanceof Error && !isOfflineOrNetworkError(err)) {
+              setFatalError(err);
+            }
           }
         }
         if (wasLoggedOutRef.current) {
@@ -1008,7 +952,9 @@ export default function App() {
         }
       },
       onError: (err) => {
-        setFatalError(err);
+        if (!isOfflineOrNetworkError(err)) {
+          setFatalError(err);
+        }
       },
     });
 
@@ -1022,11 +968,12 @@ export default function App() {
   useEffect(() => {
     if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current) return;
     if (isApplyingRemoteWorkspaceRef.current) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
     const uid = authUser.uid;
     const timer = setTimeout(() => {
       saveWorkspaceToFirestore(uid, schoolData, controlDataByStage).catch((err) => {
-        if (err instanceof Error) setFatalError(err);
+        if (err instanceof Error && !isOfflineOrNetworkError(err)) setFatalError(err);
       });
     }, 500);
 
@@ -1037,11 +984,12 @@ export default function App() {
   useEffect(() => {
     if (!authReady || !authUser || isTrialMode || !hasPassedLoginScreen || !remoteWorkspaceReadyRef.current || !hasHydratedOfficialIdb) return;
     if (isApplyingRemoteStudentsRef.current) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
     const uid = authUser.uid;
     const timer = setTimeout(() => {
       syncStudentsDataToFirestore(uid, studentsDataByStage).catch((err) => {
-        if (err instanceof Error) setFatalError(err);
+        if (err instanceof Error && !isOfflineOrNetworkError(err)) setFatalError(err);
       });
     }, 700);
 
@@ -1189,9 +1137,9 @@ export default function App() {
     idbRemove('idb_official_control_data_by_stage').catch(() => {});
     idbRemove('idb_official_school_logo').catch(() => {});
 
-    if (authUser && !isTrialMode) {
+    if (authUser && !isTrialMode && (typeof navigator === 'undefined' || navigator.onLine)) {
       clearOfficialWorkspaceInFirestore(authUser.uid).catch((err) => {
-        if (err instanceof Error) setFatalError(err);
+        if (err instanceof Error && !isOfflineOrNetworkError(err)) setFatalError(err);
       });
     }
 
@@ -1262,7 +1210,7 @@ export default function App() {
     if (payload.studentsDataByStage) setStudentsDataByStage(payload.studentsDataByStage);
     setIsRestoreModalOpen(false);
     const restoredIsTrial = payload.storage?.['sheet_control_is_trial'] === 'true';
-    if (authUser && !restoredIsTrial) {
+    if (authUser && !restoredIsTrial && (typeof navigator === 'undefined' || navigator.onLine)) {
       try {
         await saveWorkspaceToFirestore(
           authUser.uid,
@@ -1273,7 +1221,7 @@ export default function App() {
           await syncStudentsDataToFirestore(authUser.uid, payload.studentsDataByStage);
         }
       } catch (err) {
-        if (err instanceof Error) {
+        if (err instanceof Error && !isOfflineOrNetworkError(err)) {
           setFatalError(err);
           return;
         }
@@ -1516,28 +1464,31 @@ export default function App() {
 
   if (!hasPassedLoginScreen || (!authUser && !continueWithoutAccount)) {
     return (
-      <LoginScreen
-        onSuccess={(user) => {
-          setAuthUser(user);
-          setAuthReady(true);
-          setContinueWithoutAccount(false);
-          setHasPassedLoginScreen(true);
-          setStep(0);
-          localStorage.setItem('sheet_control_step', '0');
-        }}
-        onContinueWithoutAccount={() => {
-          clearUserSyncCache(authUser?.uid);
-          if (auth.currentUser) {
-            signOut(auth).catch((err) => console.error('Guest switch sign out error:', err));
-          }
-          setAuthUser(null);
-          setAuthReady(true);
-          setContinueWithoutAccount(true);
-          setHasPassedLoginScreen(true);
-          setStep(0);
-          localStorage.setItem('sheet_control_step', '0');
-        }}
-      />
+      <>
+        <LoginScreen
+          onSuccess={(user) => {
+            setAuthUser(user);
+            setAuthReady(true);
+            setContinueWithoutAccount(false);
+            setHasPassedLoginScreen(true);
+            setStep(0);
+            localStorage.setItem('sheet_control_step', '0');
+          }}
+          onContinueWithoutAccount={() => {
+            clearUserSyncCache(authUser?.uid);
+            if (auth.currentUser) {
+              signOut(auth).catch((err) => console.error('Guest switch sign out error:', err));
+            }
+            setAuthUser(null);
+            setAuthReady(true);
+            setContinueWithoutAccount(true);
+            setHasPassedLoginScreen(true);
+            setStep(0);
+            localStorage.setItem('sheet_control_step', '0');
+          }}
+        />
+        <OfflineIndicator />
+      </>
     );
   }
 
@@ -2426,6 +2377,7 @@ export default function App() {
         <Suspense fallback={null}>
           <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
         </Suspense>
+        <OfflineIndicator />
       </div>
     </div>
   );

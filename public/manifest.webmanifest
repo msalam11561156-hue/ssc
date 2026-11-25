@@ -1,6 +1,6 @@
 {
   "name": "Smart Control 0.1",
-  "short_name": "SmartControl 0.1",
+  "short_name": "SmartControl",
   "description": "نظام متكامل لإدارة شيتات الكنترول المدرسي، درجات الطلاب، والنسخ الاحتياطية يعمل بالكامل حتى بدون إنترنت.",
   "start_url": "/",
   "scope": "/",

@@ -172,6 +172,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     isPrintTrigger: false,
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const auditHighlightTimerRef = React.useRef<number | null>(null);
   const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
   const {
     handleChange: onChange,
@@ -1900,14 +1901,19 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     setAuditModalState({ isOpen: false, isPrintTrigger: false });
     setSearchTerm('');
     setFilters({});
+    if (auditHighlightTimerRef.current) {
+      window.clearTimeout(auditHighlightTimerRef.current);
+    }
     setHighlightedStudentId(studentId);
-    setTimeout(() => {
-      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
-      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => {
+      const nameCellEl = document.querySelector(`[data-audit-name-cell="${studentId}"]`) as HTMLElement | null;
+      const targetEl = nameCellEl || (document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null);
+      targetEl?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     }, 80);
-    setTimeout(() => {
+    auditHighlightTimerRef.current = window.setTimeout(() => {
       setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
-    }, 3200);
+      auditHighlightTimerRef.current = null;
+    }, 10000);
   };
 
   const totalStudents = data.length;
@@ -3950,7 +3956,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 const rowColorStyle = getTableRowColorStyle(editingRowTheme, idx % 2 !== 0);
                 const isAuditHighlighted = highlightedStudentId === student.id;
                 return (
-                <tr key={student.id} data-audit-student-id={student.id} className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass} ${isAuditHighlighted ? 'ring-2 ring-inset ring-amber-500 !bg-amber-100/90' : ''}`}>
+                <tr key={student.id} data-audit-student-id={student.id} className={`transition-colors font-bold group/row ${isAuditHighlighted ? 'audit-row-glow' : `hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass}`}`}>
                   <td className="p-2 border-2 border-slate-900 text-slate-600 relative overflow-visible min-w-[64px] max-w-[64px] w-[64px] sticky start-0 z-30 bg-inherit sticky-cell-border sticky-col" title={isMissingData ? (t as any).missingData : undefined}>
                     {isMissingData && (
                       <div className="absolute inset-0 bg-red-500/10 shadow-[inset_0_0_20px_rgba(239,68,68,0.7)] animate-pulse pointer-events-none z-0"></div>
@@ -3958,7 +3964,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     <div className="separator-line"></div>
                     <span className="relative z-10 text-lg">{formatNumberDigits(idx + 1, numberLang)}</span>
                   </td>
-                  <td className={`p-0 border-2 border-slate-900 sticky start-[64px] z-[29] bg-inherit relative overflow-visible sticky-cell-border sticky-col shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)] focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-30 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[380px] max-w-[380px] w-[380px]' : 'min-w-[400px] max-w-[400px] w-[400px]'}`}>
+                  <td
+                    data-audit-name-cell={student.id}
+                    className={`p-0 border-2 border-slate-900 sticky start-[64px] z-[29] bg-inherit relative overflow-visible sticky-cell-border sticky-col shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)] focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-30 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[380px] max-w-[380px] w-[380px]' : 'min-w-[400px] max-w-[400px] w-[400px]'}`}
+                  >
                     <div className="separator-line"></div>
                     <input 
                       id={`cell-${idx}-0`}

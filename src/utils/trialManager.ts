@@ -279,6 +279,9 @@ export function consumeTrialTime(deltaMs: number): TrialInfo {
  */
 export async function syncTrialWithServer(): Promise<TrialInfo> {
   if (typeof window === 'undefined') return getTrialInfo();
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return getTrialInfo();
+  }
 
   try {
     const fp = getDeviceFingerprint();

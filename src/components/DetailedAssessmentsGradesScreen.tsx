@@ -254,6 +254,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     isPrintTrigger: false,
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const auditHighlightTimerRef = React.useRef<number | null>(null);
   const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
   const {
     handleChange: onChange,
@@ -1230,14 +1231,19 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     setAuditModalState({ isOpen: false, isPrintTrigger: false });
     setSearchQuery('');
     setFilters({});
+    if (auditHighlightTimerRef.current) {
+      window.clearTimeout(auditHighlightTimerRef.current);
+    }
     setHighlightedStudentId(studentId);
-    setTimeout(() => {
-      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
-      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => {
+      const nameCellEl = document.querySelector(`[data-audit-name-cell="${studentId}"]`) as HTMLElement | null;
+      const targetEl = nameCellEl || (document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null);
+      targetEl?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     }, 80);
-    setTimeout(() => {
+    auditHighlightTimerRef.current = window.setTimeout(() => {
       setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
-    }, 3200);
+      auditHighlightTimerRef.current = null;
+    }, 10000);
   };
 
   // Keyboard navigation across cells
@@ -2193,7 +2199,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                       <tr 
                         key={student.id} 
                         data-audit-student-id={student.id}
-                        className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass} ${isAuditHighlighted ? 'ring-2 ring-inset ring-amber-500 !bg-amber-100/90' : ''}`}
+                        className={`transition-colors font-bold group/row ${isAuditHighlighted ? 'audit-row-glow' : `hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass}`}`}
                       >
                         {/* Serial Number */}
                         <td className="p-2 border-2 border-slate-900 sticky start-0 z-30 bg-inherit font-black text-lg text-center relative overflow-visible sticky-cell-border">
@@ -2203,6 +2209,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
                         {/* Student Name */}
                         <td 
+                          data-audit-name-cell={student.id}
                           style={{ insetInlineStart: '64px' }}
                           className="p-3 border-2 border-slate-900 text-center whitespace-pre min-w-[360px] max-w-[360px] w-[360px] sticky z-[29] bg-inherit relative overflow-visible sticky-cell-border"
                         >

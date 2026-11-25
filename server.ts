@@ -31,37 +31,48 @@ app.use(express.json());
 const publicPath = path.join(__dirname, 'public');
 const distPath = path.join(__dirname, 'dist');
 
-// Explicit route for /sw.js with correct MIME type and headers
-app.get(['/sw.js', '/dev-sw.js'], (_req, res) => {
-  const swPublicPath = path.join(publicPath, 'sw.js');
-  const swDistPath = path.join(distPath, 'sw.js');
-  const target = fs.existsSync(swPublicPath) ? swPublicPath : swDistPath;
-  if (fs.existsSync(target)) {
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Service-Worker-Allowed', '/');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.sendFile(target);
-  }
-  return res.status(404).type('text/plain').send('Service Worker not found');
-});
+const isProdEnv = process.env.NODE_ENV === 'production';
 
-// Explicit route for /manifest.webmanifest
-app.get('/manifest.webmanifest', (_req, res) => {
-  const mPublicPath = path.join(publicPath, 'manifest.webmanifest');
-  const mDistPath = path.join(distPath, 'manifest.webmanifest');
-  const target = fs.existsSync(mPublicPath) ? mPublicPath : mDistPath;
-  if (fs.existsSync(target)) {
-    res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.sendFile(target);
-  }
-  return res.status(404).type('text/plain').send('Manifest not found');
-});
+if (isProdEnv) {
+  // Explicit route for /sw.js in production (serving Workbox-generated dist/sw.js first)
+  app.get(['/sw.js', '/dev-sw.js'], (_req, res) => {
+    const swDistPath = path.join(distPath, 'sw.js');
+    const swPublicPath = path.join(publicPath, 'sw.js');
+    const target = fs.existsSync(swDistPath) ? swDistPath : swPublicPath;
+    if (fs.existsSync(target)) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.sendFile(target);
+    }
+    return res.status(404).type('text/plain').send('Service Worker not found');
+  });
+
+  // Explicit route for /manifest.webmanifest in production
+  app.get('/manifest.webmanifest', (_req, res) => {
+    const mDistPath = path.join(distPath, 'manifest.webmanifest');
+    const mPublicPath = path.join(publicPath, 'manifest.webmanifest');
+    const target = fs.existsSync(mDistPath) ? mDistPath : mPublicPath;
+    if (fs.existsSync(target)) {
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.sendFile(target);
+    }
+    return res.status(404).type('text/plain').send('Manifest not found');
+  });
+}
 
 const staticAssetOptions = {
   setHeaders: (res: express.Response, filePath: string) => {
-    if (filePath.toLowerCase().endsWith('.jfif')) {
+    const lower = filePath.toLowerCase();
+    if (lower.endsWith('.jfif')) {
       res.setHeader('Content-Type', 'image/jpeg');
+    }
+    if (lower.endsWith('sw.js') || lower.endsWith('manifest.webmanifest') || lower.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    if (lower.endsWith('sw.js')) {
+      res.setHeader('Service-Worker-Allowed', '/');
     }
   },
 };
@@ -364,10 +375,19 @@ async function startServer() {
         const vite = viteInstance || (await viteInitPromise);
         const result = await vite.transformRequest('/@vite/client');
         if (result && typeof result.code === 'string') {
-          const patchedCode = result.code.replace(
-            /\btransport\.connect\(createHMRHandler\(handleMessage\)\);?/g,
-            '/* HMR WebSocket disabled */'
-          );
+          const patchedCode = result.code
+            .replace(
+              /\btransport\.connect\(createHMRHandler\(handleMessage\)\);?/g,
+              '/* HMR WebSocket disabled */'
+            )
+            .replace(
+              /throw new Error\((["'])send was called before connect\1\);?/g,
+              'return;'
+            )
+            .replace(
+              /throw new Error\((["'])invoke was called before connect\1\);?/g,
+              'return;'
+            );
           res.status(200).set({
             'Content-Type': 'application/javascript; charset=utf-8',
             'Cache-Control': 'no-store, no-cache, must-revalidate',
