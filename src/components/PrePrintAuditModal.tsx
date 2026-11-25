@@ -106,7 +106,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                     </h3>
                     <p className="text-xs sm:text-sm font-bold text-white/90 truncate">
                       {auditResult.issues.length === 0
-                        ? `تم فحص ${auditResult.totalStudents} طالب — لا توجد أخطاء أو نواقص`
+                        ? `تم فحص ${auditResult.totalStudents} طالب — لا توجد أخطاء`
                         : `تم فحص ${auditResult.totalStudents} طالب — ${auditResult.errorCount} أخطاء حرجة و ${auditResult.warningCount} تنبيهات`}
                     </p>
                   </div>
@@ -182,9 +182,6 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                     <h4 className="text-lg font-black text-slate-900">
                       جميع البيانات والدرجات سليمة وجاهزة للطباعة
                     </h4>
-                    <p className="text-sm font-semibold text-slate-600 max-w-md">
-                      لم يتم رصد أي تكرار في أرقام الجلوس أو الأرقام السرية، أو درجات شاذة، أو طلاب غير مكتملين.
-                    </p>
                   </div>
                 ) : filteredIssues.length === 0 ? (
                   <div className="py-8 text-center text-slate-500 font-bold text-sm">
