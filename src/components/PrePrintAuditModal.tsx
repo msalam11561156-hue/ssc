@@ -102,7 +102,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-base sm:text-lg font-black truncate">
-                      فحص الأخطاء قبل الطباعة
+                      الدعم السريع - فحص الأخطاء قبل الطباعة
                     </h3>
                     <p className="text-xs sm:text-sm font-bold text-white/90 truncate">
                       {auditResult.issues.length === 0

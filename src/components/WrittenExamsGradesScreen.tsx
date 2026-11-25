@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
-import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert, Pencil } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, Pencil } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
@@ -28,6 +28,7 @@ import { useStudentHistory } from '../hooks/useStudentHistory';
 import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
 import { EditStudentDataModal } from './EditStudentDataModal';
+import { QuickSupportAuditButton } from './QuickSupportAuditButton';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
@@ -2883,31 +2884,11 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
               )}
             </button>
 
-            <button
-              type="button"
+            <QuickSupportAuditButton
+              issueCount={auditResult.issues.length}
               onClick={() => setAuditModalState({ isOpen: true, isPrintTrigger: false })}
-              className={`order-5 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all active:scale-[0.96] relative ${
-                auditResult.issues.length > 0
-                  ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95'
-                  : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white hover:opacity-95'
-              }`}
-              title={
-                auditResult.issues.length > 0
-                  ? `فحص الأخطاء قبل الطباعة (${auditResult.issues.length} ملاحظة)`
-                  : 'فحص الأخطاء قبل الطباعة (السجل سليم)'
-              }
-            >
-              {auditResult.issues.length > 0 ? (
-                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
-              ) : (
-                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
-              )}
-              {auditResult.issues.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
-                  {auditResult.issues.length > 99 ? '99+' : auditResult.issues.length}
-                </span>
-              )}
-            </button>
+              className="order-5"
+            />
 
             <div className="relative shrink-0 order-1">
               
