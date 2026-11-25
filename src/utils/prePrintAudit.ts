@@ -91,9 +91,10 @@ function isStudentNonRegular(student: StudentData): boolean {
   return (
     combined.includes('معفى') ||
     combined.includes('معفي') ||
-    combined.includes('منقول') ||
     combined.includes('محول') ||
-    combined.includes('منقطع')
+    combined.includes('محولة') ||
+    combined.includes('منقطع') ||
+    combined.includes('منقطعة')
   );
 }
 
