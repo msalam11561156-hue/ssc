@@ -1,4 +1,5 @@
 import React from 'react';
+import { Crown } from 'lucide-react';
 
 interface ActionMenuButtonProps {
   onClick: () => void;
@@ -10,6 +11,7 @@ interface ActionMenuButtonProps {
   disabled?: boolean;
   title?: string;
   disableMarquee?: boolean;
+  isPaidService?: boolean;
 }
 
 export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
@@ -22,9 +24,13 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
   disabled = false,
   title,
   disableMarquee = false,
+  isPaidService = false,
 }) => {
   const text = rawText.replace(/^طباعة\s*/, '').trim();
   const isMarquee = !disableMarquee && text.length > 28;
+  const crownIcon = isPaidService ? (
+    <Crown className="w-4 h-4 text-amber-300 fill-amber-300/35 shrink-0 drop-shadow-sm" />
+  ) : null;
 
   if (disabled) {
     return (
@@ -45,10 +51,12 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
                 <div className="flex items-center gap-2 shrink-0 px-8">
                   <span className="shrink-0">{icon}</span>
                   <span className="font-bold text-lg tracking-wide">{text}</span>
+                  {crownIcon}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 px-8">
                   <span className="shrink-0">{icon}</span>
                   <span className="font-bold text-lg tracking-wide">{text}</span>
+                  {crownIcon}
                 </div>
               </div>
             </div>
@@ -56,6 +64,7 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
             <div className="flex items-center gap-2 shrink-0 px-4">
               <span className="shrink-0">{icon}</span>
               <span className="font-bold text-lg tracking-wide">{text}</span>
+              {crownIcon}
             </div>
           )}
         </button>
@@ -77,10 +86,12 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
             <div className="flex items-center gap-2 shrink-0 px-8">
               {icon}
               <span>{text}</span>
+              {crownIcon}
             </div>
             <div className="flex items-center gap-2 shrink-0 px-8">
               {icon}
               <span>{text}</span>
+              {crownIcon}
             </div>
           </div>
         </div>
@@ -98,6 +109,7 @@ export const ActionMenuButton: React.FC<ActionMenuButtonProps> = ({
     >
       {icon}
       <span>{text}</span>
+      {crownIcon}
     </button>
   );
 };

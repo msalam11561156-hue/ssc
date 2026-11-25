@@ -104,12 +104,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
         const currentCount = parseInt(localStorage.getItem('smart_control_offline_boot_count') || '0', 10) + 1;
         localStorage.setItem('smart_control_offline_boot_count', currentCount.toString());
         setOfflineBootCount(currentCount);
-        if (currentCount >= 25) {
+        if (currentCount >= 15) {
           setShowMandatoryUpdateModal(true);
         }
       } else {
         const currentCount = parseInt(localStorage.getItem('smart_control_offline_boot_count') || '0', 10);
-        if (currentCount >= 25) {
+        if (currentCount >= 15) {
           setShowMandatoryUpdateModal(true);
         }
       }
@@ -143,7 +143,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
 
   const handleGoogleLogin = async () => {
     if (isLoading) return;
-    if (!navigator.onLine && offlineBootCount >= 25) {
+    if (!navigator.onLine && offlineBootCount >= 15) {
       setShowMandatoryUpdateModal(true);
       return;
     }
@@ -630,7 +630,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, onContinueW
             <button
               type="button"
               onClick={() => {
-                if (!navigator.onLine && offlineBootCount >= 25) {
+                if (!navigator.onLine && offlineBootCount >= 15) {
                   setShowMandatoryUpdateModal(true);
                   return;
                 }

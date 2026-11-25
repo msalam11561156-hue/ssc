@@ -1,9 +1,9 @@
 import { getActiveFooterTagline } from "../utils/adFilter";
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -15,6 +15,9 @@ import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
+import { useStudentHistory } from '../hooks/useStudentHistory';
+import { runPrePrintAudit } from '../utils/prePrintAudit';
+import { PrePrintAuditModal } from './PrePrintAuditModal';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
@@ -146,7 +149,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   controlHead,
   committeeHead,
   data,
-  onChange,
+  onChange: propOnChange,
   onBack,
   onSave,
   showExamFields,
@@ -163,6 +166,22 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   educationType,
 }) => {
   const t = translations[lang];
+  const [auditModalState, setAuditModalState] = useState<{ isOpen: boolean; isPrintTrigger: boolean }>({
+    isOpen: false,
+    isPrintTrigger: false,
+  });
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const {
+    handleChange: onChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoCount,
+    redoCount,
+  } = useStudentHistory(data, propOnChange, {
+    enableShortcuts: !auditModalState.isOpen,
+  });
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
     return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
   });
@@ -171,6 +190,39 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     localStorage.setItem('sheet_control_number_lang', numberLang);
   }, [numberLang]);
   const isKindergarten = stage === 'kindergarten';
+  const auditResult = useMemo(
+    () =>
+      runPrePrintAudit({
+        mode: 'students_data',
+        students: data,
+        semester,
+        showExamFields,
+        isKindergarten,
+      }),
+    [data, semester, showExamFields, isKindergarten]
+  );
+
+  const handleOpenPrintWithAudit = () => {
+    if (auditResult.issues.length > 0) {
+      setAuditModalState({ isOpen: true, isPrintTrigger: true });
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const handleJumpToStudent = (studentId: string) => {
+    setAuditModalState({ isOpen: false, isPrintTrigger: false });
+    setSearchTerm('');
+    setFilters({});
+    setHighlightedStudentId(studentId);
+    setTimeout(() => {
+      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
+      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => {
+      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
+    }, 3200);
+  };
   const isInternational = isInternationalSchool(educationType);
   const showExemptionStatus = isInternational && !isKindergarten;
   const colOffset = showExemptionStatus ? 1 : 0;
@@ -2231,8 +2283,72 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             </button>
           </div>
        
-          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
-            <div className="relative shrink-0">
+          <div dir="ltr" className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className={`order-3 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canUndo
+                  ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canUndo ? `تراجع عن آخر تعديل (Ctrl+Z) - متاح ${undoCount}` : 'لا توجد تعديلات للتراجع عنها'}
+            >
+              <Undo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canUndo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {undoCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className={`order-4 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canRedo
+                  ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+            >
+              <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canRedo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {redoCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuditModalState({ isOpen: true, isPrintTrigger: false })}
+              className={`order-5 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all active:scale-[0.96] relative ${
+                auditResult.issues.length > 0
+                  ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95'
+                  : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white hover:opacity-95'
+              }`}
+              title={
+                auditResult.issues.length > 0
+                  ? `فحص الأخطاء قبل الطباعة (${auditResult.issues.length} ملاحظة)`
+                  : 'فحص الأخطاء قبل الطباعة (السجل سليم)'
+              }
+            >
+              {auditResult.issues.length > 0 ? (
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              ) : (
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              )}
+              {auditResult.issues.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
+                  {auditResult.issues.length > 99 ? '99+' : auditResult.issues.length}
+                </span>
+              )}
+            </button>
+
+            <div className="relative shrink-0 order-1">
               
               <button
                 type="button"
@@ -2428,10 +2544,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 )}
               </AnimatePresence>
             </div>
-            <div className="relative shrink-0">
+            <div className="relative shrink-0 order-2">
               <button
                 type="button"
-                onClick={() => setIsPrintMenuOpen(true)}
+                onClick={handleOpenPrintWithAudit}
                 className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
                 title={(t as any).printLabel || (lang === 'ar' ? 'طباعة' : 'Print')}
               >
@@ -2581,6 +2697,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           icon={<Award className="w-4 h-4" />}
                           text="شهادات التقدير"
                           bgGradient="bg-[linear-gradient(to_right,#ca8a04,#f59e0b,#3b82f6)]"
+                          isPaidService
                         />
                         <ActionMenuButton
                           onClick={() => {
@@ -2641,6 +2758,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           icon={<Printer className="w-4 h-4" />}
                           text="شيت كنترول فارغ للرصد والتحرير اليدوى"
                           bgGradient={isOfficial ? "bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]" : "bg-[linear-gradient(to_right,#475569,#1e293b,#475569)]"}
+                          isPaidService
                         />
                         <ActionMenuButton
                           onClick={() => {
@@ -2656,6 +2774,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                           icon={<Sliders className="w-4 h-4" />}
                           text="تخصيص شيت كنترول"
                           bgGradient="bg-[linear-gradient(to_right,#059669,#0284c7,#059669)]"
+                          isPaidService
                         />
                         {!isKindergarten && (
                           <>
@@ -2672,6 +2791,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                               className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                               disableMarquee
+                              isPaidService
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('seat_numbers_english')}
@@ -2680,6 +2800,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                               className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                               disableMarquee
+                              isPaidService
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('student_semester_grades_certificate_en')}
@@ -2688,6 +2809,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                               className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                               disableMarquee
+                              isPaidService
                             />
                           </>
                         )}
@@ -3737,7 +3859,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             <button
               type="button"
               onClick={() => setIsColorModalOpen(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="order-6 flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title="ألوان جداول التحرير والرصد"
             >
               <Palette className="w-full h-full p-2 sm:p-2.5" />
@@ -3746,7 +3868,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="order-7 flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title={(t as any).instructionsLabel || (lang === 'ar' ? 'تعليمات' : 'Instructions')}
             >
               <Info className="w-full h-full p-1.5" />
@@ -3852,8 +3974,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {filteredData.map((student, idx) => {
                 const isMissingData = !student.name || !student.nationalId || student.nationalId.length !== 14 || !student.gender || (!isKindergarten && !student.enrollmentStatus) || !student.religion || (showExamFields && (!student.seatNumbers?.[semester] && !student.seatNumber)) || (showExamFields && (!student.secretNumbers?.[semester] && !student.secretNumber));
                 const rowColorStyle = getTableRowColorStyle(editingRowTheme, idx % 2 !== 0);
+                const isAuditHighlighted = highlightedStudentId === student.id;
                 return (
-                <tr key={student.id} className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass}`}>
+                <tr key={student.id} data-audit-student-id={student.id} className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass} ${isAuditHighlighted ? 'ring-2 ring-inset ring-amber-500 !bg-amber-100/90' : ''}`}>
                   <td className="p-2 border-2 border-slate-900 text-slate-600 relative overflow-visible min-w-[64px] max-w-[64px] w-[64px] sticky start-0 z-30 bg-inherit sticky-cell-border sticky-col" title={isMissingData ? (t as any).missingData : undefined}>
                     {isMissingData && (
                       <div className="absolute inset-0 bg-red-500/10 shadow-[inset_0_0_20px_rgba(239,68,68,0.7)] animate-pulse pointer-events-none z-0"></div>
@@ -5857,6 +5980,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      <PrePrintAuditModal
+        isOpen={auditModalState.isOpen}
+        onClose={() => setAuditModalState({ isOpen: false, isPrintTrigger: false })}
+        auditResult={auditResult}
+        onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
+        onProceedToPrint={() => setIsPrintMenuOpen(true)}
+        isPrintTrigger={auditModalState.isPrintTrigger}
+      />
     </div>
   );
 };

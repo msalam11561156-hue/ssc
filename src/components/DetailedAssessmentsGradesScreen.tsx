@@ -25,7 +25,11 @@ import {
   BarChart3,
   Award,
   Trophy,
-  FileDown
+  FileDown,
+  Undo2,
+  Redo2,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSubjects';
@@ -33,6 +37,9 @@ import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { StudentData, Language, EducationalStage, DetailedAssessmentItem, EducationType } from '../types';
 import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
+import { useStudentHistory } from '../hooks/useStudentHistory';
+import { runPrePrintAudit } from '../utils/prePrintAudit';
+import { PrePrintAuditModal } from './PrePrintAuditModal';
 
 const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
 const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
@@ -191,7 +198,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   title,
   semester,
   data,
-  onChange,
+  onChange: propOnChange,
   onBack,
   onNavigateToGeneralAssessments,
   onEditData,
@@ -240,6 +247,23 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   }
   const isSecondary2Modern = Boolean(isSecondary2 && isModernSec);
   const [localData, setLocalData] = useState<StudentData[]>(data || []);
+  const [auditModalState, setAuditModalState] = useState<{ isOpen: boolean; isPrintTrigger: boolean }>({
+    isOpen: false,
+    isPrintTrigger: false,
+  });
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const {
+    handleChange: onChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoCount,
+    redoCount,
+  } = useStudentHistory(localData, propOnChange, {
+    onApply: setLocalData,
+    enableShortcuts: !auditModalState.isOpen,
+  });
 
   const availableClasses = React.useMemo(() => {
     const gradeNum = (() => {
@@ -731,9 +755,51 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
     if (anyMissing) {
       setLocalData(updated);
-      onChange(updated);
+      propOnChange(updated);
     }
   }, [selectedSubjectKey, semester, stage, currentSubject.maxGrade, isMiddleOrSecondary, isNoWrittenSubject, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]);
+
+  const auditResult = useMemo(
+    () =>
+      runPrePrintAudit({
+        mode: 'detailed_assessments',
+        students: localData,
+        semester,
+        showExamFields: !isKindergarten && showSeatNumber,
+        isKindergarten,
+        detailedContext: {
+          subjectKey: selectedSubjectKey,
+          subjectLabel: currentSubject.label,
+          stage,
+          isPESubject,
+          isNoWrittenExceptPe,
+          isSecondary2Modern,
+        },
+      }),
+    [localData, semester, isKindergarten, showSeatNumber, selectedSubjectKey, currentSubject.label, stage, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]
+  );
+
+  const handleOpenPrintWithAudit = () => {
+    if (auditResult.issues.length > 0) {
+      setAuditModalState({ isOpen: true, isPrintTrigger: true });
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const handleJumpToStudent = (studentId: string) => {
+    setAuditModalState({ isOpen: false, isPrintTrigger: false });
+    setSearchQuery('');
+    setFilters({});
+    setHighlightedStudentId(studentId);
+    setTimeout(() => {
+      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
+      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => {
+      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
+    }, 3200);
+  };
 
   // Helpers to calculate detailed assessment total
   const parseNum = (val?: string): number => {
@@ -1644,15 +1710,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             </div>
           </div>
 
-          {/* Action buttons matching AssessmentsGradesScreen */}
-          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
-            {/* <SortButtonMenu
-              sortBy={sortBy}
-              onSortChange={onSortChange || (() => {})}
-              lang={lang}
-              isKindergarten={isKindergarten}
-              showExamFields={!isKindergarten}
-            /> */}
+          {/* Action buttons ordered left-to-right: Menu, Print, Undo, Redo, Audit, Palette, Info */}
+          <div dir="ltr" className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
             {/* 1. Action Menu Button */}
             <div className="relative shrink-0">
               <button
@@ -1669,7 +1728,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={() => setIsPrintMenuOpen(true)}
+                onClick={handleOpenPrintWithAudit}
                 className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
                 title="طباعة"
               >
@@ -1677,7 +1736,74 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
               </button>
             </div>
 
-            {/* 3. Color Palette Button */}
+            {/* 3. Undo Button */}
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className={`flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canUndo
+                  ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canUndo ? `تراجع عن آخر تعديل (Ctrl+Z) - متاح ${undoCount}` : 'لا توجد تعديلات للتراجع عنها'}
+            >
+              <Undo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canUndo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {undoCount}
+                </span>
+              )}
+            </button>
+
+            {/* 4. Redo Button */}
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className={`flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canRedo
+                  ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+            >
+              <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canRedo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {redoCount}
+                </span>
+              )}
+            </button>
+
+            {/* 5. Pre-Print Audit Button */}
+            <button
+              type="button"
+              onClick={() => setAuditModalState({ isOpen: true, isPrintTrigger: false })}
+              className={`flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all active:scale-[0.96] relative ${
+                auditResult.issues.length > 0
+                  ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95'
+                  : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white hover:opacity-95'
+              }`}
+              title={
+                auditResult.issues.length > 0
+                  ? `فحص الأخطاء قبل الطباعة (${auditResult.issues.length} ملاحظة)`
+                  : 'فحص الأخطاء قبل الطباعة (السجل سليم)'
+              }
+            >
+              {auditResult.issues.length > 0 ? (
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              ) : (
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              )}
+              {auditResult.issues.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
+                  {auditResult.issues.length > 99 ? '99+' : auditResult.issues.length}
+                </span>
+              )}
+            </button>
+
+            {/* 6. Color Palette Button */}
             <button
               type="button"
               onClick={() => setShowThemeSelectorModal(true)}
@@ -1687,7 +1813,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
               <Palette className="w-full h-full p-2 sm:p-2.5" />
             </button>
 
-            {/* 4. Instructions Button */}
+            {/* 7. Instructions Button */}
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
@@ -1944,11 +2070,13 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     const seatNum = student.seatNumbers?.[semester] || student.seatNumber || '';
                     const secretNum = student.secretNumbers?.[semester] || student.secretNumber || '';
                     const totalVal = getFieldValue(student, 'total');
+                    const isAuditHighlighted = highlightedStudentId === student.id;
 
                     return (
                       <tr 
                         key={student.id} 
-                        className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass}`}
+                        data-audit-student-id={student.id}
+                        className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass} ${isAuditHighlighted ? 'ring-2 ring-inset ring-amber-500 !bg-amber-100/90' : ''}`}
                       >
                         {/* Serial Number */}
                         <td className="p-2 border-2 border-slate-900 sticky start-0 z-30 bg-inherit font-black text-lg text-center relative overflow-visible sticky-cell-border">
@@ -2935,6 +3063,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                   icon={<Award className="w-4 h-4" />}
                   text="شهادات التقدير"
                   bgGradient="bg-[linear-gradient(to_right,#ca8a04,#f59e0b,#3b82f6)]"
+                  isPaidService
                 />
 
                 {!isKindergarten && (
@@ -2985,6 +3114,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                     className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                     disableMarquee
+                    isPaidService
                   />
                 )}
 
@@ -3413,6 +3543,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           />
         )}
       </Suspense>
+      <PrePrintAuditModal
+        isOpen={auditModalState.isOpen}
+        onClose={() => setAuditModalState({ isOpen: false, isPrintTrigger: false })}
+        auditResult={auditResult}
+        onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
+        onProceedToPrint={() => setIsPrintMenuOpen(true)}
+        isPrintTrigger={auditModalState.isPrintTrigger}
+      />
     </div>
   );
 };

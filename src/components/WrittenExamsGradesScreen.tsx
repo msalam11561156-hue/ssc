@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
-import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
@@ -24,6 +24,9 @@ import { PasswordModal } from './PasswordModal';
 import { getDeviceId } from '../utils/activationManager';
 import { FilterButtonMenu, FilterState } from './FilterButtonMenu';
 import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
+import { useStudentHistory } from '../hooks/useStudentHistory';
+import { runPrePrintAudit } from '../utils/prePrintAudit';
+import { PrePrintAuditModal } from './PrePrintAuditModal';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
@@ -65,7 +68,7 @@ const PortalModal = ({ children }: { children: React.ReactNode }) => {
 
 export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> = ({
   data,
-  onChange,
+  onChange: propOnChange,
   lang,
   onBack,
   onEditData,
@@ -98,6 +101,23 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   }, [numberLang]);
   const sortBy = externalSortBy || [];
   const [localData, setLocalData] = useState<StudentData[]>(data);
+  const [auditModalState, setAuditModalState] = useState<{ isOpen: boolean; isPrintTrigger: boolean }>({
+    isOpen: false,
+    isPrintTrigger: false,
+  });
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const {
+    handleChange: onChange,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoCount,
+    redoCount,
+  } = useStudentHistory(localData, propOnChange, {
+    onApply: setLocalData,
+    enableShortcuts: !auditModalState.isOpen,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>({});
   const [isEditingData, setIsEditingData] = useState(false);
@@ -2569,6 +2589,52 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       })
     : customCols;
 
+  const auditColumns = useMemo(
+    () =>
+      [...addedCols, ...notAddedCols].map((c) => ({
+        key: c.key,
+        label: c.label,
+        max: isMiddleHomeschool ? 100 : (c.max ?? c.maxWrittenGrade),
+        isAddedToTotal: c.isAddedToTotal,
+      })),
+    [addedCols, notAddedCols, isMiddleHomeschool]
+  );
+
+  const auditResult = useMemo(
+    () =>
+      runPrePrintAudit({
+        mode: 'written_exams',
+        students: localData,
+        semester,
+        showExamFields: !isKindergarten && gradingSettings.showSeatNumber,
+        isKindergarten,
+        editableColumns: auditColumns,
+      }),
+    [localData, semester, isKindergarten, gradingSettings.showSeatNumber, auditColumns]
+  );
+
+  const handleOpenPrintWithAudit = () => {
+    if (auditResult.issues.length > 0) {
+      setAuditModalState({ isOpen: true, isPrintTrigger: true });
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const handleJumpToStudent = (studentId: string) => {
+    setAuditModalState({ isOpen: false, isPrintTrigger: false });
+    setSearchTerm('');
+    setFilters({});
+    setHighlightedStudentId(studentId);
+    setTimeout(() => {
+      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
+      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => {
+      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
+    }, 3200);
+  };
+
   const getSubjectColWidth = (col: { key: string; label: string }) => {
     if (col.key === 'total') {
       return !isKindergarten ? 276 : 210;
@@ -2738,15 +2804,72 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             </button>
           </div>
        
-          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
-            {/* <SortButtonMenu
-              sortBy={sortBy}
-              onSortChange={onSortChange || (() => {})}
-              lang={lang}
-              isKindergarten={isKindergarten}
-              showExamFields={!isKindergarten}
-            /> */}
-            <div className="relative shrink-0">
+          <div dir="ltr" className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className={`order-3 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canUndo
+                  ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canUndo ? `تراجع عن آخر تعديل (Ctrl+Z) - متاح ${undoCount}` : 'لا توجد تعديلات للتراجع عنها'}
+            >
+              <Undo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canUndo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {undoCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className={`order-4 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
+                canRedo
+                  ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
+              }`}
+              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+            >
+              <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              {canRedo && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center border border-white">
+                  {redoCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuditModalState({ isOpen: true, isPrintTrigger: false })}
+              className={`order-5 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all active:scale-[0.96] relative ${
+                auditResult.issues.length > 0
+                  ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95'
+                  : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white hover:opacity-95'
+              }`}
+              title={
+                auditResult.issues.length > 0
+                  ? `فحص الأخطاء قبل الطباعة (${auditResult.issues.length} ملاحظة)`
+                  : 'فحص الأخطاء قبل الطباعة (السجل سليم)'
+              }
+            >
+              {auditResult.issues.length > 0 ? (
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              ) : (
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+              )}
+              {auditResult.issues.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
+                  {auditResult.issues.length > 99 ? '99+' : auditResult.issues.length}
+                </span>
+              )}
+            </button>
+
+            <div className="relative shrink-0 order-1">
               
               <button
                 type="button"
@@ -2905,10 +3028,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 )}
               </AnimatePresence></PortalModal>
             </div>
-            <div className="relative shrink-0">
+            <div className="relative shrink-0 order-2">
               <button
                 type="button"
-                onClick={() => setIsPrintMenuOpen(true)}
+                onClick={handleOpenPrintWithAudit}
                 className="flex items-center justify-center bg-[linear-gradient(to_right,#34d399,#10b981,#059669,#10b981,#34d399)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all hover:opacity-90 active:scale-[0.98] border-2 border-slate-900 shadow-sm shrink-0"
                 title={(t as any).printLabel || (lang === 'ar' ? 'طباعة' : 'Print')}
               >
@@ -3042,6 +3165,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           icon={<Award className="w-4 h-4" />}
                           text="شهادات التقدير"
                           bgGradient="bg-[linear-gradient(to_right,#ca8a04,#f59e0b,#3b82f6)]"
+                          isPaidService
                         />
                         <ActionMenuButton
                           onClick={() => {
@@ -3102,6 +3226,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           icon={<Printer className="w-4 h-4" />}
                           text="شيت كنترول فارغ للرصد والتحرير اليدوى"
                           bgGradient={isOfficial ? "bg-[linear-gradient(to_right,#0284c7,#0d9488,#0284c7)]" : "bg-[linear-gradient(to_right,#475569,#1e293b,#475569)]"}
+                          isPaidService
                         />
                         <ActionMenuButton
                           onClick={() => {
@@ -3117,6 +3242,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           icon={<Sliders className="w-4 h-4" />}
                           text="تخصيص شيت كنترول"
                           bgGradient="bg-[linear-gradient(to_right,#059669,#0284c7,#059669)]"
+                          isPaidService
                         />
                         {isKindergarten && (
                           <ActionMenuButton
@@ -3141,6 +3267,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                               className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                               disableMarquee
+                              isPaidService
                             />
                             <ActionMenuButton
                               onClick={() => handlePrintOption('student_semester_grades_certificate_en')}
@@ -3149,6 +3276,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
                               className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
                               disableMarquee
+                              isPaidService
                             />
                           </>
                         )}
@@ -3326,7 +3454,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             <button
               type="button"
               onClick={() => setIsColorModalOpen(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="order-6 flex items-center justify-center bg-[linear-gradient(to_right,#ec4899,#8b5cf6,#3b82f6,#10b981,#f59e0b,#ec4899)] bg-[length:200%_auto] animate-shine text-white w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title="ألوان جداول التحرير والرصد"
             >
               <Palette className="w-full h-full p-2 sm:p-2.5" />
@@ -3335,7 +3463,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             <button
               type="button"
               onClick={() => setShowInstructions(true)}
-              className="flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
+              className="order-7 flex items-center justify-center bg-[linear-gradient(to_right,#fef08a,#facc15,#eab308,#facc15,#fef08a)] bg-[length:200%_auto] animate-shine text-yellow-950 w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full transition-all active:scale-[0.98] border border-slate-900 shadow-sm shrink-0"
               title={(t as any).instructionsLabel || (lang === 'ar' ? 'تعليمات' : 'Instructions')}
             >
               <Info className="w-full h-full p-1.5" />
@@ -3592,9 +3720,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                       });
 
                       const rowColorStyle = getTableRowColorStyle(editingRowTheme, index % 2 !== 0);
+                      const isAuditHighlighted = highlightedStudentId === student.id;
 
                       return (
-                        <tr key={student.id} className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass}`}>
+                        <tr key={student.id} data-audit-student-id={student.id} className={`transition-colors font-bold group/row hover:!bg-blue-100 focus-within:!bg-blue-100 ${rowColorStyle.bgClass} ${isAuditHighlighted ? 'ring-2 ring-inset ring-amber-500 !bg-amber-100/90' : ''}`}>
                           <td 
                             className={`p-2 border-2 border-slate-900 text-slate-600 min-w-[64px] max-w-[64px] w-[64px] sticky start-0 z-30 bg-inherit relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'serial' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)]' : ''}`} 
                             title={isMissingData ? (t as any).missingData : undefined}
@@ -6011,6 +6140,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           />
         )}
       </Suspense>
+      <PrePrintAuditModal
+        isOpen={auditModalState.isOpen}
+        onClose={() => setAuditModalState({ isOpen: false, isPrintTrigger: false })}
+        auditResult={auditResult}
+        onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
+        onProceedToPrint={() => setIsPrintMenuOpen(true)}
+        isPrintTrigger={auditModalState.isPrintTrigger}
+      />
     </div>
   );
 };

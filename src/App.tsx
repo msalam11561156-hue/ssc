@@ -5,7 +5,7 @@ import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/theme
 import { SchoolData, ControlData, Language, StudentData } from './types';
 import { translations, setCurrentAffiliatedEntity } from './i18n';
 import { AnimatedBackground } from './components/AnimatedBackground';
-import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock } from 'lucide-react';
+import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock, Crown } from 'lucide-react';
 
 import { BrandHeader } from './components/BrandHeader';
 import type { SponsorScheduleInterval } from './components/SponsorSettingsModal';
@@ -1316,6 +1316,7 @@ export default function App() {
       id: 'defaultFooter', 
       label: 'تذييل التقارير الإفتراضى', 
       icon: Settings, 
+      isPaidService: true,
       color: 'bg-indigo-700 shadow-[0_5px_15px_-3px_rgba(67,56,202,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(67,56,202,0.6)]',
       action: () => {
         setIsMenuOpen(false);
@@ -1340,6 +1341,7 @@ export default function App() {
       id: 'ads', 
       label: t.advertisingPrivilege, 
       icon: Megaphone, 
+      isPaidService: true,
       color: 'bg-blue-600 shadow-[0_5px_15px_-3px_rgba(37,99,235,0.5)] hover:shadow-[0_8px_20px_-3px_rgba(37,99,235,0.6)]',
       action: () => {
         setIsMenuOpen(false);
@@ -1558,7 +1560,7 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <div className={`relative flex flex-col ${step === 0 || [4, 6, 7, 9].includes(step) ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+      <div className={`relative flex flex-col ${[0, 1, 2, 4, 6, 7, 9].includes(step) ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
           <header className="w-full h-16 shrink-0 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
@@ -1641,6 +1643,7 @@ export default function App() {
                 {menuItems.filter((item) => !(item as any).hidden).map((item) => {
                   const isDisabled = Boolean((item as any).disabled);
                   const isMarquee = Boolean((item as any).marquee);
+                  const isPaidService = Boolean((item as any).isPaidService);
                   return (
                     <button
                       key={item.id}
@@ -1671,10 +1674,16 @@ export default function App() {
                             <div className="flex items-center gap-2.5 shrink-0 px-8 whitespace-nowrap">
                               <item.icon className="w-6 h-6 shrink-0" />
                               <span className="font-bold text-lg whitespace-nowrap">{item.label}</span>
+                              {isPaidService && (
+                                <Crown className="w-5 h-5 text-amber-300 fill-amber-300/35 shrink-0 drop-shadow-sm" />
+                              )}
                             </div>
                             <div className="flex items-center gap-2.5 shrink-0 px-8 whitespace-nowrap" aria-hidden="true">
                               <item.icon className="w-6 h-6 shrink-0" />
                               <span className="font-bold text-lg whitespace-nowrap">{item.label}</span>
+                              {isPaidService && (
+                                <Crown className="w-5 h-5 text-amber-300 fill-amber-300/35 shrink-0 drop-shadow-sm" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1682,6 +1691,9 @@ export default function App() {
                         <>
                           <item.icon className="w-6 h-6" />
                           <span className="font-bold text-lg">{item.label}</span>
+                          {isPaidService && (
+                            <Crown className="w-5 h-5 text-amber-300 fill-amber-300/35 shrink-0 drop-shadow-sm" />
+                          )}
                         </>
                       )}
                     </button>
@@ -1910,7 +1922,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Main Content */}
-        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : [4, 6, 7, 9].includes(step) ? 'h-full justify-start pt-0.5 pb-0 px-1 sm:pt-[9px] sm:pb-[3px] sm:px-0 overflow-y-auto overflow-x-hidden' : 'justify-center p-4 md:p-8'}`}>
+        <main className={`flex-1 flex flex-col items-center z-10 w-full min-h-0 ${step === 0 ? 'h-full justify-between p-0 pb-0.5 pt-0 overflow-hidden' : [4, 6, 7, 9].includes(step) ? 'h-full justify-start pt-0.5 pb-0 px-1 sm:pt-[9px] sm:pb-[3px] sm:px-0 overflow-y-auto overflow-x-hidden' : [1, 2].includes(step) ? 'h-full overflow-y-auto overflow-x-hidden p-4 md:p-8' : 'justify-center p-4 md:p-8'}`}>
           {step === 10 && (
             <Suspense fallback={null}>
               <div className="w-full max-w-4xl flex justify-center mb-3.5 z-30">
@@ -1927,7 +1939,7 @@ export default function App() {
               <motion.div
                 key={step}
                 {...FAST_SCREEN_FLIP}
-                className={`w-full flex flex-col items-center ${step === 0 ? 'flex-1 h-full justify-between min-h-0' : [4, 6, 7, 9].includes(step) ? 'flex-1 h-full min-h-0' : ''}`}
+                className={`w-full flex flex-col items-center ${step === 0 ? 'flex-1 h-full justify-between min-h-0' : [4, 6, 7, 9].includes(step) ? 'flex-1 h-full min-h-0' : [1, 2].includes(step) ? 'my-auto' : ''}`}
               >
             {(() => {
               switch (step) {
