@@ -29,7 +29,8 @@ import {
   Undo2,
   Redo2,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Pencil
 } from 'lucide-react';
 import { NumberLang, formatNumberDigits } from '../utils/numberLangHelper';
 import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSubjects';
@@ -40,13 +41,15 @@ import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 import { useStudentHistory } from '../hooks/useStudentHistory';
 import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
+import { EditStudentDataModal } from './EditStudentDataModal';
 
 const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
 const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
 const CertificatesSelectionModal = lazy(() => import('./CertificatesSelectionModal').then(m => ({ default: m.CertificatesSelectionModal })));
 const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
+const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
 import { RowThemeSelector, getTableRowColorStyle } from './RowThemeSelector';
-import { RowBgTheme, getSubjectsConfigForStageGrade } from '../utils/exportPdf';
+import { RowBgTheme, getSubjectsConfigForStageGrade, exportKgStudentEvaluationsReportPdf, exportStudentsDataToPdf, PdfReportType } from '../utils/exportPdf';
 import { ensureCellVisible } from '../utils/cellNavigation';
 import {
   exportSubjectDetailedAssessmentsPdf,
@@ -56,7 +59,6 @@ import {
   isSubjectWithoutWrittenExam
 } from '../utils/detailedAssessmentsHelper';
 import { parseNumberDigits } from '../utils/numberLangHelper';
-import { exportKgStudentEvaluationsReportPdf } from '../utils/exportPdf';
 import { SortButtonMenu } from './SortButtonMenu';
 import { sortStudents } from '../utils/studentSorting';
 import { PasswordModal } from './PasswordModal';
@@ -252,6 +254,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     isPrintTrigger: false,
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
   const {
     handleChange: onChange,
     undo,
@@ -262,7 +265,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     redoCount,
   } = useStudentHistory(localData, propOnChange, {
     onApply: setLocalData,
-    enableShortcuts: !auditModalState.isOpen,
+    enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
 
   const availableClasses = React.useMemo(() => {
@@ -356,6 +359,120 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   const isOfficial = !isTrialMode;
   const [pendingPrintCallback, setPendingPrintCallback] = useState<(() => void) | null>(null);
+  const [isSeatNumbersModalOpen, setIsSeatNumbersModalOpen] = useState(false);
+  const [showSeatNumbersPasswordModal, setShowSeatNumbersPasswordModal] = useState(false);
+  const [seatNumbersRandomId, setSeatNumbersRandomId] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('sheet_control_seat_numbers_random_id');
+      const parsed = saved ? parseInt(saved, 10) : 0;
+      if (parsed >= 500 && parsed <= 599) return parsed;
+      const newId = Math.floor(Math.random() * 100) + 500;
+      localStorage.setItem('sheet_control_seat_numbers_random_id', String(newId));
+      return newId;
+    } catch {
+      return 550;
+    }
+  });
+
+  const isSeatNumbersUnlocked = () => {
+    try {
+      const currentMainId = getDeviceId();
+      const unlockedId = localStorage.getItem('sheet_control_seat_numbers_unlocked_for_id');
+      return unlockedId === String(currentMainId);
+    } catch {
+      return false;
+    }
+  };
+
+  const [showSeatNumbersScheduleEnPasswordModal, setShowSeatNumbersScheduleEnPasswordModal] = useState(false);
+  const [seatNumbersScheduleEnRandomId, setSeatNumbersScheduleEnRandomId] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('sheet_control_seat_numbers_schedule_en_random_id');
+      const parsed = saved ? parseInt(saved, 10) : 0;
+      if (parsed >= 800 && parsed <= 899) return parsed;
+      const newId = Math.floor(Math.random() * 100) + 800;
+      localStorage.setItem('sheet_control_seat_numbers_schedule_en_random_id', String(newId));
+      return newId;
+    } catch {
+      return 850;
+    }
+  });
+
+  const isSeatNumbersScheduleEnUnlocked = () => {
+    try {
+      const currentMainId = getDeviceId();
+      const unlockedId = localStorage.getItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id');
+      return unlockedId === String(currentMainId);
+    } catch {
+      return false;
+    }
+  };
+
+  const executeSeatNumbersPdf = async (reportType: PdfReportType) => {
+    const isHs = Boolean(
+      systemType === 'homeschool' ||
+      (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool')))
+    );
+    const trimmedGrade = (selectedGrade || '').trim();
+    const isFirstGradeLocal =
+      trimmedGrade === 'الصف الأول' ||
+      trimmedGrade.includes('الأول') ||
+      trimmedGrade === '1st Grade';
+    await exportStudentsDataToPdf({
+      title,
+      reportType,
+      numberLang,
+      systemType,
+      isHomeschool: isHs,
+      screenSubtitle: lang === 'ar' ? 'التقييمات تفصيلاً' : 'Detailed Assessments',
+      schoolName,
+      administration,
+      schoolLogo,
+      dataOfficer,
+      controlHead,
+      committeeHead,
+      stage,
+      educationType,
+      selectedGrade,
+      sortBy,
+      students: filteredData,
+      isFirstGrade: isFirstGradeLocal,
+      showExamFields: !isKindergarten,
+      semester,
+      normalizeStatusForGrade: (status: string, isFirst: boolean, gender?: string): string => {
+        if (!status) return '';
+        const clean = status.trim();
+        const isFemale = gender === 'female' || clean.includes('ة') || clean.includes('بنات');
+        const isDamg = clean.includes('دمج');
+        const isBaq = clean.includes('باق');
+        if (isDamg) {
+          if (isBaq) return isFemale ? 'باقية - دمج' : 'باق - دمج';
+          return isFirst ? (isFemale ? 'مستجدة - دمج' : 'مستجد - دمج') : (isFemale ? 'منقولة - دمج' : 'منقول - دمج');
+        }
+        if (isBaq) return isFemale ? 'باقية' : 'باق';
+        return isFirst ? (isFemale ? 'مستجدة' : 'مستجد') : (isFemale ? 'منقولة' : 'منقول');
+      },
+      labels: {
+        serial: 'م',
+        studentName: isKindergarten ? 'اسم التلميذ' : 'اسم الطالب',
+        nationalId: 'الرقم القومي',
+        gender: 'النوع',
+        enrollmentStatus: isKindergarten ? 'حالة التلميذ' : 'حالة القيد',
+        exemptionStatus: 'حالة الإعفاء',
+        enrollmentType: 'نوعية القيد',
+        religion: 'الديانة',
+        seatNumber: 'رقم الجلوس',
+        secretNumber: 'الرقم السري',
+        committeeNumber: 'رقم اللجنة',
+        male: 'ذكر',
+        female: 'أنثى',
+        muslim: 'مسلم',
+        muslimFemale: 'مسلمة',
+        christian: 'مسيحى',
+        christianFemale: 'مسيحية',
+      },
+    });
+  };
   const [showInstructions, setShowInstructions] = useState(false);
   const lastSubjectStorageKey = useMemo(() => {
     return `detailed_assessments_last_subject_${stage}_${selectedGrade}`;
@@ -759,48 +876,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     }
   }, [selectedSubjectKey, semester, stage, currentSubject.maxGrade, isMiddleOrSecondary, isNoWrittenSubject, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]);
 
-  const auditResult = useMemo(
-    () =>
-      runPrePrintAudit({
-        mode: 'detailed_assessments',
-        students: localData,
-        semester,
-        showExamFields: !isKindergarten && showSeatNumber,
-        isKindergarten,
-        detailedContext: {
-          subjectKey: selectedSubjectKey,
-          subjectLabel: currentSubject.label,
-          stage,
-          isPESubject,
-          isNoWrittenExceptPe,
-          isSecondary2Modern,
-        },
-      }),
-    [localData, semester, isKindergarten, showSeatNumber, selectedSubjectKey, currentSubject.label, stage, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]
-  );
-
-  const handleOpenPrintWithAudit = () => {
-    if (auditResult.issues.length > 0) {
-      setAuditModalState({ isOpen: true, isPrintTrigger: true });
-    } else {
-      setIsPrintMenuOpen(true);
-    }
-  };
-
-  const handleJumpToStudent = (studentId: string) => {
-    setAuditModalState({ isOpen: false, isPrintTrigger: false });
-    setSearchQuery('');
-    setFilters({});
-    setHighlightedStudentId(studentId);
-    setTimeout(() => {
-      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
-      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 80);
-    setTimeout(() => {
-      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
-    }, 3200);
-  };
-
   // Helpers to calculate detailed assessment total
   const parseNum = (val?: string): number => {
     if (!val || typeof val !== 'string') return 0;
@@ -1122,6 +1197,48 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
     return sortStudents(list, sortBy, semester, lang);
   }, [localData, searchQuery, semester, sortBy, lang, filters]);
+
+  const auditResult = useMemo(
+    () =>
+      runPrePrintAudit({
+        mode: 'detailed_assessments',
+        students: filteredData,
+        semester,
+        showExamFields: !isKindergarten && showSeatNumber,
+        isKindergarten,
+        detailedContext: {
+          subjectKey: selectedSubjectKey,
+          subjectLabel: currentSubject.label,
+          stage,
+          isPESubject,
+          isNoWrittenExceptPe,
+          isSecondary2Modern,
+        },
+      }),
+    [filteredData, semester, isKindergarten, showSeatNumber, selectedSubjectKey, currentSubject.label, stage, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]
+  );
+
+  const handleOpenPrintWithAudit = () => {
+    if (auditResult.issues.length > 0) {
+      setAuditModalState({ isOpen: true, isPrintTrigger: true });
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const handleJumpToStudent = (studentId: string) => {
+    setAuditModalState({ isOpen: false, isPrintTrigger: false });
+    setSearchQuery('');
+    setFilters({});
+    setHighlightedStudentId(studentId);
+    setTimeout(() => {
+      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
+      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => {
+      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
+    }, 3200);
+  };
 
   // Keyboard navigation across cells
   const fieldKeys: (keyof DetailedAssessmentItem)[] = useMemo(() => {
@@ -2090,9 +2207,20 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                           className="p-3 border-2 border-slate-900 text-center whitespace-pre min-w-[360px] max-w-[360px] w-[360px] sticky z-[29] bg-inherit relative overflow-visible sticky-cell-border"
                         >
                           <div className="separator-line"></div>
-                          <span className="relative z-10 text-slate-900 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre px-2 font-bold text-lg">
+                          <span className="relative z-10 text-slate-900 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-11 pr-3 font-bold text-lg">
                             {student.name || '-'}
                           </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingStudentState({ student, rowNumber: rowIndex + 1 });
+                            }}
+                            title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
                         </td>
 
                         {/* Seat Number */}
@@ -3067,55 +3195,89 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 />
 
                 {!isKindergarten && (
-                  <ActionMenuButton
-                    onClick={async () => {
-                      setIsPrintMenuOpen(false);
-                      const printFn = async () => {
-                        try {
-                          const isHs = Boolean(systemType === 'homeschool' || (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool'))));
-                          const isMidHs = isMiddle && isHs;
-                          await exportStudentSemesterGradesCertificatePdf({
-                            students: sortStudents(localData, sortBy, semester, lang),
-                            semester,
-                            selectedGrade,
-                            stage,
-                            schoolName,
-                            schoolNameEn,
-                            administration,
-                            administrationEn,
-                            schoolLogo,
-                            dataOfficer,
-                            dataOfficerEn,
-                            controlHead,
-                            controlHeadEn,
-                            committeeHead,
-                            committeeHeadEn,
-                            rowTheme: (localStorage.getItem('pdf_print_row_theme') as RowBgTheme) || undefined,
-                            isEnglishCertificate: true,
-                            systemType: systemType || (isHs ? 'homeschool' : 'regular'),
-                            title,
-                            isHomeschool: isHs,
-                            isMiddleHomeschool: isMidHs,
-                          });
-                        } catch (e) {
-                          console.error('Failed to export student semester grades certificate PDF (EN)', e);
+                  <>
+                    <ActionMenuButton
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        if (isOfficial && !isSeatNumbersScheduleEnUnlocked()) {
+                          setShowSeatNumbersScheduleEnPasswordModal(true);
+                        } else {
+                          executeSeatNumbersPdf('seat_numbers_with_schedule_english');
                         }
-                      };
+                      }}
+                      icon={<Printer className="w-4 h-4 shrink-0" />}
+                      text="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+                      bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                      className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                      disableMarquee
+                      isPaidService
+                    />
+                    <ActionMenuButton
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        if (isOfficial && !isSeatNumbersUnlocked()) {
+                          setShowSeatNumbersPasswordModal(true);
+                        } else {
+                          setIsSeatNumbersModalOpen(true);
+                        }
+                      }}
+                      icon={<Printer className="w-4 h-4 shrink-0" />}
+                      text="SEAT NUMBERS IN ENGLISH"
+                      bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                      className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                      disableMarquee
+                      isPaidService
+                    />
+                    <ActionMenuButton
+                      onClick={async () => {
+                        setIsPrintMenuOpen(false);
+                        const printFn = async () => {
+                          try {
+                            const isHs = Boolean(systemType === 'homeschool' || (title && (title.includes('منازل') || title.toLowerCase().includes('homeschool'))));
+                            const isMidHs = isMiddle && isHs;
+                            await exportStudentSemesterGradesCertificatePdf({
+                              students: sortStudents(localData, sortBy, semester, lang),
+                              semester,
+                              selectedGrade,
+                              stage,
+                              schoolName,
+                              schoolNameEn,
+                              administration,
+                              administrationEn,
+                              schoolLogo,
+                              dataOfficer,
+                              dataOfficerEn,
+                              controlHead,
+                              controlHeadEn,
+                              committeeHead,
+                              committeeHeadEn,
+                              rowTheme: (localStorage.getItem('pdf_print_row_theme') as RowBgTheme) || undefined,
+                              isEnglishCertificate: true,
+                              systemType: systemType || (isHs ? 'homeschool' : 'regular'),
+                              title,
+                              isHomeschool: isHs,
+                              isMiddleHomeschool: isMidHs,
+                            });
+                          } catch (e) {
+                            console.error('Failed to export student semester grades certificate PDF (EN)', e);
+                          }
+                        };
 
-                      if (isOfficial && !isEnglishCertUnlocked()) {
-                        setPendingPrintCallback(() => printFn);
-                        setShowEnglishCertPasswordModal(true);
-                      } else {
-                        printFn();
-                      }
-                    }}
-                    icon={<Printer className="w-4 h-4 shrink-0" />}
-                    text="CERTIFICATES IN ENGLISH"
-                    bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
-                    className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
-                    disableMarquee
-                    isPaidService
-                  />
+                        if (isOfficial && !isEnglishCertUnlocked()) {
+                          setPendingPrintCallback(() => printFn);
+                          setShowEnglishCertPasswordModal(true);
+                        } else {
+                          printFn();
+                        }
+                      }}
+                      icon={<Printer className="w-4 h-4 shrink-0" />}
+                      text="CERTIFICATES IN ENGLISH"
+                      bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                      className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                      disableMarquee
+                      isPaidService
+                    />
+                  </>
                 )}
 
                 {/* زر الإغلاق الدائري */}
@@ -3476,6 +3638,57 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         exampleVariant="english_cert"
       />
 
+      <Suspense fallback={null}>
+        {isSeatNumbersModalOpen && (
+          <SeatNumbersModal
+            isOpen={isSeatNumbersModalOpen}
+            onClose={() => setIsSeatNumbersModalOpen(false)}
+            isEnglish={true}
+            onSelectModel={async (modelReportType) => {
+              setIsSeatNumbersModalOpen(false);
+              await executeSeatNumbersPdf(modelReportType);
+            }}
+          />
+        )}
+      </Suspense>
+      <PasswordModal
+        isOpen={showSeatNumbersPasswordModal}
+        onClose={() => setShowSeatNumbersPasswordModal(false)}
+        onSuccess={() => {
+          localStorage.setItem('sheet_control_seat_numbers_unlocked_for_id', String(getDeviceId()));
+          localStorage.removeItem('sheet_control_seat_numbers_random_id');
+          setShowSeatNumbersPasswordModal(false);
+          setIsSeatNumbersModalOpen(true);
+        }}
+        deviceIdOverride={seatNumbersRandomId}
+        isVipOption={true}
+        vipOptionTitle="SEAT NUMBERS IN ENGLISH"
+        showFullVipTitle={true}
+        modalLang="en"
+        customWhatsappMessage="السلام عليكم .. أود تحميل ارقام الجلوس باللغة الانجليزية - معرف جهازي : ID : x"
+        skipActivation={true}
+        showExampleButton={true}
+      />
+      <PasswordModal
+        isOpen={showSeatNumbersScheduleEnPasswordModal}
+        onClose={() => setShowSeatNumbersScheduleEnPasswordModal(false)}
+        onSuccess={() => {
+          localStorage.setItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id', String(getDeviceId()));
+          localStorage.removeItem('sheet_control_seat_numbers_schedule_en_random_id');
+          setShowSeatNumbersScheduleEnPasswordModal(false);
+          executeSeatNumbersPdf('seat_numbers_with_schedule_english');
+        }}
+        deviceIdOverride={seatNumbersScheduleEnRandomId}
+        isVipOption={true}
+        vipOptionTitle="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+        showFullVipTitle={true}
+        modalLang="en"
+        customWhatsappMessage="السلام عليكم .. أود تحميل أرقام الجلوس بجدول الإمتحانات باللغة الإنجليزية - معرف جهازي : ID : x"
+        skipActivation={true}
+        showExampleButton={true}
+        exampleVariant="seat_numbers_with_schedule"
+      />
+
       <PasswordModal
         isOpen={showCertificatesPasswordModal}
         onClose={() => setShowCertificatesPasswordModal(false)}
@@ -3550,6 +3763,25 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
         onProceedToPrint={() => setIsPrintMenuOpen(true)}
         isPrintTrigger={auditModalState.isPrintTrigger}
+      />
+      <EditStudentDataModal
+        student={editingStudentState?.student || null}
+        rowNumber={editingStudentState?.rowNumber}
+        onClose={() => setEditingStudentState(null)}
+        onSave={(updatedStudent) => {
+          const updated = localData.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+          setLocalData(updated);
+          onChange(updated);
+          setEditingStudentState(null);
+        }}
+        semester={semester}
+        stage={stage}
+        selectedGrade={selectedGrade}
+        educationType={educationType}
+        showExamFields={!isKindergarten}
+        availableClasses={availableClasses}
+        numberLang={numberLang}
+        lang={lang}
       />
     </div>
   );

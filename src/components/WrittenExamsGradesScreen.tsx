@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
-import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert, Pencil } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { translations } from '../i18n';
@@ -27,6 +27,7 @@ import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 import { useStudentHistory } from '../hooks/useStudentHistory';
 import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
+import { EditStudentDataModal } from './EditStudentDataModal';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const AdvancedStatsModal = lazy(() => import('./AdvancedStatsModal').then(m => ({ default: m.AdvancedStatsModal })));
@@ -106,6 +107,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     isPrintTrigger: false,
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
   const {
     handleChange: onChange,
     undo,
@@ -116,7 +118,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     redoCount,
   } = useStudentHistory(localData, propOnChange, {
     onApply: setLocalData,
-    enableShortcuts: !auditModalState.isOpen,
+    enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterState>({});
@@ -1844,6 +1846,30 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     }
   };
 
+  const [showSeatNumbersScheduleEnPasswordModal, setShowSeatNumbersScheduleEnPasswordModal] = useState(false);
+  const [seatNumbersScheduleEnRandomId, setSeatNumbersScheduleEnRandomId] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('sheet_control_seat_numbers_schedule_en_random_id');
+      const parsed = saved ? parseInt(saved, 10) : 0;
+      if (parsed >= 800 && parsed <= 899) return parsed;
+      const newId = Math.floor(Math.random() * 100) + 800;
+      localStorage.setItem('sheet_control_seat_numbers_schedule_en_random_id', String(newId));
+      return newId;
+    } catch {
+      return 850;
+    }
+  });
+
+  const isSeatNumbersScheduleEnUnlocked = () => {
+    try {
+      const currentMainId = getDeviceId();
+      const unlockedId = localStorage.getItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id');
+      return unlockedId === String(currentMainId);
+    } catch {
+      return false;
+    }
+  };
+
   const [showEnglishCertPasswordModal, setShowEnglishCertPasswordModal] = useState(false);
   const [englishCertRandomId, setEnglishCertRandomId] = useState<number>(() => {
     try {
@@ -1927,6 +1953,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
       }
     }
     if (stage !== 'kindergarten') {
+      if (reportType === 'seat_numbers_with_schedule_english') {
+        if (isOfficial && !isSeatNumbersScheduleEnUnlocked()) {
+          setShowSeatNumbersScheduleEnPasswordModal(true);
+          return;
+        }
+        await executePrintOption('seat_numbers_with_schedule_english');
+        return;
+      }
       if (reportType === 'seat_numbers') {
         setIsSeatNumbersEnglish(false);
         setIsSeatNumbersModalOpen(true);
@@ -2604,13 +2638,13 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     () =>
       runPrePrintAudit({
         mode: 'written_exams',
-        students: localData,
+        students: filteredData,
         semester,
         showExamFields: !isKindergarten && gradingSettings.showSeatNumber,
         isKindergarten,
         editableColumns: auditColumns,
       }),
-    [localData, semester, isKindergarten, gradingSettings.showSeatNumber, auditColumns]
+    [filteredData, semester, isKindergarten, gradingSettings.showSeatNumber, auditColumns]
   );
 
   const handleOpenPrintWithAudit = () => {
@@ -3261,6 +3295,15 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               bgGradient="bg-[linear-gradient(to_right,#0284c7,#0d9488,#10b981)]"
                             />
                             <ActionMenuButton
+                              onClick={() => handlePrintOption('seat_numbers_with_schedule_english')}
+                              icon={<Printer className="w-4 h-4 shrink-0" />}
+                              text="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+                              bgGradient="bg-[linear-gradient(to_right,#0c4a6e,#1e3a8a,#0c4a6e)]"
+                              className="!text-[12.5px] sm:!text-[15.5px] !px-2 tracking-wide"
+                              disableMarquee
+                              isPaidService
+                            />
+                            <ActionMenuButton
                               onClick={() => handlePrintOption('seat_numbers_english')}
                               icon={<Printer className="w-4 h-4 shrink-0" />}
                               text="SEAT NUMBERS IN ENGLISH"
@@ -3740,7 +3783,18 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className={`p-3 border-2 border-slate-900 text-center whitespace-pre min-w-[400px] max-w-[400px] w-[400px] sticky z-[29] bg-inherit relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'name' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)]' : ''}`}
                             >
                               <div className="separator-line"></div>
-                              <span className="relative z-10 text-slate-800 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre px-2">{student.name ? (student.name.length > 40 ? student.name.substring(0, 40) + '  ' : student.name) : ''}</span>
+                              <span className="relative z-10 text-slate-800 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-11 pr-3">{student.name ? (student.name.length > 40 ? student.name.substring(0, 40) + '  ' : student.name) : ''}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingStudentState({ student, rowNumber: index + 1 });
+                                }}
+                                title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
                             </td>
                           )}
                           {showSeatNumber && (
@@ -5621,6 +5675,25 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         skipActivation={true}
         showExampleButton={true}
       />
+      <PasswordModal
+        isOpen={showSeatNumbersScheduleEnPasswordModal}
+        onClose={() => setShowSeatNumbersScheduleEnPasswordModal(false)}
+        onSuccess={() => {
+          localStorage.setItem('sheet_control_seat_numbers_schedule_en_unlocked_for_id', String(getDeviceId()));
+          localStorage.removeItem('sheet_control_seat_numbers_schedule_en_random_id');
+          setShowSeatNumbersScheduleEnPasswordModal(false);
+          executePrintOption('seat_numbers_with_schedule_english');
+        }}
+        deviceIdOverride={seatNumbersScheduleEnRandomId}
+        isVipOption={true}
+        vipOptionTitle="SEAT NUMBERS WITH IN EXAM SCHEDULE"
+        showFullVipTitle={true}
+        modalLang="en"
+        customWhatsappMessage="السلام عليكم .. أود تحميل أرقام الجلوس بجدول الإمتحانات باللغة الإنجليزية - معرف جهازي : ID : x"
+        skipActivation={true}
+        showExampleButton={true}
+        exampleVariant="seat_numbers_with_schedule"
+      />
 
       <Suspense fallback={null}>
         {isCustomControlSheetModalOpen && (
@@ -6147,6 +6220,25 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
         onProceedToPrint={() => setIsPrintMenuOpen(true)}
         isPrintTrigger={auditModalState.isPrintTrigger}
+      />
+      <EditStudentDataModal
+        student={editingStudentState?.student || null}
+        rowNumber={editingStudentState?.rowNumber}
+        onClose={() => setEditingStudentState(null)}
+        onSave={(updatedStudent) => {
+          const updated = localData.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+          setLocalData(updated);
+          onChange(updated);
+          setEditingStudentState(null);
+        }}
+        semester={semester}
+        stage={stage}
+        selectedGrade={selectedGrade}
+        educationType={educationType}
+        showExamFields={!isKindergarten}
+        availableClasses={availableClasses}
+        numberLang={numberLang}
+        lang={lang}
       />
     </div>
   );

@@ -5377,8 +5377,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         let schedList: ExamScheduleItem[] = propExamSchedule || [];
         if ((!schedList || schedList.length === 0) && typeof window !== 'undefined') {
           try {
-            const storageKey = `exam_schedule_${stage}_${selectedGrade}`;
-            const saved = localStorage.getItem(storageKey);
+            const primaryStorageKey = `sheet_control_exam_schedule_${stage || 'default'}_${selectedGrade || 'default'}_${semester || 'first'}`;
+            const legacyStorageKey = `exam_schedule_${stage}_${selectedGrade}`;
+            const saved = localStorage.getItem(primaryStorageKey) || localStorage.getItem(legacyStorageKey);
             if (saved) {
               schedList = JSON.parse(saved);
             }

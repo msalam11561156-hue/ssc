@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Languages, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, ShieldCheck, ShieldAlert, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -18,6 +18,7 @@ import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 import { useStudentHistory } from '../hooks/useStudentHistory';
 import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
+import { EditStudentDataModal } from './EditStudentDataModal';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
@@ -171,6 +172,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     isPrintTrigger: false,
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
   const {
     handleChange: onChange,
     undo,
@@ -180,7 +182,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     undoCount,
     redoCount,
   } = useStudentHistory(data, propOnChange, {
-    enableShortcuts: !auditModalState.isOpen,
+    enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
     return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
@@ -190,39 +192,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     localStorage.setItem('sheet_control_number_lang', numberLang);
   }, [numberLang]);
   const isKindergarten = stage === 'kindergarten';
-  const auditResult = useMemo(
-    () =>
-      runPrePrintAudit({
-        mode: 'students_data',
-        students: data,
-        semester,
-        showExamFields,
-        isKindergarten,
-      }),
-    [data, semester, showExamFields, isKindergarten]
-  );
-
-  const handleOpenPrintWithAudit = () => {
-    if (auditResult.issues.length > 0) {
-      setAuditModalState({ isOpen: true, isPrintTrigger: true });
-    } else {
-      setIsPrintMenuOpen(true);
-    }
-  };
-
-  const handleJumpToStudent = (studentId: string) => {
-    setAuditModalState({ isOpen: false, isPrintTrigger: false });
-    setSearchTerm('');
-    setFilters({});
-    setHighlightedStudentId(studentId);
-    setTimeout(() => {
-      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
-      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 80);
-    setTimeout(() => {
-      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
-    }, 3200);
-  };
   const isInternational = isInternationalSchool(educationType);
   const showExemptionStatus = isInternational && !isKindergarten;
   const colOffset = showExemptionStatus ? 1 : 0;
@@ -1935,6 +1904,40 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   } else {
     frozenIdsRef.current = filteredData.map(s => s.id);
   }
+
+  const auditResult = useMemo(
+    () =>
+      runPrePrintAudit({
+        mode: 'students_data',
+        students: filteredData,
+        semester,
+        showExamFields,
+        isKindergarten,
+      }),
+    [filteredData, semester, showExamFields, isKindergarten]
+  );
+
+  const handleOpenPrintWithAudit = () => {
+    if (auditResult.issues.length > 0) {
+      setAuditModalState({ isOpen: true, isPrintTrigger: true });
+    } else {
+      setIsPrintMenuOpen(true);
+    }
+  };
+
+  const handleJumpToStudent = (studentId: string) => {
+    setAuditModalState({ isOpen: false, isPrintTrigger: false });
+    setSearchTerm('');
+    setFilters({});
+    setHighlightedStudentId(studentId);
+    setTimeout(() => {
+      const rowEl = document.querySelector(`[data-audit-student-id="${studentId}"]`) as HTMLElement | null;
+      rowEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => {
+      setHighlightedStudentId((prev) => (prev === studentId ? null : prev));
+    }, 3200);
+  };
 
   const totalStudents = data.length;
   const boysCount = data.filter(s => s.gender === 'male').length;
@@ -4003,27 +4006,40 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         ensureCellVisible(e.target);
                       }}
                       onPaste={(e) => handlePaste(e, student.id, "name", idx, 0)}
-                      className="w-full h-full bg-transparent border-none pl-11 pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
+                      className="w-full h-full bg-transparent border-none pl-[76px] pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
                     />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openStudentNameEnModal(student, idx);
-                      }}
-                      title={
-                        student.nameEn?.trim()
-                          ? `الاسم بالإنجليزية: ${student.nameEn}`
-                          : (isKindergarten ? 'تحرير اسم التلميذ باللغة الإنجليزية' : 'تحرير اسم الطالب باللغة الإنجليزية')
-                      }
-                      className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 flex items-center justify-center transition-all shadow-sm active:scale-95 ${
-                        student.nameEn?.trim()
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700'
-                          : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700'
-                      }`}
-                    >
-                      <Languages className="w-4 h-4" />
-                    </button>
+                    <div dir="ltr" className="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingStudentState({ student, rowNumber: idx + 1 });
+                        }}
+                        title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
+                        className="w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openStudentNameEnModal(student, idx);
+                        }}
+                        title={
+                          student.nameEn?.trim()
+                            ? `الاسم بالإنجليزية: ${student.nameEn}`
+                            : (isKindergarten ? 'تحرير اسم التلميذ باللغة الإنجليزية' : 'تحرير اسم الطالب باللغة الإنجليزية')
+                        }
+                        className={`w-7 h-7 rounded-lg border border-slate-900 flex items-center justify-center transition-all shadow-sm active:scale-95 ${
+                          student.nameEn?.trim()
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700'
+                            : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700'
+                        }`}
+                      >
+                        <Languages className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                   <td className={`p-0 border-2 border-slate-900 relative group/cell focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[210px] max-w-[210px] w-[210px]' : 'min-w-[192px] max-w-[192px] w-[192px]'}`}>
                     <input 
@@ -5987,6 +6003,23 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         onNavigateToStudent={(studentId) => handleJumpToStudent(studentId)}
         onProceedToPrint={() => setIsPrintMenuOpen(true)}
         isPrintTrigger={auditModalState.isPrintTrigger}
+      />
+      <EditStudentDataModal
+        student={editingStudentState?.student || null}
+        rowNumber={editingStudentState?.rowNumber}
+        onClose={() => setEditingStudentState(null)}
+        onSave={(updatedStudent) => {
+          onChange(data.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+          setEditingStudentState(null);
+        }}
+        semester={semester}
+        stage={stage}
+        selectedGrade={selectedGrade}
+        educationType={educationType}
+        showExamFields={showExamFields}
+        availableClasses={availableClasses}
+        numberLang={numberLang}
+        lang={lang}
       />
     </div>
   );
