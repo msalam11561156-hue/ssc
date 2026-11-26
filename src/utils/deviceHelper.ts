@@ -43,3 +43,22 @@ export function useIsMobilePhone(): boolean {
 
   return isMobile;
 }
+
+/**
+ * Determines whether the app is currently running inside the developer preview
+ * (AI Studio `ais-dev-*` host or local dev server) rather than the end-user / shared (`ais-pre-*` or production) environment.
+ */
+export function isDeveloperPreviewMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname.startsWith('ais-pre-')) return false;
+  if (
+    hostname.startsWith('ais-dev-') ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1'
+  ) {
+    return true;
+  }
+  return Boolean(import.meta.env.DEV);
+}
+

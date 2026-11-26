@@ -35,6 +35,7 @@ import { getDeletedSubjectKeys, filterDeletedSubjects } from '../utils/deletedSu
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
 import { StudentData, Language, EducationalStage, DetailedAssessmentItem, EducationType } from '../types';
+import { applyTechnicalAssessmentTerms, isTechnicalEducationSchool } from '../i18n';
 import { downloadControlWorkGuide } from '../utils/controlGuideDownload';
 import { useStudentHistory } from '../hooks/useStudentHistory';
 import { runPrePrintAudit } from '../utils/prePrintAudit';
@@ -226,6 +227,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   const sortBy = externalSortBy || [];
   const isMiddle = stage === 'middle' || (stage as string) === 'prep';
   const isSecondary = stage === 'secondary';
+  const isTechnical = isTechnicalEducationSchool(educationType, stage);
   const isMiddleOrSecondary = isMiddle || isSecondary;
   const isKindergarten = stage === 'kindergarten';
   const isFirstSemester = semester === 'first' || semester === 'الفصل الدراسي الأول';
@@ -429,7 +431,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       numberLang,
       systemType,
       isHomeschool: isHs,
-      screenSubtitle: lang === 'ar' ? 'التقييمات تفصيلاً' : 'Detailed Assessments',
+      screenSubtitle: lang === 'ar' ? applyTechnicalAssessmentTerms('التقييمات تفصيلاً', educationType, stage) : 'Detailed Assessments',
       schoolName,
       administration,
       schoolLogo,
@@ -488,10 +490,12 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     try {
       const savedSpecific = localStorage.getItem(`detailed_assessments_last_subject_${stage}_${selectedGrade}`);
       if (savedSpecific) return savedSpecific;
-      const savedGeneral = localStorage.getItem('detailed_assessments_last_subject');
-      if (savedGeneral) return savedGeneral;
+      if (!isTechnical) {
+        const savedGeneral = localStorage.getItem('detailed_assessments_last_subject');
+        if (savedGeneral) return savedGeneral;
+      }
     } catch {}
-    return 'arabic';
+    return isTechnical ? '' : 'arabic';
   });
 
   // حفظ المادة الحالية لضمان استرجاعها فور العودة للشاشة
@@ -579,7 +583,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             return {
               key: c.key,
               label: c.label || c.name || c.key,
-              maxGrade: noWritten ? (c.maxAssessmentsGrade || 100) : (c.maxAssessmentsGrade || c.maxGrade || (isMiddleOrSecondary ? 70 : 40)),
+              maxGrade: noWritten ? (c.maxAssessmentsGrade || 100) : (c.maxAssessmentsGrade || c.maxGrade || (isMiddleOrSecondary ? 70 : isTechnical ? 100 : 40)),
               hasWrittenExam: !noWritten,
               learningOutcomesType: c.learningOutcomesType || (c.key === 'religion' || c.key === 'pe' || c.key === 'art' || c.key === 'fields' || c.key === 'music' || c.key === 'tokkatsu' ? 'pass_fail' : 'grades')
             };
@@ -663,7 +667,23 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             { key: 'activity2', label: 'النشاط الثانى', maxGrade: 100, hasWrittenExam: false }
           ];
         }
-      } else {
+      } else if (isTechnical) {
+        const cfg = getSubjectsConfigForStageGrade(stage, selectedGrade);
+        if (cfg.customCols && cfg.customCols.length > 0) {
+          resultList = cfg.customCols.map(c => {
+            const noWritten = c.hasWrittenExam === false || isSubjectWithoutWrittenExam(c, cfg.customCols);
+            return {
+              key: c.key,
+              label: c.label,
+              maxGrade: noWritten ? 100 : (c.maxAssessmentsGrade ?? c.maxGrade ?? 100),
+              hasWrittenExam: !noWritten,
+              learningOutcomesType: c.learningOutcomesType,
+            };
+          });
+        } else {
+          resultList = [];
+        }
+      } else if (stage === 'primary') {
         const isPrimary1To3 = ['الصف الأول', 'الصف الثاني', 'الصف الثالث', '1st Grade', '2nd Grade', '3rd Grade'].some(
           g => selectedGrade?.includes(g)
         );
@@ -695,9 +715,9 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       }
     }
 
-    // ضمان إضافة المواد التي ليس لها امتحان تحريري لجميع المراحل ما عدا رياض الأطفال
-    if (stage !== 'kindergarten') {
-      const isPrimary1To3 = ['الصف الأول', 'الصف الثاني', 'الصف الثالث', '1st Grade', '2nd Grade', '3rd Grade'].some(
+    // ضمان إضافة المواد التي ليس لها امتحان تحريري لجميع المراحل ما عدا رياض الأطفال ومدارس التعليم الفنى
+    if (stage !== 'kindergarten' && !isTechnical) {
+      const isPrimary1To3 = stage === 'primary' && ['الصف الأول', 'الصف الثاني', 'الصف الثالث', '1st Grade', '2nd Grade', '3rd Grade'].some(
         g => selectedGrade?.includes(g)
       );
 
@@ -738,7 +758,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     }
 
     return filterDeletedSubjects(resultList, stage, selectedGrade);
-  }, [stage, selectedGrade, isMiddle, isSecondary, isMiddleOrSecondary]);
+  }, [stage, selectedGrade, isMiddle, isSecondary, isTechnical, isMiddleOrSecondary]);
 
   // Ensure selectedSubjectKey is valid and restore last selected subject
   useEffect(() => {
@@ -770,10 +790,15 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       } catch {}
       setSelectedSubjectKey(subjects[0].key);
       onSubjectChange?.(subjects[0].key);
+    } else if (selectedSubjectKey !== '') {
+      setSelectedSubjectKey('');
     }
   }, [subjects, selectedSubjectKey, lastSubjectStorageKey, currentSubjectKey, stage, selectedGrade]);
 
   const currentSubject = useMemo(() => {
+    if (subjects.length === 0) {
+      return { key: '', label: 'لا توجد مواد دراسية مضافة بعد' };
+    }
     return subjects.find(s => s.key === selectedSubjectKey) || subjects[0] || { key: 'arabic', label: 'اللغة العربية' };
   }, [subjects, selectedSubjectKey]);
 
@@ -843,7 +868,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   // مزامنة مبدئية: في حال وجود درجات للطلاب في التقييمات إجمالاً وعدم وجود تفصيل لها للمادة المحددة
   useEffect(() => {
-    if (!localData || localData.length === 0 || !selectedSubjectKey || skipAutoSyncSnapshotRef.current === localData) return;
+    if (!localData || localData.length === 0 || !selectedSubjectKey || subjects.length === 0 || skipAutoSyncSnapshotRef.current === localData) return;
     let anyMissing = false;
     const updated = localData.map(student => {
       const detailedItem = student.detailedAssessments?.[semester]?.[selectedSubjectKey];
@@ -1585,6 +1610,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         semester,
         selectedGrade,
         stage,
+        educationType,
         schoolName,
         administration,
         dataOfficer,
@@ -1664,7 +1690,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                 </div>
                 <div style="text-align: center;">
                   <div style="display: inline-block; background: linear-gradient(135deg, #0f172a, #1e293b); color: #ffffff; padding: 3px 14px; border-radius: 20px; font-size: 13px; font-weight: 900; margin-bottom: 2px;">
-                    إشعار نتيجة تقييمات ${semName} بعد ${examName}
+                    ${applyTechnicalAssessmentTerms(`إشعار نتيجة تقييمات ${semName} بعد ${examName}`, educationType, stage)}
                   </div>
                   <div style="font-size: 11px; font-weight: bold; color: #475569;">
                     ${selectedGrade} - ${semText}
@@ -1722,7 +1748,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       `;
     }).join('');
 
-    printHtmlDocument(`شهادات_تقييمات_${semName}_بعد_${examName}_${selectedGrade}`, pagesHtml, true);
+    printHtmlDocument(`شهادات_${isTechnicalEducationSchool(educationType, stage) ? 'أعمال_السنة' : 'تقييمات'}_${semName}_بعد_${examName}_${selectedGrade}`, pagesHtml, true);
   };
 
   return (
@@ -1743,7 +1769,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
             <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
               <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-black/60 shrink-0" />
-              <span>تحرير التقييمات - تفصيلا - لكل مادة دراسية</span>
+              <span>{applyTechnicalAssessmentTerms('تحرير التقييمات - تفصيلا - لكل مادة دراسية', educationType, stage)}</span>
             </div>
 
             {onNavigateToGeneralAssessments && (
@@ -1756,9 +1782,9 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     onNavigateToGeneralAssessments();
                   }}
                   className="relative z-10 bg-white/95 hover:bg-white text-black font-black text-xs sm:text-sm md:text-base px-3 sm:px-5 py-1.5 sm:py-2 min-h-[38px] sm:min-h-[42px] rounded-[10px] transition-all flex items-center justify-center active:scale-95 shadow-sm whitespace-nowrap"
-                  title="التقييمات إجمالاً"
+                  title={applyTechnicalAssessmentTerms('التقييمات إجمالاً', educationType, stage)}
                 >
-                  <span>التقييمات إجمالاً</span>
+                  <span>{applyTechnicalAssessmentTerms('التقييمات إجمالاً', educationType, stage)}</span>
                 </button>
               </div>
             )}
@@ -2874,7 +2900,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                           }}
                           disabled={isOfficialNoStudents}
                           icon={<BookOpen className="w-4 h-4" />}
-                          text="التقييمات إجمالاً"
+                          text={applyTechnicalAssessmentTerms('التقييمات إجمالاً', educationType, stage)}
                           bgGradient="bg-[linear-gradient(to_right,#0d9488,#10b981,#0d9488)]"
                         />
                       )}
@@ -2979,7 +3005,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     setIsSubjectPrintModalOpen(true);
                   }}
                   icon={<Printer className="w-4 h-4" />}
-                  text="تقييمات المواد تفصيلا"
+                  text={isTechnicalEducationSchool(educationType, stage) ? 'أعمال السنة للمواد تفصيلاً' : 'تقييمات المواد تفصيلا'}
                   bgGradient="bg-[linear-gradient(to_right,#059669,#10b981,#059669)]"
                 />
 
@@ -2995,6 +3021,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         semester,
                         selectedGrade,
                         stage,
+                        educationType,
                         examIndex: 1,
                         schoolName,
                         schoolNameEn,
@@ -3017,11 +3044,13 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     }
                   }}
                   icon={<Printer className="w-4 h-4" />}
-                  text={
+                  text={applyTechnicalAssessmentTerms(
                     semester === 'second'
                       ? 'شهادات تقييمات الفصل الدراسي الثانى بعد الاختبار الأول'
-                      : 'شهادات تقييمات الفصل الدراسي الأول بعد الاختبار الأول'
-                  }
+                      : 'شهادات تقييمات الفصل الدراسي الأول بعد الاختبار الأول',
+                    educationType,
+                    stage
+                  )}
                   bgGradient="bg-[linear-gradient(to_right,#f59e0b,#d97706,#f59e0b)]"
                 />
 
@@ -3037,6 +3066,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         semester,
                         selectedGrade,
                         stage,
+                        educationType,
                         examIndex: 2,
                         schoolName,
                         schoolNameEn,
@@ -3059,11 +3089,13 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     }
                   }}
                   icon={<Printer className="w-4 h-4" />}
-                  text={
+                  text={applyTechnicalAssessmentTerms(
                     semester === 'second'
                       ? 'شهادات تقييمات الفصل الدراسي الثانى بعد الاختبار الثانى'
-                      : 'شهادات تقييمات الفصل الدراسي الأول بعد الاختبار الثانى'
-                  }
+                      : 'شهادات تقييمات الفصل الدراسي الأول بعد الاختبار الثانى',
+                    educationType,
+                    stage
+                  )}
                   bgGradient="bg-[linear-gradient(to_right,#8b5cf6,#6366f1,#8b5cf6)]"
                 />
 
@@ -3134,6 +3166,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                             semester,
                             selectedGrade,
                             stage,
+                            educationType,
                             schoolName,
                             schoolNameEn,
                             administration,
@@ -3227,6 +3260,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               semester,
                               selectedGrade,
                               stage,
+                              educationType,
                               schoolName,
                               schoolNameEn,
                               administration,
@@ -3304,7 +3338,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
               <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
                 
                 <div className="text-center font-black text-slate-800 text-lg border-b border-slate-200 pb-3 mb-1">
-                  اختر المادة الدراسية لطباعة تقييماتها تفصيلاً
+                  {isTechnicalEducationSchool(educationType, stage) ? 'اختر المادة الدراسية لطباعة أعمال السنة تفصيلاً' : 'اختر المادة الدراسية لطباعة تقييماتها تفصيلاً'}
                 </div>
 
                 {(() => {
@@ -3317,19 +3351,25 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     'bg-[linear-gradient(to_right,#db2777,#f43f5e,#db2777)]',
                     'bg-[linear-gradient(to_right,#0d9488,#14b8a6,#0d9488)]',
                   ];
-                  return subjects.map((subj, sIdx) => (
-                    <ActionMenuButton
-                      key={subj.key}
-                      onClick={() => {
-                        handleSelectSubject(subj.key);
-                        setIsSubjectPrintModalOpen(false);
-                        printSubjectDetailed(subj.key, subj.label);
-                      }}
-                      icon={<Printer className="w-4 h-4" />}
-                      text={subj.label}
-                      bgGradient={subjGradients[sIdx % subjGradients.length]}
-                    />
-                  ));
+                  return subjects.length === 0 ? (
+                    <div className="py-6 px-4 text-center text-slate-700 font-bold text-base bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl">
+                      لا توجد مواد دراسية مضافة بعد لهذه المرحلة
+                    </div>
+                  ) : (
+                    subjects.map((subj, sIdx) => (
+                      <ActionMenuButton
+                        key={subj.key}
+                        onClick={() => {
+                          handleSelectSubject(subj.key);
+                          setIsSubjectPrintModalOpen(false);
+                          printSubjectDetailed(subj.key, subj.label);
+                        }}
+                        icon={<Printer className="w-4 h-4" />}
+                        text={subj.label}
+                        bgGradient={subjGradients[sIdx % subjGradients.length]}
+                      />
+                    ))
+                  );
                 })()}
 
                 {/* زر الإغلاق الدائري */}
@@ -3384,7 +3424,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     className="flex items-center justify-center gap-2 origin-center"
                   >
                     <Info className="w-6 h-6 text-amber-500" />
-                    <span>تعليمات وضوابط التقييمات التفصيلية</span>
+                    <span>{applyTechnicalAssessmentTerms('تعليمات وضوابط التقييمات التفصيلية', educationType, stage)}</span>
                   </motion.div>
                 </div>
 
@@ -3505,7 +3545,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     style={{ animationDuration: '12s' }}
                   >
                     <div className="p-3 bg-blue-50 rounded-[10px] text-blue-900 text-xs sm:text-sm">
-                      <strong>التكامل التلقائي :</strong> درجة المجموع في جدول الرصد التفصيلي فى شاشة تحرير التقييمات تفصيلا تنعكس وتتزامن تلقائياً وبشكل فوري في شاشة التقييمات إجمالاً. وعند رصد وتحرير حقول التقييمات بالقيمة الاجمالية فى شاشات تحرير التقييمات اجمالا فإن القيمة الاجمالية المكتوبة يتم توزيعها تلقائيا على الحقول التى تمثل بنود التقييم للمادة الدراسية فى شاشة التقييمات تفصيلا.
+                      <strong>التكامل التلقائي :</strong> {applyTechnicalAssessmentTerms('درجة المجموع في جدول الرصد التفصيلي فى شاشة تحرير التقييمات تفصيلا تنعكس وتتزامن تلقائياً وبشكل فوري في شاشة التقييمات إجمالاً. وعند رصد وتحرير حقول التقييمات بالقيمة الاجمالية فى شاشات تحرير التقييمات اجمالا فإن القيمة الاجمالية المكتوبة يتم توزيعها تلقائيا على الحقول التى تمثل بنود التقييم للمادة الدراسية فى شاشة التقييمات تفصيلا.', educationType, stage)}
                     </div>
                   </div>
                 </div>
@@ -3555,18 +3595,24 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                     'bg-[linear-gradient(to_right,#db2777,#f43f5e,#db2777)]',
                     'bg-[linear-gradient(to_right,#0d9488,#14b8a6,#0d9488)]',
                   ];
-                  return subjects.map((subj, sIdx) => (
-                    <ActionMenuButton
-                      key={subj.key}
-                      onClick={() => {
-                        handleSelectSubject(subj.key);
-                        setIsSubjectDropdownOpen(false);
-                      }}
-                      icon={<Printer className="w-4 h-4" />}
-                      text={subj.label}
-                      bgGradient={subjGradients[sIdx % subjGradients.length]}
-                    />
-                  ));
+                  return subjects.length === 0 ? (
+                    <div className="py-6 px-4 text-center text-slate-700 font-bold text-base bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl">
+                      لا توجد مواد دراسية مضافة بعد لهذه المرحلة
+                    </div>
+                  ) : (
+                    subjects.map((subj, sIdx) => (
+                      <ActionMenuButton
+                        key={subj.key}
+                        onClick={() => {
+                          handleSelectSubject(subj.key);
+                          setIsSubjectDropdownOpen(false);
+                        }}
+                        icon={<Printer className="w-4 h-4" />}
+                        text={subj.label}
+                        bgGradient={subjGradients[sIdx % subjGradients.length]}
+                      />
+                    ))
+                  );
                 })()}
 
                 {/* زر الإغلاق الدائري مع الخط المشع */}

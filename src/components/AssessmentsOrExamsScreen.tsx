@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowRight, ArrowLeft, ClipboardList, PenTool, Layers, Info, X, Check } from 'lucide-react';
-import { translations } from '../i18n';
-import { Language } from '../types';
+import { translations, applyTechnicalAssessmentTerms } from '../i18n';
+import { Language, EducationType } from '../types';
 
 interface AssessmentsOrExamsScreenProps {
   lang: Language;
@@ -12,6 +12,7 @@ interface AssessmentsOrExamsScreenProps {
   onSelectExams: () => void;
   disableExams?: boolean;
   stage?: string;
+  educationType?: EducationType;
   isKindergarten?: boolean;
   onSelectDetailedAssessments?: () => void;
   isOfficial?: boolean;
@@ -25,6 +26,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
   onSelectExams,
   disableExams,
   stage,
+  educationType,
   isKindergarten,
   onSelectDetailedAssessments,
   isOfficial = false,
@@ -99,7 +101,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                       </div>
                     )}
                     <ClipboardList className="w-6 h-6" />
-                    <span className="inline-block transform -translate-y-0.5">{(t as any).assessments || 'التقييمات'}</span>
+                    <span className="inline-block transform -translate-y-0.5">{applyTechnicalAssessmentTerms((t as any).assessments || 'التقييمات', educationType, stage)}</span>
                   </button>
                   
                   {/* زر الامتحانات التحريرية */}
@@ -185,7 +187,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                     } font-bold py-6 px-4 rounded-xl transition-all border-[1.5px] border-slate-900 text-lg md:text-xl`}
                   >
                     <ClipboardList className="w-6 h-6" />
-                    <span className="inline-block transform -translate-y-0.5">التقييمات - إجمالا</span>
+                    <span className="inline-block transform -translate-y-0.5">{applyTechnicalAssessmentTerms('التقييمات - إجمالا', educationType, stage)}</span>
                   </button>
                   
                   {/* زر التقييمات - تفصيلا */}
@@ -200,7 +202,7 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
                     } font-bold py-6 px-4 rounded-xl transition-all border-[1.5px] border-slate-900 text-lg md:text-xl`}
                   >
                     <Layers className="w-6 h-6" />
-                    <span className="inline-block transform -translate-y-0.5">التقييمات - تفصيلا</span>
+                    <span className="inline-block transform -translate-y-0.5">{applyTechnicalAssessmentTerms('التقييمات - تفصيلا', educationType, stage)}</span>
                   </button>
                 </div>
 
@@ -254,11 +256,11 @@ export const AssessmentsOrExamsScreen: React.FC<AssessmentsOrExamsScreenProps> =
               </div>
 
               <h3 className="text-xl font-black text-slate-900 mb-3">
-                التقييمات - تفصيلاً
+                {applyTechnicalAssessmentTerms('التقييمات - تفصيلاً', educationType, stage)}
               </h3>
 
               <p className="text-slate-700 text-base leading-relaxed mb-6 font-medium">
-                سنوافيكم بتفاصيل وإعدادات شاشة التقييمات تفصيلاً فور اعتماد وتحديد بياناتها.
+                {applyTechnicalAssessmentTerms('سنوافيكم بتفاصيل وإعدادات شاشة التقييمات تفصيلاً فور اعتماد وتحديد بياناتها.', educationType, stage)}
               </p>
 
               <button

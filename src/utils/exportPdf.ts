@@ -1,5 +1,5 @@
 import { StudentData, ExamScheduleItem } from '../types';
-import { applyEntityTerms, isInternationalSchool } from '../i18n';
+import { applyEntityTerms, isInternationalSchool, isTechnicalEducationSchool } from '../i18n';
 import { getGradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal, formatToOneDecimal } from './gradingSettings';
 import { getStoredSubjectEn } from './subjectLanguage';
 import { sortStudents, SortCriterion } from './studentSorting';
@@ -603,6 +603,7 @@ export function getSavedEnglishMainFields(stage?: string): {
     ips: 'Official International Schools (IPS)',
     private: 'Private Schools',
     international: 'International Schools',
+    technical: 'Technical Education Schools',
     national: 'National Schools',
     egyptian_japanese: 'Egyptian Japanese Schools (EJS)',
     nile_egyptian: 'Nile Egyptian Schools (NES)',
@@ -3363,6 +3364,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     examSchedule: propExamSchedule,
   } = options;
 
+  const isTechPdf = isTechnicalEducationSchool(propEducationType, stage);
+
   const isForcedEnglishPdf = Boolean(
     reportType &&
       (reportType.startsWith('seat_numbers_english') ||
@@ -3534,6 +3537,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       semester: propSemester,
       selectedGrade,
       stage: stage || 'primary',
+      educationType: propEducationType,
       systemType: options.systemType || (isHomeschoolResolved ? 'homeschool' : (isServicesResolved ? 'services' : (isExplicitlyRegular ? 'regular' : undefined))),
       title: options.title,
       isHomeschool: isHomeschoolResolved,
@@ -4622,7 +4626,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               header: sub.label,
               subHeader: 'ف 1 | ف 2 | فعلية',
               splitSemGroups: ['ف 1', 'ف 1', 'ف 2', 'ف 2', 'الدرجة الفعلية'],
-              splitSubHeaders: ['تقييمات', 'تحريرى', 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
+              splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
               splitMaxGrades: [
                 String(sub.maxAssess),
                 String(sub.maxWritten),
@@ -4673,8 +4677,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           columns.push({
             key: `subj_${sub.key}`,
             header: sub.label,
-            subHeader: 'تقييمات | تحريرى | مجموع',
-            splitSubHeaders: ['تقييمات', 'تحريرى', 'مجموع'],
+            subHeader: isTechPdf ? 'أعمال السنة | تحريرى | مجموع' : 'تقييمات | تحريرى | مجموع',
+            splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'مجموع'],
             splitMaxGrades: [
               String(sub.maxAssess),
               String(sub.maxWritten),
@@ -4745,7 +4749,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
               header: '........................',
               subHeader: 'ف 1 | ف 2 | فعلية',
               splitSemGroups: ['ف 1', 'ف 1', 'ف 2', 'ف 2', 'الدرجة الفعلية'],
-              splitSubHeaders: ['تقييمات', 'تحريرى', 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
+              splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
               splitMaxGrades: ['', '', '', '', ''],
               splitSemTotalMax: '',
               splitSemTotalKeys: [
@@ -4777,8 +4781,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           columns.push({
             key: 'subj_custom_new_added',
             header: '........................',
-            subHeader: 'تقييمات | تحريرى | مجموع',
-            splitSubHeaders: ['تقييمات', 'تحريرى', 'مجموع'],
+            subHeader: isTechPdf ? 'أعمال السنة | تحريرى | مجموع' : 'تقييمات | تحريرى | مجموع',
+            splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'مجموع'],
             splitMaxGrades: ['', '', ''],
             splitKeys: [
               'subj_assess_custom_new_added',
@@ -4793,7 +4797,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         columns.push({
           key: 'subj_custom_new_added',
           header: '........................',
-          subHeader: 'تقييمات',
+          subHeader: isTechPdf ? 'أعمال السنة' : 'تقييمات',
           maxGradeText: '',
           weight: 0.55,
           dir: 'ltr',
@@ -4867,7 +4871,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           header: sub.label,
           subHeader: 'ف 1 | ف 2 | فعلية',
           splitSemGroups: ['ف 1', 'ف 1', 'ف 2', 'ف 2', 'الدرجة الفعلية'],
-          splitSubHeaders: ['تقييمات', 'تحريرى', 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
+          splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
           splitMaxGrades: [
             String(sub.maxAssess),
             String(sub.maxWritten),
@@ -4917,8 +4921,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         columns.push({
           key: `subj_${sub.key}`,
           header: sub.label,
-          subHeader: 'تقييمات | تحريرى | مجموع',
-          splitSubHeaders: ['تقييمات', 'تحريرى', 'مجموع'],
+          subHeader: isTechPdf ? 'أعمال السنة | تحريرى | مجموع' : 'تقييمات | تحريرى | مجموع',
+          splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'مجموع'],
           splitMaxGrades: [
             String(sub.maxAssess),
             String(sub.maxWritten),
@@ -4989,7 +4993,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
             header: '........................',
             subHeader: 'ف 1 | ف 2 | فعلية',
             splitSemGroups: ['ف 1', 'ف 1', 'ف 2', 'ف 2', 'الدرجة الفعلية'],
-            splitSubHeaders: ['تقييمات', 'تحريرى', 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
+            splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'الدرجة الفعلية'],
             splitMaxGrades: ['', '', '', '', ''],
             splitSemTotalMax: '',
             splitSemTotalKeys: [
@@ -5021,8 +5025,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         columns.push({
           key: 'subj_custom_new_non_added',
           header: '........................',
-          subHeader: 'تقييمات | تحريرى | مجموع',
-          splitSubHeaders: ['تقييمات', 'تحريرى', 'مجموع'],
+          subHeader: isTechPdf ? 'أعمال السنة | تحريرى | مجموع' : 'تقييمات | تحريرى | مجموع',
+          splitSubHeaders: [isTechPdf ? 'أعمال السنة' : 'تقييمات', 'تحريرى', 'مجموع'],
           splitMaxGrades: ['', '', ''],
           splitKeys: [
             'subj_assess_custom_new_non_added',
@@ -5037,7 +5041,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       columns.push({
         key: 'subj_custom_new_non_added',
         header: '........................',
-        subHeader: 'تقييمات',
+        subHeader: isTechPdf ? 'أعمال السنة' : 'تقييمات',
         maxGradeText: '',
         weight: 0.55,
         dir: 'ltr',
@@ -8108,7 +8112,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           // صف تقييمات - تحريرى: 55 بكسل ثابت لضمان عدم تماس النص العمودي مع الحدود بقدر مناسب جداً
           // صفوف الدرجات العظمى: صفان بارتفاع 30 بكسل لكل صف (30 بكسل × 2 = 60 بكسل)
           // المجموع الكلي الثابت = 30 + 55 + 60 = 145 بكسل (توفير 60 بكسل لصالح صفوف الطلاب)
-          controlSheetBotH = 145;
+          controlSheetBotH = isTechPdf ? 160 : 145;
           if (maxFullHeaderSpan + topHeaderPad > controlSheetTopH + controlSheetBotH) {
             controlSheetTopH = Math.ceil(maxFullHeaderSpan + topHeaderPad) - controlSheetBotH;
           }
@@ -8346,7 +8350,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           } else if (isNonKgSem2) {
             semGroupRowH = hasSemGroups ? 30 : 0;
             // الحفاظ على صف («تقييمات - تحريرى») بارتفاع ثابت 55px لضمان عدم تماس النص العمودي مع الحدود بقدر مناسب جداً
-            const nonKgSem2SubBoxH = 55;
+            const nonKgSem2SubBoxH = isTechPdf ? 70 : 55;
             labelRowH = semGroupRowH + nonKgSem2SubBoxH;
             // توحيد ارتفاع صفوف الدرجات العظمى ليكون 30 بكسل لكل صف (30 بكسل × 2 = 60 بكسل)
             maxRowH = 60;

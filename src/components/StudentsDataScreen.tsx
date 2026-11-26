@@ -1,6 +1,6 @@
 import { getActiveFooterTagline } from "../utils/adFilter";
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
-import { translations, applyEntityTerms, isInternationalSchool } from '../i18n';
+import { translations, applyEntityTerms, isInternationalSchool, applyTechnicalAssessmentTerms } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
 import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, Pencil } from 'lucide-react';
@@ -2534,7 +2534,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                                   }}
                                   disabled={isOfficialNoStudents}
                                   icon={<Calendar className="w-4 h-4" />}
-                                  text={(t as any).editFirstSemesterAssessments || 'تحرير تقييمات الفصل الدراسي الأول'}
+                                  text={applyTechnicalAssessmentTerms((t as any).editFirstSemesterAssessments || 'تحرير تقييمات الفصل الدراسي الأول', educationType, stage)}
                                   bgGradient="bg-[linear-gradient(to_right,#0d9488,#10b981,#0d9488)]"
                                 />
                               )}
@@ -2566,7 +2566,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                                   }}
                                   disabled={isOfficialNoStudents}
                                   icon={<Calendar className="w-4 h-4" />}
-                                  text={(t as any).editSecondSemesterAssessments || 'تحرير تقييمات الفصل الدراسي الثانى'}
+                                  text={applyTechnicalAssessmentTerms((t as any).editSecondSemesterAssessments || 'تحرير تقييمات الفصل الدراسي الثانى', educationType, stage)}
                                   bgGradient="bg-[linear-gradient(to_right,#059669,#10b981,#059669)]"
                                 />
                               )}

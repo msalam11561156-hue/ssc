@@ -12,6 +12,7 @@ interface SecondarySystemTypeScreenProps {
   onSelect: (systemType: 'regular' | 'homeschool' | 'services') => void;
   initialType?: 'regular' | 'homeschool' | 'services';
   theme?: ColorThemeKey;
+  titleOverride?: string;
 }
 
 export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps> = ({
@@ -20,6 +21,7 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
   onSelect,
   initialType = 'regular',
   theme,
+  titleOverride,
 }) => {
   const t = translations[lang];
   const [selected, setSelected] = useState<'regular' | 'homeschool' | 'services'>(initialType);
@@ -83,7 +85,7 @@ export const SecondarySystemTypeScreen: React.FC<SecondarySystemTypeScreenProps>
             <div className="relative inline-block pb-4">
               <h2 className={`text-[21px] sm:text-[26px] md:text-[30px] leading-snug font-black ${currentTheme.titleShadow} px-4 flex items-center justify-center gap-3 transition-colors duration-300`}>
                 <GraduationCap className={`w-[24px] h-[24px] sm:w-[28px] sm:h-[28px] md:w-[32px] md:h-[32px] ${currentTheme.titleIconColor} transition-colors duration-300`} />
-                {isAr ? 'الثانوية العامة ( البكالوريا ) : نظام القيد' : 'General Secondary (Baccalaureate): Enrollment System'}
+                {titleOverride || (isAr ? 'الثانوية العامة ( البكالوريا ) : نظام القيد' : 'General Secondary (Baccalaureate): Enrollment System')}
               </h2>
               <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${currentTheme.titleUnderline} overflow-hidden rounded-full`} />
             </div>

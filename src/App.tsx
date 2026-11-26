@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { FAST_SCREEN_FLIP, FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from './utils/flipAnimation';
 import { ColorThemeKey, getSavedColorTheme, saveColorTheme } from './utils/themeConfig';
 import { SchoolData, ControlData, Language, StudentData } from './types';
-import { translations, setCurrentAffiliatedEntity } from './i18n';
+import { translations, setCurrentAffiliatedEntity, setCurrentEducationContext } from './i18n';
 import { AnimatedBackground } from './components/AnimatedBackground';
 import { Languages, FileDown, Share2, Menu, Megaphone, X, Settings, HardDrive, FolderOutput, LogOut, LayoutDashboard, Home, CheckCircle2, AlertTriangle, Bell, Clock, Crown } from 'lucide-react';
 
@@ -13,7 +13,7 @@ import type { BackupPayload } from './utils/backupRestore';
 import { MAX_LOCAL_STORAGE_STUDENTS_CHARS, safeLocalStorageSet } from './utils/backupRestore';
 import { getTrialInfo, startTrial, setTrialExpired, formatTrialTime, consumeTrialTime, syncTrialWithServer, TrialInfo } from './utils/trialManager';
 import { idbSet, idbGet, idbRemove } from './utils/idbStorage';
-import { isMobilePhoneDevice } from './utils/deviceHelper';
+import { isMobilePhoneDevice, isDeveloperPreviewMode } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, testConnection, isOfflineOrNetworkError } from './firebase';
 import { LoginScreen } from './components/LoginScreen';
@@ -31,6 +31,7 @@ const SplashScreen = lazyWithRetry(() => import('./components/SplashScreen').the
 const MainScreen = lazyWithRetry(() => import('./components/MainScreen').then(m => ({ default: m.MainScreen })));
 const GradesScreen = lazyWithRetry(() => import('./components/GradesScreen').then(m => ({ default: m.GradesScreen })));
 const DivisionScreen = lazyWithRetry(() => import('./components/DivisionScreen').then(m => ({ default: m.DivisionScreen })));
+const TechnicalDivisionScreen = lazyWithRetry(() => import('./components/TechnicalDivisionScreen').then(m => ({ default: m.TechnicalDivisionScreen })));
 const SemesterScreen = lazyWithRetry(() => import('./components/SemesterScreen').then(m => ({ default: m.SemesterScreen })));
 const StudentsDataScreen = lazyWithRetry(() => import('./components/StudentsDataScreen').then(m => ({ default: m.StudentsDataScreen })));
 const AssessmentsOrExamsScreen = lazyWithRetry(() => import('./components/AssessmentsOrExamsScreen').then(m => ({ default: m.AssessmentsOrExamsScreen })));
@@ -39,6 +40,8 @@ const WrittenExamsGradesScreen = lazyWithRetry(() => import('./components/Writte
 const DetailedAssessmentsGradesScreen = lazyWithRetry(() => import('./components/DetailedAssessmentsGradesScreen').then(m => ({ default: m.DetailedAssessmentsGradesScreen })));
 const MiddleSystemTypeScreen = lazyWithRetry(() => import('./components/MiddleSystemTypeScreen').then(m => ({ default: m.MiddleSystemTypeScreen })));
 const SecondarySystemTypeScreen = lazyWithRetry(() => import('./components/SecondarySystemTypeScreen').then(m => ({ default: m.SecondarySystemTypeScreen })));
+const TechnicalSystemTypeScreen = lazyWithRetry(() => import('./components/TechnicalSystemTypeScreen').then(m => ({ default: m.TechnicalSystemTypeScreen })));
+const TechnicalGradesScreen = lazyWithRetry(() => import('./components/TechnicalGradesScreen').then(m => ({ default: m.TechnicalGradesScreen })));
 const SecondaryGrade2SystemScreen = lazyWithRetry(() => import('./components/SecondaryGrade2SystemScreen').then(m => ({ default: m.SecondaryGrade2SystemScreen })));
 const SecondaryModernTracksScreen = lazyWithRetry(() => import('./components/SecondaryModernTracksScreen').then(m => ({ default: m.SecondaryModernTracksScreen })));
 const ColorThemeBar = lazyWithRetry(() => import('./components/ColorThemeBar').then(m => ({ default: m.ColorThemeBar })));
@@ -133,17 +136,51 @@ export const EMPTY_OFFICIAL_SCHOOL_DATA: SchoolData = {
   stageEn: '',
 };
 
+const TECHNICAL_STAGE_SET = new Set([
+  'commercial_technical',
+  'industrial_technical',
+  'agricultural_technical',
+  'hotel_technical',
+]);
+
+function normalizeSchoolData(data: SchoolData): SchoolData {
+  if (!isDeveloperPreviewMode() && (data.educationType === 'technical' || TECHNICAL_STAGE_SET.has(data.stage))) {
+    return {
+      ...data,
+      educationType: data.educationType === 'technical' ? '' : data.educationType,
+      educationTypeEn: data.educationType === 'technical' ? '' : data.educationTypeEn,
+      stage: '',
+      stageEn: '',
+    };
+  }
+  if (data.educationType === 'technical' && data.stage && !TECHNICAL_STAGE_SET.has(data.stage)) {
+    return {
+      ...data,
+      stage: '',
+      stageEn: '',
+    };
+  }
+  if (data.educationType && data.educationType !== 'technical' && TECHNICAL_STAGE_SET.has(data.stage)) {
+    return {
+      ...data,
+      stage: '',
+      stageEn: '',
+    };
+  }
+  return data;
+}
+
 function loadTrialSchoolData(): SchoolData {
   const saved = localStorage.getItem('sheet_control_trial_school_data');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object') {
-        return {
+        return normalizeSchoolData({
           ...DEFAULT_TRIAL_SCHOOL_DATA,
           ...parsed,
           affiliatedEntity: parsed.affiliatedEntity || 'moe',
-        };
+        });
       }
     } catch {}
   }
@@ -156,10 +193,10 @@ function loadOfficialSchoolData(): SchoolData {
     try {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object') {
-        return {
+        return normalizeSchoolData({
           ...EMPTY_OFFICIAL_SCHOOL_DATA,
           ...parsed,
-        };
+        });
       }
     } catch {}
   }
@@ -292,7 +329,7 @@ export default function App() {
     
     // Determine if official: not trial and either explicitly set or already has data
     const isOfficial = !isTrial && (localStorage.getItem('sheet_control_is_trial') === 'false' || hasStartedTrial || localStorage.getItem('sheet_control_last_official_step'));
-    const validSteps = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    const validSteps = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     const savedStep = localStorage.getItem('sheet_control_step');
     const parsedStep = savedStep ? parseInt(savedStep, 10) : 0;
 
@@ -318,9 +355,10 @@ export default function App() {
     const saved = localStorage.getItem('sheet_control_edit_mode');
     return (saved === 'grades' || saved === 'data') ? saved : 'data';
   });
-  const [step5PrevStep, setStep5PrevStep] = useState<3 | 4>(() => {
+  const [step5PrevStep, setStep5PrevStep] = useState<3 | 4 | 14>(() => {
     const saved = localStorage.getItem('sheet_control_step5_prev');
-    return saved ? (parseInt(saved, 10) as 3 | 4) : 3;
+    const parsed = saved ? parseInt(saved, 10) : 3;
+    return parsed === 4 ? 4 : parsed === 14 ? 14 : 3;
   });
 
   const [isTrialMode, setIsTrialMode] = useState<boolean>(() => {
@@ -673,6 +711,7 @@ export default function App() {
   };
 
   setCurrentAffiliatedEntity(schoolData.affiliatedEntity);
+  setCurrentEducationContext(schoolData.educationType, schoolData.stage);
   const t = translations[lang];
 
   // استرجاع البيانات الضخمة (الطلاب والشعار وإعدادات الكنترول) من IndexedDB تلقائياً في الوضع الرسمي
@@ -920,7 +959,7 @@ export default function App() {
         receivedWorkspaceSnap = true;
         if (exists) {
           isApplyingRemoteWorkspaceRef.current = true;
-          setSchoolData((prev) => ({
+          setSchoolData((prev) => normalizeSchoolData({
             ...EMPTY_OFFICIAL_SCHOOL_DATA,
             ...remoteSchool,
             schoolLogo: prev.schoolLogo,
@@ -1015,14 +1054,27 @@ export default function App() {
     }
   });
 
+  const TECHNICAL_STAGES_LIST = ['commercial_technical', 'industrial_technical', 'agricultural_technical', 'hotel_technical'];
+  const isTechnicalEducation =
+    schoolData.educationType === 'technical' ||
+    TECHNICAL_STAGES_LIST.includes(schoolData.stage);
+  const GENERAL_SECONDARY_DIVISIONS = ['literary', 'scientific', 'modern_medical', 'modern_engineering', 'modern_business', 'modern_arts'];
+  const activeTechnicalDivision =
+    isTechnicalEducation && schoolData.division && !GENERAL_SECONDARY_DIVISIONS.includes(schoolData.division)
+      ? schoolData.division.trim()
+      : '';
+
   const isSecondSecondaryGrade = 
+    !isTechnicalEducation &&
     schoolData.stage === 'secondary' && 
     (currentControlData.selectedGrade === 'الصف الثاني' || 
      currentControlData.selectedGrade?.includes('الثاني') || 
      currentControlData.selectedGrade?.toLowerCase().includes('2nd'));
 
   const activeDivision = schoolData.division || (schoolData.secondarySystem === 'modern' ? 'modern_medical' : 'literary');
-  const gradeWithDivision = isSecondSecondaryGrade
+  const gradeWithDivision = isTechnicalEducation && activeTechnicalDivision
+    ? `${currentControlData.selectedGrade}_${activeTechnicalDivision}`
+    : isSecondSecondaryGrade
     ? `${currentControlData.selectedGrade}_${activeDivision}`
     : currentControlData.selectedGrade;
 
@@ -1204,7 +1256,7 @@ export default function App() {
   };
 
   const handleRestoreSuccess = async (payload: BackupPayload) => {
-    if (payload.schoolData) setSchoolData(payload.schoolData);
+    if (payload.schoolData) setSchoolData(normalizeSchoolData(payload.schoolData));
     if (payload.controlDataByStage) setControlDataByStage(payload.controlDataByStage);
     if (payload.studentsDataByStage) setStudentsDataByStage(payload.studentsDataByStage);
     setIsRestoreModalOpen(false);
@@ -1320,6 +1372,7 @@ export default function App() {
       case 'ips': return (t as any).ips;
       case 'private': return (t as any).private;
       case 'international': return (t as any).international || 'مدارس دولية';
+      case 'technical': return (t as any).technical || 'مدارس التعليم الفنى';
       case 'national': return (t as any).national;
       case 'intellectual_schools': return (t as any).intellectualSchools;
       case 'vocational_schools': return (t as any).vocationalSchools;
@@ -1334,14 +1387,18 @@ export default function App() {
 
   const getStageLabel = (stage: string) => {
     if (lang === 'ar') {
-      if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
-      if (stage === 'primary') return 'المرحلة الابتدائية';
-      if (stage === 'middle') return 'المرحلة الإعدادية';
-      if (stage === 'secondary') return 'المرحلة الثانوية - البكالوريا';
       if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
       if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
       if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
       if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
+      if (isTechnicalEducation) return 'مدارس التعليم الفنى';
+      if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
+      if (stage === 'primary') return 'المرحلة الابتدائية';
+      if (stage === 'middle') return 'المرحلة الإعدادية';
+      if (stage === 'secondary') return 'المرحلة الثانوية - البكالوريا';
+    }
+    if (isTechnicalEducation && !TECHNICAL_STAGES_LIST.includes(stage)) {
+      return 'Technical Education Schools';
     }
     const stageKey = stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     return (t as any)[stageKey] || stage;
@@ -1372,6 +1429,18 @@ export default function App() {
   };
 
   const getDivisionSubtitle = () => {
+    if (isTechnicalEducation) {
+      const sysName = schoolData.systemType === 'homeschool'
+        ? (lang === 'ar' ? ' ( منازل )' : ' (Homeschool)')
+        : schoolData.systemType === 'services'
+        ? (lang === 'ar' ? ' ( خدمات )' : ' (Services)')
+        : (lang === 'ar' ? ' ( منتظمين )' : ' (Regular)');
+      const baseStageLabel = TECHNICAL_STAGES_LIST.includes(schoolData.stage)
+        ? getStageLabel(schoolData.stage)
+        : (lang === 'ar' ? 'مدارس التعليم الفنى' : 'Technical Education Schools');
+      const semLabel = getSemesterLabel(schoolData.semester || '');
+      return `${baseStageLabel}${sysName} - ${formatGrade(currentControlData.selectedGrade)}${semLabel ? ` - ${semLabel}` : ''}`;
+    }
     if (lang === 'ar' && (isSecondSecondaryGrade || schoolData.stage === 'secondary')) {
       const sysName = schoolData.systemType === 'homeschool' ? '- منازل' : schoolData.systemType === 'services' ? '- خدمات' : '- منتظمين';
       const secSys = schoolData.secondarySystem === 'modern' ? ' - البكالوريا ( النظام الحديث )' : ' - النظام القديم';
@@ -1381,6 +1450,17 @@ export default function App() {
   };
 
   const getSemesterSubtitle = () => {
+    if (isTechnicalEducation) {
+      const sysName = schoolData.systemType === 'homeschool'
+        ? (lang === 'ar' ? ' ( منازل )' : ' (Homeschool)')
+        : schoolData.systemType === 'services'
+        ? (lang === 'ar' ? ' ( خدمات )' : ' (Services)')
+        : (lang === 'ar' ? ' ( منتظمين )' : ' (Regular)');
+      const baseStageLabel = TECHNICAL_STAGES_LIST.includes(schoolData.stage)
+        ? getStageLabel(schoolData.stage)
+        : (lang === 'ar' ? 'مدارس التعليم الفنى' : 'Technical Education Schools');
+      return `${baseStageLabel}${sysName} - ${formatGrade(currentControlData.selectedGrade)}`;
+    }
     if (schoolData.stage === 'secondary') {
       const sysName = schoolData.systemType === 'homeschool' ? ' ( منازل )' : schoolData.systemType === 'services' ? ' ( خدمات )' : ' ( منتظمين )';
       if (lang === 'ar' && isSecondSecondaryGrade) {
@@ -1400,7 +1480,17 @@ export default function App() {
 
   const getScreenTitle = () => {
     let stageLabel = getStageLabel(schoolData.stage);
-    if (schoolData.stage === 'secondary') {
+    if (isTechnicalEducation) {
+      const sysName = schoolData.systemType === 'homeschool'
+        ? (lang === 'ar' ? ' ( منازل )' : ' (Homeschool)')
+        : schoolData.systemType === 'services'
+        ? (lang === 'ar' ? ' ( خدمات )' : ' (Services)')
+        : (lang === 'ar' ? ' ( منتظمين )' : ' (Regular)');
+      const baseStageLabel = TECHNICAL_STAGES_LIST.includes(schoolData.stage)
+        ? stageLabel
+        : (lang === 'ar' ? 'مدارس التعليم الفنى' : 'Technical Education Schools');
+      stageLabel = `${baseStageLabel}${sysName}${activeTechnicalDivision ? ` - ${activeTechnicalDivision}` : ''}`;
+    } else if (schoolData.stage === 'secondary') {
       const sysName = schoolData.systemType === 'homeschool' ? ' ( منازل )' : schoolData.systemType === 'services' ? ' ( خدمات )' : ' ( منتظمين )';
       if (lang === 'ar' && isSecondSecondaryGrade) {
         const divLabel = getDivisionLabel(schoolData.division || 'literary');
@@ -1509,7 +1599,7 @@ export default function App() {
   return (
     <div className={`min-h-screen text-slate-900 font-sans [color-scheme:light_only] ${lang === 'ar' ? 'font-arabic' : ''}`}>
       <AnimatedBackground />
-      <div className={`relative flex flex-col ${[0, 1, 2, 4, 6, 7, 9].includes(step) ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+      <div className={`relative flex flex-col ${[0, 1, 2, 16, 4, 6, 7, 9].includes(step) ? 'h-screen h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
         {/* Header with Gradient */}
         {step !== 0 && (
           <header className="w-full h-16 shrink-0 relative overflow-hidden px-4 md:px-6 flex items-center justify-between z-10 shadow-md">
@@ -1517,11 +1607,12 @@ export default function App() {
               className={`absolute inset-0 z-[-1] bg-gradient-to-r transition-colors duration-300 ${
                 step === 1 ? 'from-fuchsia-500 via-violet-500 to-cyan-500' :
                 step === 10 ? 'from-indigo-600 via-purple-600 to-amber-600' :
-                step === 11 ? 'from-teal-600 via-indigo-600 to-cyan-600' :
+                step === 11 || step === 15 ? 'from-teal-600 via-indigo-600 to-cyan-600' :
                 step === 12 ? 'from-indigo-600 via-rose-600 to-amber-600' :
                 step === 13 ? 'from-cyan-600 via-violet-600 to-emerald-600' :
-                step === 2 ? 'from-[#14b8a6] via-[#d4a373] to-[#c2410c]' :
+                step === 2 || step === 16 ? 'from-[#14b8a6] via-[#d4a373] to-[#c2410c]' :
                 step === 8 ? 'from-slate-400 via-rose-600 to-[#d4a373]' :
+                step === 14 ? 'from-slate-400 via-rose-600 to-[#d4a373]' :
                 step === 3 ? 'from-slate-400 via-rose-600 to-[#d4a373]' :
                 step === 4 ? 'from-violet-600 via-purple-600 to-fuchsia-600' :
                 'from-teal-500 via-emerald-500 to-cyan-500'
@@ -1915,7 +2006,9 @@ export default function App() {
                       onControlChange={handleControlChange}
                       onBack={() => navigateStep(0)}
                       onNext={() => {
-                        if (schoolData.stage === 'middle') {
+                        if (isTechnicalEducation) {
+                          navigateStep(15);
+                        } else if (schoolData.stage === 'middle') {
                           navigateStep(10);
                         } else if (schoolData.stage === 'secondary') {
                           navigateStep(11);
@@ -1944,7 +2037,68 @@ export default function App() {
                       }}
                     />
                   );
+                case 15:
+                  return (
+                    <TechnicalSystemTypeScreen
+                      key="technical-system-type"
+                      lang={lang}
+                      stage={schoolData.stage}
+                      initialType={schoolData.systemType || 'regular'}
+                      theme={activeColorTheme}
+                      onBack={() => navigateStep(1)}
+                      onSelect={(systemType) => {
+                        setSchoolData(prev => ({ ...prev, systemType }));
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('current_system_type', systemType);
+                          localStorage.setItem('systemType', systemType);
+                        }
+                        navigateStep(16);
+                      }}
+                    />
+                  );
+                case 16:
+                  return (
+                    <TechnicalGradesScreen
+                      key="technical-grades"
+                      stage={schoolData.stage}
+                      systemType={schoolData.systemType}
+                      data={currentControlData}
+                      onChange={handleControlChange}
+                      onBack={() => navigateStep(15)}
+                      onEditData={() => {
+                        setEditMode('data');
+                        navigateStep(3);
+                      }}
+                      onEditGrades={() => {
+                        setEditMode('grades');
+                        navigateStep(3);
+                      }}
+                      isOfficial={!isTrialMode}
+                      hasStudentsForGrade={checkHasStudentsForGrade}
+                      lang={lang}
+                    />
+                  );
                 case 11:
+                  if (isTechnicalEducation) {
+                    return (
+                      <TechnicalSystemTypeScreen
+                        key="technical-system-type-redirect"
+                        lang={lang}
+                        stage={schoolData.stage}
+                        initialType={schoolData.systemType || 'regular'}
+                        theme={activeColorTheme}
+                        onBack={() => navigateStep(1)}
+                        onSelect={(systemType) => {
+                          setSchoolData(prev => ({ ...prev, systemType }));
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('current_system_type', systemType);
+                            localStorage.setItem('systemType', systemType);
+                          }
+                          navigateStep(16);
+                        }}
+                      />
+                    );
+                  }
                   return (
                     <SecondarySystemTypeScreen
                       key="secondary-system-type"
@@ -1963,9 +2117,33 @@ export default function App() {
                     />
                   );
                 case 2:
+                  if (isTechnicalEducation) {
+                    return (
+                      <TechnicalGradesScreen
+                        key="technical-grades-redirect"
+                        stage={schoolData.stage}
+                        systemType={schoolData.systemType}
+                        data={currentControlData}
+                        onChange={handleControlChange}
+                        onBack={() => navigateStep(15)}
+                        onEditData={() => {
+                          setEditMode('data');
+                          navigateStep(3);
+                        }}
+                        onEditGrades={() => {
+                          setEditMode('grades');
+                          navigateStep(3);
+                        }}
+                        isOfficial={!isTrialMode}
+                        hasStudentsForGrade={checkHasStudentsForGrade}
+                        lang={lang}
+                      />
+                    );
+                  }
                   return (
                     <GradesScreen
                       stage={schoolData.stage as any}
+                      educationType={schoolData.educationType}
                       systemType={schoolData.systemType}
                       key="grades"
                       data={currentControlData}
@@ -2001,6 +2179,29 @@ export default function App() {
                     />
                   );
                 case 12:
+                  if (isTechnicalEducation) {
+                    return (
+                      <TechnicalGradesScreen
+                        key="technical-grades-guard12"
+                        stage={schoolData.stage}
+                        systemType={schoolData.systemType}
+                        data={currentControlData}
+                        onChange={handleControlChange}
+                        onBack={() => navigateStep(15)}
+                        onEditData={() => {
+                          setEditMode('data');
+                          navigateStep(3);
+                        }}
+                        onEditGrades={() => {
+                          setEditMode('grades');
+                          navigateStep(3);
+                        }}
+                        isOfficial={!isTrialMode}
+                        hasStudentsForGrade={checkHasStudentsForGrade}
+                        lang={lang}
+                      />
+                    );
+                  }
                   return (
                     <SecondaryGrade2SystemScreen
                       key="secondary-grade2-system"
@@ -2019,6 +2220,31 @@ export default function App() {
                     />
                   );
                 case 8:
+                  if (isTechnicalEducation) {
+                    return (
+                      <TechnicalDivisionScreen
+                        key="technical-division-guard8"
+                        lang={lang}
+                        initialDivision={activeTechnicalDivision}
+                        subtitle={getDivisionSubtitle()}
+                        onBack={() => navigateStep(3)}
+                        onSave={(division) => {
+                          setSchoolData(prev => ({ ...prev, division }));
+                          if (editMode === 'grades') {
+                            if (!isTrialMode && !checkHasStudentsForGrade(currentControlData.selectedGrade)) {
+                              setEditMode('data');
+                              navigateStep(4);
+                              return;
+                            }
+                            setStep5PrevStep(14);
+                            navigateStep(5);
+                          } else {
+                            navigateStep(4);
+                          }
+                        }}
+                      />
+                    );
+                  }
                   return (
                     <DivisionScreen
                       key="division"
@@ -2033,6 +2259,31 @@ export default function App() {
                     />
                   );
                 case 13:
+                  if (isTechnicalEducation) {
+                    return (
+                      <TechnicalDivisionScreen
+                        key="technical-division-guard13"
+                        lang={lang}
+                        initialDivision={activeTechnicalDivision}
+                        subtitle={getDivisionSubtitle()}
+                        onBack={() => navigateStep(3)}
+                        onSave={(division) => {
+                          setSchoolData(prev => ({ ...prev, division }));
+                          if (editMode === 'grades') {
+                            if (!isTrialMode && !checkHasStudentsForGrade(currentControlData.selectedGrade)) {
+                              setEditMode('data');
+                              navigateStep(4);
+                              return;
+                            }
+                            setStep5PrevStep(14);
+                            navigateStep(5);
+                          } else {
+                            navigateStep(4);
+                          }
+                        }}
+                      />
+                    );
+                  }
                   return (
                     <SecondaryModernTracksScreen
                       key="secondary-modern-tracks"
@@ -2056,7 +2307,9 @@ export default function App() {
                       initialSemester={schoolData.semester === 'retake' ? 'first' : schoolData.semester}
                       subtitle={getSemesterSubtitle()}
                       onBack={() => {
-                        if (isSecondSecondaryGrade) {
+                        if (isTechnicalEducation) {
+                          navigateStep(16);
+                        } else if (isSecondSecondaryGrade) {
                           if (schoolData.secondarySystem === 'modern') {
                             navigateStep(13);
                           } else {
@@ -2068,6 +2321,10 @@ export default function App() {
                       }}
                       onSave={(semester) => {
                         setSchoolData(prev => ({ ...prev, semester }));
+                        if (isTechnicalEducation) {
+                          navigateStep(14);
+                          return;
+                        }
                         if (editMode === 'grades') {
                           if (!isTrialMode && !checkHasStudentsForGrade(currentControlData.selectedGrade)) {
                             setEditMode('data');
@@ -2084,6 +2341,30 @@ export default function App() {
                             setStep5PrevStep(3);
                             navigateStep(5);
                           }
+                        } else {
+                          navigateStep(4);
+                        }
+                      }}
+                    />
+                  );
+                case 14:
+                  return (
+                    <TechnicalDivisionScreen
+                      key="technical-division"
+                      lang={lang}
+                      initialDivision={activeTechnicalDivision}
+                      subtitle={getDivisionSubtitle()}
+                      onBack={() => navigateStep(3)}
+                      onSave={(division) => {
+                        setSchoolData(prev => ({ ...prev, division }));
+                        if (editMode === 'grades') {
+                          if (!isTrialMode && !checkHasStudentsForGrade(currentControlData.selectedGrade)) {
+                            setEditMode('data');
+                            navigateStep(4);
+                            return;
+                          }
+                          setStep5PrevStep(14);
+                          navigateStep(5);
                         } else {
                           navigateStep(4);
                         }
@@ -2108,7 +2389,7 @@ export default function App() {
                       committeeHead={currentControlData.committeeHead}
                       data={currentStudentsData}
                       onChange={handleStudentsDataChange}
-                      onBack={() => navigateStep(3)}
+                      onBack={() => navigateStep(isTechnicalEducation ? 14 : 3)}
                       isTrialMode={isTrialMode}
                       onSave={() => {
                         if (!isTrialMode && !hasCurrentStudents) {
@@ -2170,6 +2451,7 @@ export default function App() {
                     <AssessmentsOrExamsScreen
                       key="assessments-or-exams"
                       stage={schoolData.stage}
+                      educationType={schoolData.educationType}
                       isKindergarten={schoolData.stage === 'kindergarten'}
                       disableExams={isFirstOrSecondPrimary}
                       lang={lang}

@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
-import { SchoolData, ControlData, Language } from '../types';
+import { SchoolData, ControlData, Language, EducationType } from '../types';
 import { translations, setCurrentAffiliatedEntity, syncEntityInputText } from '../i18n';
-import { ArrowLeft, ArrowRight, ClipboardList, Info, X, Languages, Check, ImagePlus, Upload, Trash2 } from 'lucide-react';
+import { isDeveloperPreviewMode } from '../utils/deviceHelper';
+import { ArrowLeft, ArrowRight, ClipboardList, Info, X, Languages, Check, ImagePlus, Upload, Trash2, Lock, Clock } from 'lucide-react';
 
 interface MainScreenProps {
   schoolData: SchoolData;
@@ -36,19 +37,35 @@ const DEFAULT_EDUCATION_TYPE_EN: Record<string, string> = {
   official_distinguished: 'Distinguished Official Language Schools',
   private: 'Private Schools',
   international: 'International Schools',
+  technical: 'Technical Education Schools',
   other_schools: 'Other Schools',
 };
+
+const TECHNICAL_STAGES = [
+  'commercial_technical',
+  'industrial_technical',
+  'agricultural_technical',
+  'hotel_technical',
+] as const;
 
 const DEFAULT_STAGE_EN: Record<string, string> = {
   kindergarten: 'Kindergarten Stage',
   primary: 'Primary Stage',
   middle: 'Preparatory Stage',
   secondary: 'Secondary Stage',
+  commercial_technical: 'Commercial Technical Education',
+  industrial_technical: 'Industrial Technical Education',
+  agricultural_technical: 'Agricultural Technical Education',
+  hotel_technical: 'Hotel Technical Education',
 };
 
 export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData, onSchoolChange, onControlChange, onBack, onNext, lang }) => {
+  const isDeveloperPreview = isDeveloperPreviewMode();
   const [showInstructions, setShowInstructions] = useState(false);
   const [showLogoModal, setShowLogoModal] = useState(false);
+  const [isEducationDropdownOpen, setIsEducationDropdownOpen] = useState(false);
+  const [showTechnicalComingSoonModal, setShowTechnicalComingSoonModal] = useState(false);
+  const educationDropdownRef = useRef<HTMLDivElement | null>(null);
   const [tempLogoValue, setTempLogoValue] = useState<string>(schoolData.schoolLogo || '');
   const logoFileInputRef = useRef<HTMLInputElement | null>(null);
   const [activeEnModal, setActiveEnModal] = useState<{
@@ -60,6 +77,67 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
   const [tempEnValue, setTempEnValue] = useState('');
   setCurrentAffiliatedEntity(schoolData.affiliatedEntity);
   const t = translations[lang];
+
+  useEffect(() => {
+    if (!isEducationDropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (educationDropdownRef.current && !educationDropdownRef.current.contains(event.target as Node)) {
+        setIsEducationDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsEducationDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isEducationDropdownOpen]);
+
+  const handleEducationTypeSelect = (nextType: EducationType) => {
+    if (!isDeveloperPreview && nextType === 'technical') {
+      setIsEducationDropdownOpen(false);
+      setShowTechnicalComingSoonModal(true);
+      return;
+    }
+    const isCurrentTechStage = (TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage);
+    let nextStage = schoolData.stage;
+    let nextStageEn = schoolData.stageEn || '';
+    if (nextType === 'technical' && !isCurrentTechStage) {
+      nextStage = '';
+      nextStageEn = '';
+    } else if (nextType !== 'technical' && isCurrentTechStage) {
+      nextStage = '';
+      nextStageEn = '';
+    }
+    onSchoolChange({
+      ...schoolData,
+      educationType: nextType,
+      educationTypeEn: DEFAULT_EDUCATION_TYPE_EN[nextType] || schoolData.educationTypeEn || '',
+      stage: nextStage,
+      stageEn: nextStageEn,
+    });
+    setIsEducationDropdownOpen(false);
+  };
+
+  const educationTypeOptions: { value: EducationType; label: string }[] = [
+    { value: 'official', label: t.official },
+    { value: 'official_languages', label: t.officialLanguages },
+    { value: 'official_distinguished', label: t.officialDistinguished },
+    { value: 'private', label: t.private },
+    { value: 'international', label: t.international },
+    { value: 'technical', label: t.technical },
+    { value: 'other_schools', label: t.otherSchools },
+  ];
+
+  const effectiveEducationType =
+    !isDeveloperPreview && schoolData.educationType === 'technical' ? '' : schoolData.educationType;
+  const selectedEducationLabel =
+    educationTypeOptions.find((opt) => opt.value === effectiveEducationType)?.label || '';
 
   const openLogoModal = () => {
     setTempLogoValue(schoolData.schoolLogo || localStorage.getItem('sheet_control_school_logo') || '');
@@ -265,9 +343,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
       const matchedType = Object.entries(DEFAULT_EDUCATION_TYPE_EN).find(
         ([, val]) => val === trimmed
       )?.[0] as any;
+      if (!isDeveloperPreview && matchedType === 'technical') {
+        setActiveEnModal(null);
+        setShowTechnicalComingSoonModal(true);
+        return;
+      }
+      const isCurrentTechStage = (TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage);
+      let nextStage = schoolData.stage;
+      let nextStageEn = schoolData.stageEn || '';
+      if (matchedType === 'technical' && !isCurrentTechStage) {
+        nextStage = '';
+        nextStageEn = '';
+      } else if (matchedType && matchedType !== 'technical' && isCurrentTechStage) {
+        nextStage = '';
+        nextStageEn = '';
+      }
       onSchoolChange({
         ...schoolData,
-        ...(matchedType ? { educationType: matchedType } : {}),
+        ...(matchedType ? { educationType: matchedType, stage: nextStage, stageEn: nextStageEn } : {}),
         educationTypeEn: trimmed,
       });
     } else if (key === 'stageEn') {
@@ -310,8 +403,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const isValidStage =
+      schoolData.educationType === 'technical'
+        ? (TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage)
+        : Boolean(schoolData.stage) && !(TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage);
     if (
-      schoolData.administration && schoolData.schoolName && schoolData.educationType && schoolData.stage &&
+      schoolData.administration && schoolData.schoolName && schoolData.educationType && isValidStage &&
       controlData.dataOfficer && controlData.controlHead && controlData.committeeHead
     ) {
       if (!schoolData.affiliatedEntity) {
@@ -413,28 +510,98 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
               <label className="block text-sm font-bold text-[#624b7a]">
                 {t.educationType}
               </label>
-              <div className="relative">
-                <select
-                  required
-                  value={schoolData.educationType}
-                  onChange={(e) => {
-                    const nextType = e.target.value as any;
-                    onSchoolChange({
-                      ...schoolData,
-                      educationType: nextType,
-                      educationTypeEn: DEFAULT_EDUCATION_TYPE_EN[nextType] || schoolData.educationTypeEn || '',
-                    });
-                  }}
-                  className="w-full bg-white border-[1.5px] border-slate-900 rounded-lg py-3 pr-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-slate-800 appearance-none cursor-pointer"
-                >
-                  <option value="" disabled>{t.selectEducationType}</option>
-                  <option value="official">{t.official}</option>
-                  <option value="official_languages">{t.officialLanguages}</option>
-                  <option value="official_distinguished">{t.officialDistinguished}</option>
-                  <option value="private">{t.private}</option>
-                  <option value="international">{t.international}</option>
-                  <option value="other_schools">{t.otherSchools}</option>
-                </select>
+              <div className="relative" ref={educationDropdownRef}>
+                {isDeveloperPreview ? (
+                  <select
+                    required
+                    value={schoolData.educationType}
+                    onChange={(e) => handleEducationTypeSelect(e.target.value as EducationType)}
+                    className="w-full bg-white border-[1.5px] border-slate-900 rounded-lg py-3 pr-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-slate-800 appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>{t.selectEducationType}</option>
+                    <option value="official">{t.official}</option>
+                    <option value="official_languages">{t.officialLanguages}</option>
+                    <option value="official_distinguished">{t.officialDistinguished}</option>
+                    <option value="private">{t.private}</option>
+                    <option value="international">{t.international}</option>
+                    <option value="technical">{t.technical}</option>
+                    <option value="other_schools">{t.otherSchools}</option>
+                  </select>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      required
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      value={effectiveEducationType}
+                      onChange={() => {}}
+                      className="absolute bottom-0 left-1/2 w-px h-px opacity-0 pointer-events-none"
+                    />
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={isEducationDropdownOpen}
+                      onClick={() => setIsEducationDropdownOpen((prev) => !prev)}
+                      className={`w-full bg-white border-[1.5px] border-slate-900 rounded-lg py-3 pr-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer text-right flex items-center justify-between ${
+                        selectedEducationLabel ? 'text-slate-800' : 'text-slate-500'
+                      }`}
+                    >
+                      <span className="truncate">
+                        {selectedEducationLabel || t.selectEducationType}
+                      </span>
+                    </button>
+
+                    <AnimatePresence>
+                      {isEducationDropdownOpen && (
+                        <motion.ul
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.14 }}
+                          role="listbox"
+                          aria-label={t.educationType}
+                          className="absolute top-full left-0 right-0 mt-1.5 z-40 bg-white border-[1.5px] border-slate-900 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto py-1"
+                        >
+                          <li className="px-4 py-2 text-xs font-bold text-slate-400 select-none border-b border-slate-100">
+                            {t.selectEducationType}
+                          </li>
+                          {educationTypeOptions.map((opt) => {
+                            const isTechOption = opt.value === 'technical';
+                            const isSelected = effectiveEducationType === opt.value;
+                            return (
+                              <li key={opt.value}>
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isSelected}
+                                  aria-disabled={isTechOption ? true : undefined}
+                                  onClick={() => handleEducationTypeSelect(opt.value)}
+                                  className={`w-full px-4 py-2.5 text-right text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                    isTechOption
+                                      ? 'bg-slate-100/80 text-slate-400 hover:bg-slate-200/70 font-semibold'
+                                      : isSelected
+                                      ? 'bg-purple-100 text-purple-900 font-bold'
+                                      : 'text-slate-800 hover:bg-purple-50 font-medium'
+                                  }`}
+                                >
+                                  <span className="truncate">
+                                    {isTechOption ? `${opt.label} - غير مفعل` : opt.label}
+                                  </span>
+                                  {isTechOption ? (
+                                    <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  ) : isSelected ? (
+                                    <Check className="w-4 h-4 text-purple-700 shrink-0" />
+                                  ) : null}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </motion.ul>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
                 {renderLanguageButton(
                   'educationTypeEn',
                   t.educationType,
@@ -452,7 +619,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
               <div className="relative">
                 <select
                   required
-                  value={schoolData.stage}
+                  value={
+                    schoolData.educationType === 'technical'
+                      ? ((TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage) ? schoolData.stage : '')
+                      : ((TECHNICAL_STAGES as readonly string[]).includes(schoolData.stage) ? '' : schoolData.stage)
+                  }
                   onChange={(e) => {
                     const nextStage = e.target.value as any;
                     onSchoolChange({
@@ -464,10 +635,21 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                   className="w-full bg-white border-[1.5px] border-slate-900 rounded-lg py-3 pr-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-slate-800 appearance-none cursor-pointer"
                 >
                   <option value="" disabled>{t.selectStage}</option>
-                  <option value="kindergarten">{t.kindergarten}</option>
-                  <option value="primary">{t.primary}</option>
-                  <option value="middle">{t.middle}</option>
-                  <option value="secondary">{t.secondary}</option>
+                  {schoolData.educationType === 'technical' ? (
+                    <>
+                      <option value="commercial_technical">{t.commercialTechnical}</option>
+                      <option value="industrial_technical">{t.industrialTechnical}</option>
+                      <option value="agricultural_technical">{t.agriculturalTechnical}</option>
+                      <option value="hotel_technical">{t.hotelTechnical}</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="kindergarten">{t.kindergarten}</option>
+                      <option value="primary">{t.primary}</option>
+                      <option value="middle">{t.middle}</option>
+                      <option value="secondary">{t.secondary}</option>
+                    </>
+                  )}
                 </select>
                 {renderLanguageButton(
                   'stageEn',
@@ -781,14 +963,19 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                     <select
                       value={Object.values(DEFAULT_EDUCATION_TYPE_EN).includes(tempEnValue) ? tempEnValue : ''}
                       onChange={(e) => {
-                        if (e.target.value) setTempEnValue(e.target.value);
+                        const val = e.target.value;
+                        if (!isDeveloperPreview && val === DEFAULT_EDUCATION_TYPE_EN.technical) {
+                          setShowTechnicalComingSoonModal(true);
+                          return;
+                        }
+                        if (val) setTempEnValue(val);
                       }}
                       className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer shadow-inner"
                     >
                       <option value="" disabled>-- Select Education Type --</option>
                       {Object.entries(DEFAULT_EDUCATION_TYPE_EN).map(([k, val]) => (
                         <option key={k} value={val}>
-                          {val}
+                          {!isDeveloperPreview && k === 'technical' ? `${val} (Coming Soon)` : val}
                         </option>
                       ))}
                     </select>
@@ -801,7 +988,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                       className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer shadow-inner"
                     >
                       <option value="" disabled>-- Select Educational Stage --</option>
-                      {Object.entries(DEFAULT_STAGE_EN).map(([k, val]) => (
+                      {Object.entries(DEFAULT_STAGE_EN)
+                        .filter(([k]) =>
+                          schoolData.educationType === 'technical'
+                            ? (TECHNICAL_STAGES as readonly string[]).includes(k)
+                            : !(TECHNICAL_STAGES as readonly string[]).includes(k)
+                        )
+                        .map(([k, val]) => (
                         <option key={k} value={val}>
                           {val}
                         </option>
@@ -880,6 +1073,45 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                   className="mt-2 w-full md:w-auto px-12 py-3 bg-[linear-gradient(to_right,#000000,#6b7280,#1f2937,#6b7280,#000000)] bg-[length:200%_auto] animate-shine text-white font-bold text-lg rounded-xl transition-all active:scale-[0.98] border border-white shadow-md"
                 >
                   {lang === 'ar' ? 'حسنا' : 'OK'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showTechnicalComingSoonModal && (
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+            dir="rtl"
+            onClick={() => setShowTechnicalComingSoonModal(false)}
+          >
+            <motion.div
+              {...FAST_MODAL_FLIP}
+              className="relative w-full max-w-sm rounded-3xl border-2 border-slate-900 overflow-hidden shadow-2xl p-[6px] bg-slate-900"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute inset-[-100%] animate-[spin_6s_linear_infinite] bg-[conic-gradient(from_0deg,#f59e0b_0%,#ffffff_25%,#8b5cf6_50%,#ffffff_75%,#f59e0b_100%)] pointer-events-none" />
+
+              <div className="relative z-10 w-full p-6 md:p-7 rounded-2xl bg-white flex flex-col items-center text-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-purple-100 border-[1.5px] border-slate-900 flex items-center justify-center text-amber-600 shadow-inner">
+                  <Clock className="w-8 h-8" />
+                </div>
+
+                <h3 className="text-2xl font-black text-slate-900">
+                  قريباً
+                </h3>
+
+                <p className="text-sm font-bold text-slate-600 leading-relaxed">
+                  قسم مدارس التعليم الفنى غير مفعل حالياً، وسيكون متاحاً قريباً.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setShowTechnicalComingSoonModal(false)}
+                  className="mt-1 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-base border-[1.5px] border-slate-900 shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  حسنا
                 </button>
               </div>
             </motion.div>

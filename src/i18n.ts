@@ -19,6 +19,56 @@ export function setCurrentAffiliatedEntity(entity?: string) {
   currentAffiliatedEntity = entity || '';
 }
 
+let currentEducationType: string = '';
+let currentStage: string = '';
+
+const TECHNICAL_STAGES = new Set([
+  'commercial_technical',
+  'industrial_technical',
+  'agricultural_technical',
+  'hotel_technical',
+]);
+
+export function setCurrentEducationContext(educationType?: string, stage?: string) {
+  currentEducationType = educationType || '';
+  currentStage = stage || '';
+}
+
+export function isTechnicalEducationSchool(educationType?: string, stage?: string): boolean {
+  if (educationType !== undefined || stage !== undefined) {
+    if (educationType === 'technical') return true;
+    if (stage && TECHNICAL_STAGES.has(stage)) return true;
+    if (educationType !== undefined) return false;
+    if (currentEducationType) return currentEducationType === 'technical';
+  } else {
+    if (currentEducationType === 'technical' || TECHNICAL_STAGES.has(currentStage)) return true;
+    if (currentEducationType) return false;
+  }
+  try {
+    const saved = localStorage.getItem('sheet_control_school_data');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed?.educationType === 'technical' || TECHNICAL_STAGES.has(parsed?.stage)) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+export function applyTechnicalAssessmentTerms(text: string, educationType?: string, stage?: string): string {
+  if (!text || !isTechnicalEducationSchool(educationType, stage)) return text;
+  return text
+    .replace(/تقييماتها/g, 'أعمال السنة لها')
+    .replace(/لتقييماتها/g, 'لأعمال السنة لها')
+    .replace(/للتقييمات/g, 'لأعمال السنة')
+    .replace(/بالتقييمات/g, 'بأعمال السنة')
+    .replace(/والتقييمات/g, 'وأعمال السنة')
+    .replace(/وتقييمات/g, 'وأعمال السنة')
+    .replace(/التقييمات/g, 'أعمال السنة')
+    .replace(/تقييمات/g, 'أعمال السنة');
+}
+
 export function isInternationalSchool(educationType?: string): boolean {
   if (educationType !== undefined) {
     return educationType === 'international';
@@ -62,7 +112,7 @@ export function syncEntityInputText(text: string, _targetEntity?: string): strin
 }
 
 const baseArTranslations = {
-    appTitle: 'سمارت كنترول - المنظومة الرقمية لريادة أعمال كنترول امتحانات المدارس المصرية : رياض أطفال - إبتدائى - إعدادى - ثانوى عام.\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0للمدارس الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة - الدولية.\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0مجانى وسيبقى مجانى',
+    appTitle: 'المنظومة الرقمية لريادة أعمال كنترول امتحانات المدارس المصرية\u00A0\u00A0SMART CONTROL 0.1\u00A0\u00A0: رياض أطفال - إبتدائى - إعدادى - ثانوى عام - تعليم فنى.\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0للمدارس الرسمية - الرسمية لغات - الرسمية المتميزة لغات - الخاصة - الدولية.\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0مجانى وسيبقى مجانى',
     appDescription: 'نظام إدارة درجات الطلاب واستخراج الشهادات',
     mainScreenTitle: 'البيانات الرئيسية',
     affiliatedEntity: 'الجهة التابع لها المؤسسة التعليمية',
@@ -80,6 +130,7 @@ const baseArTranslations = {
     ips: 'مدارس رسمية دولية',
     private: 'مدارس خاصة',
     international: 'مدارس دولية',
+    technical: 'مدارس التعليم الفنى',
     national: 'مدارس قومية',
     egyptianJapanese: 'المدارس المصرية اليابانية',
     nileEgyptian: 'مدارس النيل المصرية',
@@ -330,7 +381,7 @@ export const translations = {
     get(target, prop, receiver) {
       const val = Reflect.get(target, prop, receiver);
       if (typeof val === 'string' && prop !== 'appTitle' && prop !== 'appDescription') {
-        return applyEntityTerms(val);
+        return applyTechnicalAssessmentTerms(applyEntityTerms(val));
       }
       return val;
     },

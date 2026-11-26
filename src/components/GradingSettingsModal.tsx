@@ -14,6 +14,7 @@ import { getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { StudentData } from '../types';
 import { getBrandShieldSync } from '../utils/offlineAssetCache';
 import { formatNumberDigits } from '../utils/numberLangHelper';
+import { isTechnicalEducationSchool } from '../i18n';
 
 interface GradingSettingsModalProps {
   isOpen: boolean;
@@ -526,6 +527,11 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
               if (stage === 'primary' || !stage) return 'المرحلة الابتدائية';
               if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
               if (stage === 'middle' || stage === 'prep') return 'المرحلة الإعدادية';
+              if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
+              if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
+              if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
+              if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
+              if (isTechnicalEducationSchool(undefined, stage)) return 'مدارس التعليم الفنى';
               if (stage === 'secondary') {
                 const isSecondSec =
                   selectedGrade === 'الصف الثاني' ||
@@ -534,10 +540,6 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                   selectedGrade?.toLowerCase().includes('2nd');
                 return isSecondSec ? 'المرحلة الثانوية' : 'المرحلة الثانوية - البكالوريا';
               }
-              if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
-              if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
-              if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
-              if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
               return stage;
             })();
 

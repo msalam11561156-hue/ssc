@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Printer,
+  Users,
   X,
 } from 'lucide-react';
 import quickSupportAuditIcon from '../assets/images/quick_support_audit_icon.png';
@@ -87,27 +88,29 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
               <div
                 className={`px-5 py-4 flex items-center justify-between border-b-2 border-slate-900 shrink-0 ${
                   auditResult.errorCount > 0
-                    ? 'bg-gradient-to-l from-rose-600 via-red-600 to-rose-700 text-white'
+                    ? 'bg-gradient-to-l from-rose-200 via-rose-100 to-amber-100 text-black'
                     : auditResult.warningCount > 0
-                    ? 'bg-gradient-to-l from-amber-500 via-orange-500 to-amber-600 text-white'
-                    : 'bg-gradient-to-l from-emerald-600 via-teal-600 to-emerald-700 text-white'
+                    ? 'bg-gradient-to-l from-amber-200 via-yellow-100 to-orange-100 text-black'
+                    : 'bg-gradient-to-l from-emerald-200 via-teal-100 to-emerald-100 text-black'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-white/25 border border-slate-900/80 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                  <div className="w-11 h-11 rounded-2xl bg-white/85 border border-slate-900/80 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                     <img
                       src={quickSupportAuditIcon}
                       alt="الدعم السريع - فحص الأخطاء قبل الطباعة"
                       draggable={false}
-                      className="w-9 h-9 object-contain pointer-events-none select-none contrast-125 [filter:drop-shadow(0_0_2px_rgba(255,255,255,0.95))_drop-shadow(0_1px_2px_rgba(15,23,42,0.5))]"
+                      className="w-9 h-9 object-contain pointer-events-none select-none contrast-125"
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-base sm:text-lg font-black truncate">
+                    <h3 className="text-base sm:text-lg font-black text-black truncate">
                       الدعم السريع - فحص الأخطاء قبل الطباعة
                     </h3>
-                    <p className="text-xs sm:text-sm font-bold text-white/90 truncate">
-                      {auditResult.issues.length === 0
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                      {auditResult.totalStudents === 0
+                        ? 'لا يوجد طلاب مضافين بعد'
+                        : auditResult.issues.length === 0
                         ? `تم فحص ${auditResult.totalStudents} طالب — لا توجد أخطاء`
                         : `تم فحص ${auditResult.totalStudents} طالب — ${auditResult.errorCount} أخطاء حرجة و ${auditResult.warningCount} تنبيهات`}
                     </p>
@@ -117,7 +120,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 border border-slate-900/80 flex items-center justify-center transition-colors shrink-0"
+                  className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-black border border-slate-900/80 flex items-center justify-center transition-colors shrink-0"
                   title="إغلاق"
                 >
                   <X className="w-5 h-5" />
@@ -176,7 +179,16 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
 
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-slate-50/50">
-                {auditResult.issues.length === 0 ? (
+                {auditResult.totalStudents === 0 ? (
+                  <div className="py-10 flex flex-col items-center justify-center text-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center border border-slate-900/80 shadow-sm">
+                      <Users className="w-9 h-9" />
+                    </div>
+                    <h4 className="text-lg font-black text-slate-900">
+                      لا يوجد طلاب مضافين بعد
+                    </h4>
+                  </div>
+                ) : auditResult.issues.length === 0 ? (
                   <div className="py-10 flex flex-col items-center justify-center text-center gap-3">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center border border-slate-900/80 shadow-sm">
                       <CheckCircle2 className="w-9 h-9" />

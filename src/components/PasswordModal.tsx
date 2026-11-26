@@ -10,6 +10,7 @@ import {
   activatePaidVersion 
 } from '../utils/activationManager';
 import { getBrandShieldSync, getCachedBrandShield, getCachedEnglishSeatExample, getCachedEnglishSeatScheduleExample, getCachedEnglishCertExample, getCachedAppreciationCertExample } from '../utils/offlineAssetCache';
+import { applyTechnicalAssessmentTerms } from '../i18n';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -84,7 +85,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   const exampleModalTitle = isAppreciationExample
     ? (isEnglish ? 'Appreciation Certificates Example' : 'نموذج شهادات التقدير')
     : isCertExample
-      ? (isEnglish ? 'Certificates in English Example' : 'نموذج شهادة درجات وتقييمات باللغة الإنجليزية')
+      ? (isEnglish ? 'Certificates in English Example' : applyTechnicalAssessmentTerms('نموذج شهادة درجات وتقييمات باللغة الإنجليزية'))
       : isSeatScheduleExample
         ? (isEnglish ? 'Seat Numbers With Exam Schedule Example' : 'نموذج أرقام الجلوس بجدول الامتحانات')
         : (isEnglish ? 'Seat Numbers in English Example' : 'نموذج أرقام الجلوس بالإنجليزية');

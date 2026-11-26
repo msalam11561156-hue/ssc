@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
-import { ControlData, EducationalStage, Language } from '../types';
+import { ControlData, EducationalStage, EducationType, Language } from '../types';
 import { translations } from '../i18n';
 import { CheckCircle2, Circle, ArrowRight, ArrowLeft, Layers, AlertCircle } from 'lucide-react';
 
 interface GradesScreenProps {
   data: ControlData;
   stage: EducationalStage;
+  educationType?: EducationType;
   systemType?: 'regular' | 'homeschool' | 'services';
   onChange: (data: ControlData) => void;
   onBack: () => void;
@@ -21,6 +22,7 @@ interface GradesScreenProps {
 export const GradesScreen: React.FC<GradesScreenProps> = ({ 
   data, 
   stage, 
+  educationType,
   systemType, 
   onChange, 
   onBack, 
@@ -44,7 +46,8 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
       case 'agricultural_technical':
       case 'hotel_technical':
         return t.secondaryGrades;
-      default: return [];
+      default:
+        return educationType === 'technical' ? t.secondaryGrades : [];
     }
   };
 
@@ -88,14 +91,16 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
             <h2 className="text-3xl font-extrabold text-[#2d3748] px-4 flex items-center justify-center gap-3"><Layers className="w-8 h-8 text-[#14b8a6]" />{t.gradesScreenTitle}</h2>
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#14b8a6] to-transparent overflow-hidden rounded-full" />
           </div>
-          {stage && (
+          {(stage || educationType === 'technical') && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-2 text-lg font-bold text-slate-500"
             >
               {lang === 'ar' ? (
-                stage === 'middle' && systemType === 'homeschool'
+                (educationType === 'technical' || stage.includes('technical'))
+                  ? `${stage.includes('technical') ? `${(t as any).stageNamePrefix} : ${(t as any)[stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase())]}` : 'مدارس التعليم الفنى'}${systemType === 'homeschool' ? ' - منازل' : systemType === 'services' ? ' - خدمات' : systemType === 'regular' ? ' - منتظمين' : ''}`
+                  : stage === 'middle' && systemType === 'homeschool'
                   ? 'المرحلة الإعدادية ( منازل )'
                   : stage === 'middle' && systemType === 'regular'
                   ? 'المرحلة الإعدادية ( منتظمين )'
@@ -107,13 +112,15 @@ export const GradesScreen: React.FC<GradesScreenProps> = ({
                   ? 'المرحلة الثانوية العامة - البكالوريا - منتظمين'
                   : `${(t as any).stageNamePrefix}${stage.includes('technical') || stage === 'kindergarten' ? ' : ' : ' '}${(t as any)[stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase())]}`
               ) : (
-                stage === 'secondary' && systemType === 'homeschool'
+                (educationType === 'technical' || stage.includes('technical'))
+                  ? `${stage.includes('technical') ? ((t as any)[stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase())] || 'Technical Education') : 'Technical Education'}${systemType === 'homeschool' ? ' - Homeschool' : systemType === 'services' ? ' - Services' : systemType === 'regular' ? ' - Regular' : ''}`
+                  : stage === 'secondary' && systemType === 'homeschool'
                   ? 'General Secondary (Baccalaureate) - Homeschool'
                   : stage === 'secondary' && systemType === 'services'
                   ? 'General Secondary (Services)'
                   : stage === 'secondary' && systemType === 'regular'
                   ? 'General Secondary (Regular)'
-                  : `${(t as any)[stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase())]} ${(t as any).stageNamePrefix}`.trim()
+                  : `${(t as any)[stage.replace(/_([a-z])/g, (g) => g[1].toUpperCase())] || 'Technical Education'} ${(t as any).stageNamePrefix}`.trim()
               )}
             </motion.div>
           )}

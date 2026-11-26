@@ -8,6 +8,7 @@ import { getActiveFooterTagline } from './adFilter';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 import { isFemaleStudent } from './topTenCertificatesHelper';
+import { isTechnicalEducationSchool } from '../i18n';
 
 function drawCrispImage(
   ctx: CanvasRenderingContext2D,
@@ -28,6 +29,7 @@ function drawCrispImage(
  * Checks whether the current context is 2nd Secondary - Modern System (Baccalaureate)
  */
 export function checkIsSecondary2Modern(stage?: string, selectedGrade?: string): boolean {
+  if (isTechnicalEducationSchool(undefined, stage)) return false;
   const isSecondaryStage = stage === 'secondary' || stage === 'sec';
   const isSecondary2 = isSecondaryStage && Boolean(
     selectedGrade?.includes('الثاني') ||
@@ -364,6 +366,7 @@ export interface ExportSubjectDetailedPdfOptions {
   semester: string;
   selectedGrade: string;
   stage?: string;
+  educationType?: string;
   schoolName?: string;
   administration?: string;
   governorate?: string;
@@ -427,6 +430,7 @@ export async function exportSubjectDetailedAssessmentsPdf(
     semester,
     selectedGrade,
     stage,
+    educationType,
     schoolName = '',
     administration = '',
     dataOfficer: propDataOfficer,
@@ -669,9 +673,8 @@ export async function exportSubjectDetailedAssessmentsPdf(
     ctx.strokeStyle = '#0f172a';
     ctx.stroke();
 
-    // Banner Text: تقييمات - [اسم المادة] - [الصف] - [الفصل الدراسي] - 2026 - 2027
-    // تصغير حجم الخط بنسبة 15% (من 25 إلى 21)
-    const bannerTitle = `تقييمات - ${subjectLabel} - ${selectedGrade} - ${semText} - 2026 - 2027`;
+    const isTechSchool = isTechnicalEducationSchool(educationType, stage);
+    const bannerTitle = `${isTechSchool ? 'أعمال السنة' : 'تقييمات'} - ${subjectLabel} - ${selectedGrade} - ${semText} - 2026 - 2027`;
     ctx.fillStyle = '#ffffff';
     let bannerFontSize = 21;
     ctx.font = `900 ${bannerFontSize}px "Cairo", sans-serif`;
@@ -1054,7 +1057,8 @@ export async function exportSubjectDetailedAssessmentsPdf(
   const safeSubject = subjectLabel.replace(/[\\/:*?"<>|]/g, '_').trim();
   const safeGrade = selectedGrade.replace(/[\\/:*?"<>|]/g, '_').trim();
   const safeSemester = semText.replace(/[\\/:*?"<>|]/g, '_').trim();
-  link.download = `كشف_رصد_تقييمات_${safeSubject}تفصيلا${safeGrade}_${safeSemester}.pdf`;
+  const isTechSchoolFile = isTechnicalEducationSchool(educationType, stage);
+  link.download = `كشف_رصد_${isTechSchoolFile ? 'أعمال_السنة' : 'تقييمات'}_${safeSubject}تفصيلا${safeGrade}_${safeSemester}.pdf`;
 
   document.body.appendChild(link);
   link.click();
@@ -1067,6 +1071,7 @@ export interface ExportDetailedAssessmentsCertificatesPdfOptions {
   semester: string;
   selectedGrade: string;
   stage?: string;
+  educationType?: string;
   examIndex: 1 | 2; // 1 = First Exam, 2 = Second Exam
   schoolName?: string;
   schoolNameEn?: string;
@@ -1276,6 +1281,7 @@ export async function exportDetailedAssessmentsCertificatesPdf(
     semester,
     selectedGrade,
     stage = 'primary',
+    educationType,
     examIndex,
     schoolName = '',
     administration = '',
@@ -1311,6 +1317,7 @@ export async function exportDetailedAssessmentsCertificatesPdf(
   const isExam1 = examIndex === 1;
   const semText = isSecondSem ? 'الفصل الدراسي الثانى' : 'الفصل الدراسي الأول';
   const examName = isExam1 ? 'الإختبار الأول' : 'الإختبار الثانى';
+  const isTechSchoolCert = isTechnicalEducationSchool(educationType, stage);
 
   const sAdmin = localStorage.getItem('school_administration') || administration || '';
   const sName = localStorage.getItem('school_name') || schoolName || '';
@@ -1582,7 +1589,7 @@ export async function exportDetailedAssessmentsCertificatesPdf(
       currentMonthName = isExam1 ? 'مارس' : 'أبريل';
     }
 
-    const titleText = `شهادة درجات تقييمات ${semText} – ${currentMonthName} - 2026`;
+    const titleText = `شهادة درجات ${isTechSchoolCert ? 'أعمال السنة' : 'تقييمات'} ${semText} – ${currentMonthName} - 2026`;
 
     let decreeText = 'وفقا للقرار الوزارى رقم 151 – 18 – 8 – 2026 م';
     if (stage === 'prep' || stage === 'middle') {
@@ -2770,7 +2777,7 @@ export async function exportDetailedAssessmentsCertificatesPdf(
   const safeGrade = (selectedGrade || '').replace(/[\\/:*?"<>|]/g, '_').trim();
   const safeSemester = semText.replace(/[\\/:*?"<>|]/g, '_').trim();
   const safeExam = examName.replace(/[\\/:*?"<>|]/g, '_').trim();
-  link.download = `شهادات_تقييمات_${safeGrade}_${safeSemester}_بعد_${safeExam}.pdf`;
+  link.download = `شهادات_${isTechSchoolCert ? 'أعمال_السنة' : 'تقييمات'}_${safeGrade}_${safeSemester}_بعد_${safeExam}.pdf`;
 
   document.body.appendChild(link);
   link.click();
@@ -2783,6 +2790,7 @@ export interface ExportStudentSemesterGradesCertificatePdfOptions {
   semester: string;
   selectedGrade: string;
   stage?: string;
+  educationType?: string;
   schoolName?: string;
   schoolNameEn?: string;
   administration?: string;
@@ -2826,6 +2834,7 @@ export async function exportStudentSemesterGradesCertificatePdf(
     semester,
     selectedGrade,
     stage = 'primary',
+    educationType,
     schoolName = '',
     schoolNameEn = '',
     administration = '',
@@ -3135,7 +3144,7 @@ export async function exportStudentSemesterGradesCertificatePdf(
   const isMiddleStage = stage === 'middle' || stage === 'prep';
   const isSecondaryStage = stage === 'secondary';
   const isMiddleOrSecondaryStage = isMiddleStage || isSecondaryStage;
-  const isPrimaryStage = stage === 'primary' || (!isMiddleStage && !isSecondaryStage && stage !== 'kindergarten');
+  const isPrimaryStage = stage === 'primary' || (!isMiddleStage && !isSecondaryStage && stage !== 'kindergarten' && !isTechnicalEducationSchool(undefined, stage));
   const isSec2 = isSecondaryStage && Boolean(
     selectedGrade?.includes('الثاني') ||
     selectedGrade?.includes('الثانى') ||
@@ -4089,12 +4098,13 @@ export async function exportStudentSemesterGradesCertificatePdf(
     ctx.strokeStyle = '#0f172a';
     ctx.stroke();
 
+    const isTechSemCert = isTechnicalEducationSchool(educationType, stage);
     const titleText = isEn
       ? (isSecondSem
           ? 'Grades & Assessments Certificate - Academic Year 2026 - 2027'
           : `First Semester Grades & Assessments Certificate 2026 – 2027`)
       : (isSecondSem
-          ? 'شهادة درجات وتقييمات - العام الدراسي  2026 - 2027'
+          ? (isTechSemCert ? 'شهادة درجات وأعمال السنة - العام الدراسي  2026 - 2027' : 'شهادة درجات وتقييمات - العام الدراسي  2026 - 2027')
           : `شهادة درجات وتقديرات ${semText} 2026 – 2027`);
 
     let decreeText = isEn

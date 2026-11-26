@@ -5,7 +5,7 @@ import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, PenTool, Sliders, Calendar, PieChart, Palette, Languages, BarChart3, Award, FileDown, Undo2, Redo2, Pencil } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { translations } from '../i18n';
+import { translations, applyTechnicalAssessmentTerms, isTechnicalEducationSchool } from '../i18n';
 import { getGradingSettings, GradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from '../utils/gradingSettings';
 import { ActionMenuButton } from './ActionMenuButton';
 import { BrandHeader } from './BrandHeader';
@@ -1723,7 +1723,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
       customControlSheetOptions,
       subjectKey: subjectInfo?.key,
       subjectLabel: subjectInfo?.label,
-      screenSubtitle: lang === 'ar' ? 'تحرير إجمالى التقييمات لكل مادة دراسية' : 'Edit Total Assessments per Subject',
+      screenSubtitle: lang === 'ar' ? applyTechnicalAssessmentTerms('تحرير إجمالى التقييمات لكل مادة دراسية', educationType, stage) : 'Edit Total Assessments per Subject',
       schoolName,
       administration,
       schoolLogo,
@@ -2322,7 +2322,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
       return { 
         label: 'يجب رصد درجات كافة المواد', 
         tooltip: hasAnyWrittenCols 
-          ? 'يجب رصد درجات كافة المواد - درجات التقييمات والامتحانات التحريرية للفصلين الدراسيين'
+          ? applyTechnicalAssessmentTerms('يجب رصد درجات كافة المواد - درجات التقييمات والامتحانات التحريرية للفصلين الدراسيين', educationType, stage)
           : 'يجب رصد درجات كافة المواد فى الفصلين الدراسيين',
         bg: 'bg-transparent', 
         text: 'text-slate-800', 
@@ -2478,7 +2478,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
               const actualMax = roundToOneDecimal((maxAssess * 2) * actualPct);
               failingDetails.push(`مادة ${c.label} : المجموع النهائي ${actualScore} من ${actualMax} بنسبة ${roundToOneDecimal(assessPercent)} % ( أقل من ${minAssessPercent} % )`);
             } else {
-              failingDetails.push(`مادة ${c.label} : متوسط التقييمات ${roundToOneDecimal(finalAssessScore)} من ${maxAssess} بنسبة ${roundToOneDecimal(assessPercent)} % ( أقل من ${minAssessPercent} % )`);
+              failingDetails.push(applyTechnicalAssessmentTerms(`مادة ${c.label} : متوسط التقييمات ${roundToOneDecimal(finalAssessScore)} من ${maxAssess} بنسبة ${roundToOneDecimal(assessPercent)} % ( أقل من ${minAssessPercent} % )`, educationType, stage));
             }
           }
         }
@@ -2515,7 +2515,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         label: isFemale ? 'ناجحة' : ((t as any).pass || 'ناجح'), 
         bg: 'bg-transparent', 
         text: 'text-slate-900',
-        notes: isFemale ? 'ناجحة حققت التقييمات المطلوبة بنجاح' : 'ناجح حقق التقييمات المطلوبة بنجاح',
+        notes: applyTechnicalAssessmentTerms(isFemale ? 'ناجحة حققت التقييمات المطلوبة بنجاح' : 'ناجح حقق التقييمات المطلوبة بنجاح', educationType, stage),
         secondSessionSubjectsText: '-',
         secondSessionSubjectsCount: 0,
         detailsLines: []
@@ -2535,9 +2535,13 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
           detailsLines: failingDetails
         };
       }
-      const fullNotes = isFemale 
-        ? 'ناجحة حققت 50% فأكثر من مجموع درجات كل مادة واجتازت الحد الأدنى للامتحان التحريري وتقييمات الأنشطة بنجاح'
-        : 'ناجح حقق 50% فأكثر من مجموع درجات كل مادة واجتاز الحد الأدنى للامتحان التحريري وتقييمات الأنشطة بنجاح';
+      const fullNotes = applyTechnicalAssessmentTerms(
+        isFemale 
+          ? 'ناجحة حققت 50% فأكثر من مجموع درجات كل مادة واجتازت الحد الأدنى للامتحان التحريري وتقييمات الأنشطة بنجاح'
+          : 'ناجح حقق 50% فأكثر من مجموع درجات كل مادة واجتاز الحد الأدنى للامتحان التحريري وتقييمات الأنشطة بنجاح',
+        educationType,
+        stage
+      );
       return { 
         label: isFemale ? 'ناجحة' : ((t as any).pass || 'ناجح'), 
         bg: 'bg-[#00b050]', 
@@ -2784,7 +2788,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
           </div>
           <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
             <div className="text-black/60 font-black text-xs sm:text-sm md:text-base lg:text-lg flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
-              <span>{lang === 'ar' ? 'تحرير إجمالى التقييمات لكل مادة دراسية' : 'Edit Total Assessments per Subject'}</span>
+              <span>{lang === 'ar' ? applyTechnicalAssessmentTerms('تحرير إجمالى التقييمات لكل مادة دراسية', educationType, stage) : 'Edit Total Assessments per Subject'}</span>
             </div>
 
             {onNavigateToDetailedAssessments && (
@@ -2794,9 +2798,9 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                   type="button"
                   onClick={handleNavigateToDetailed}
                   className="relative z-10 bg-white/95 hover:bg-white text-black font-black text-xs sm:text-sm md:text-base px-3 sm:px-5 py-1.5 sm:py-2 min-h-[38px] sm:min-h-[42px] rounded-[10px] transition-all flex items-center justify-center active:scale-95 shadow-sm whitespace-nowrap"
-                  title="التقييمات تفصيلاً"
+                  title={applyTechnicalAssessmentTerms('التقييمات تفصيلاً', educationType, stage)}
                 >
-                  <span>التقييمات تفصيلاً</span>
+                  <span>{applyTechnicalAssessmentTerms('التقييمات تفصيلاً', educationType, stage)}</span>
                 </button>
               </div>
             )}
@@ -3017,7 +3021,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                                   }}
                                   disabled={isOfficialNoStudents}
                                   icon={<PenTool className="w-4 h-4" />}
-                                  text="التقييمات تفصيلاً"
+                                  text={applyTechnicalAssessmentTerms('التقييمات تفصيلاً', educationType, stage)}
                                   bgGradient="bg-[linear-gradient(to_right,#0d9488,#10b981,#0d9488)]"
                                 />
                               )}
@@ -3957,7 +3961,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                           const finalResultData = getFinalResult(student);
                           const isNotice = Boolean(finalResultData?.isNotice || finalResultData?.label === 'يجب رصد درجات كافة المواد');
                           const tooltip = isNotice
-                            ? (finalResultData?.tooltip || 'يجب رصد درجات كافة المواد - درجات التقييمات والامتحانات التحريرية للفصلين الدراسيين')
+                            ? applyTechnicalAssessmentTerms(finalResultData?.tooltip || 'يجب رصد درجات كافة المواد - درجات التقييمات والامتحانات التحريرية للفصلين الدراسيين', educationType, stage)
                             : undefined;
                           return (
                             <td 
@@ -5621,14 +5625,15 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                       if (stage === 'kindergarten') return 'المرحلة : رياض أطفال';
                       if (stage === 'primary') return 'المرحلة الابتدائية';
                       if (stage === 'middle') return 'المرحلة الإعدادية';
-                      if (stage === 'secondary') {
-                        const isSecondSec = selectedGrade === 'الصف الثاني' || selectedGrade?.includes('الثاني') || selectedGrade?.toLowerCase().includes('2nd');
-                        return isSecondSec ? 'المرحلة الثانوية' : 'المرحلة الثانوية - البكالوريا';
-                      }
                       if (stage === 'commercial_technical') return 'المرحلة : التعليم الفنى التجارى';
                       if (stage === 'industrial_technical') return 'المرحلة : التعليم الفنى الصناعى';
                       if (stage === 'agricultural_technical') return 'المرحلة : التعليم الفنى الزراعى';
                       if (stage === 'hotel_technical') return 'المرحلة : التعليم الفنى الفندقى';
+                      if (isTechnicalEducationSchool(educationType, stage)) return 'مدارس التعليم الفنى';
+                      if (stage === 'secondary') {
+                        const isSecondSec = selectedGrade === 'الصف الثاني' || selectedGrade?.includes('الثاني') || selectedGrade?.toLowerCase().includes('2nd');
+                        return isSecondSec ? 'المرحلة الثانوية' : 'المرحلة الثانوية - البكالوريا';
+                      }
                     }
                     const stageKey = (stage || '').replace(/_([a-z])/g, (g) => g[1].toUpperCase());
                     return (t as any)[stageKey] || stage || '';

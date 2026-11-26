@@ -133,25 +133,25 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
                     style={{ left: `calc(50% + ${coords.arrowOffset}px)` }}
                     className={`absolute -top-1.5 -translate-x-1/2 w-3.5 h-3.5 rotate-45 border-t-2 border-l-2 ${
                       hasIssues
-                        ? 'bg-slate-900 border-amber-400'
-                        : 'bg-slate-900 border-emerald-400'
+                        ? 'bg-white border-amber-400'
+                        : 'bg-white border-emerald-400'
                     } z-20`}
                   />
 
                   {/* Glowing Animated Outer Frame */}
                   <div
-                    className={`p-[2px] rounded-2xl shadow-[0_14px_34px_rgba(15,23,42,0.55)] bg-[length:200%_auto] animate-shine ${
+                    className={`p-[2px] rounded-2xl shadow-[0_14px_34px_rgba(15,23,42,0.35)] bg-[length:200%_auto] animate-shine ${
                       hasIssues
                         ? 'bg-[linear-gradient(90deg,#f59e0b,#f43f5e,#fde047,#f43f5e,#f59e0b)]'
                         : 'bg-[linear-gradient(90deg,#10b981,#22d3ee,#a7f3d0,#22d3ee,#10b981)]'
                     }`}
                   >
-                    <div className="relative flex flex-wrap sm:flex-nowrap items-center justify-center gap-2.5 px-4 py-2.5 rounded-[14px] bg-slate-900/95 backdrop-blur-md text-white sm:whitespace-nowrap">
+                    <div className="relative flex flex-wrap sm:flex-nowrap items-center justify-center gap-2.5 px-4 py-2.5 rounded-[14px] bg-white/95 backdrop-blur-md text-black sm:whitespace-nowrap">
                       <span
                         className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border ${
                           hasIssues
-                            ? 'bg-rose-500/20 border-amber-400/50 text-amber-300'
-                            : 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                            ? 'bg-rose-100 border-rose-400 text-rose-700'
+                            : 'bg-emerald-100 border-emerald-400 text-emerald-700'
                         }`}
                       >
                         {hasIssues ? (
@@ -161,15 +161,15 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
                         )}
                       </span>
 
-                      <span className="text-sm sm:text-base font-black tracking-wide text-white drop-shadow-sm">
+                      <span className="text-sm sm:text-base font-black tracking-wide text-black">
                         الدعم السريع - فحص الأخطاء قبل الطباعة
                       </span>
 
                       <span
                         className={`text-sm sm:text-base font-black px-2.5 py-0.5 rounded-lg border ${
                           hasIssues
-                            ? 'bg-rose-500/25 border-rose-400/60 text-amber-200'
-                            : 'bg-emerald-500/25 border-emerald-400/60 text-emerald-200'
+                            ? 'bg-rose-100 border-rose-400 text-rose-800'
+                            : 'bg-emerald-100 border-emerald-400 text-emerald-800'
                         }`}
                       >
                         {tooltipStatusText}
