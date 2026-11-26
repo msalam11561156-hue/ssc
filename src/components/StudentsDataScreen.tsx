@@ -175,8 +175,11 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
   const auditHighlightTimerRef = React.useRef<number | null>(null);
   const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
+  const skipAutoSyncSnapshotRef = React.useRef<StudentData[] | null>(null);
+  const userEditedExamNumbersRef = React.useRef(false);
   const {
     handleChange: onChange,
+    applySilentChange,
     undo,
     redo,
     canUndo,
@@ -184,6 +187,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     undoCount,
     redoCount,
   } = useStudentHistory(data, propOnChange, {
+    onHistoryNavigate: (_direction, restoredData) => {
+      skipAutoSyncSnapshotRef.current = restoredData;
+      const prevIds = data.map((s) => s.id).join(',');
+      const nextIds = restoredData.map((s) => s.id).join(',');
+      if (prevIds !== nextIds) {
+        frozenIdsRef.current = [];
+        setIsEditingData(false);
+      }
+    },
     enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
@@ -1124,6 +1136,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   }, [sortBy]);
 
   useEffect(() => {
+    if (skipAutoSyncSnapshotRef.current === data) return;
     let hasChanges = false;
     const updated = data.map(s => {
       const normalized = normalizeStatusForGrade(s.enrollmentStatus, isFirstGrade, s.gender);
@@ -1151,12 +1164,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       return s;
     });
     if (hasChanges) {
-      onChange(updated);
+      applySilentChange(updated);
     }
-  }, [isFirstGrade, data, onChange, t]);
+  }, [isFirstGrade, data, applySilentChange, t]);
 
   const handleRemoveRow = (id: string) => {
-    onChange(data.filter(s => s.id !== id));
+    const remaining = data.filter(s => s.id !== id);
+    const { data: withCommittees } = applyCommitteeAssignments(remaining);
+    onChange(withCommittees, true);
   };
 
   const convertStatus = (currentStatus: string, gender: string) => {
@@ -1200,6 +1215,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   };
 
   const handleChange = (id: string, field: keyof StudentData, value: string) => {
+    const isDiscreteField =
+      field === 'gender' ||
+      field === 'studentStatus' ||
+      field === 'enrollmentStatus' ||
+      field === 'exemptionStatus' ||
+      field === 'enrollmentType' ||
+      field === 'religion' ||
+      field === ('studentClass' as any) ||
+      (field === 'nationalId' && value.length === 14);
     onChange(data.map(s => {
       if (s.id === id) {
         let valToSet = value;
@@ -1234,10 +1258,13 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         return updatedStudent;
       }
       return s;
-    }));
+    }), isDiscreteField);
   };
 
   const handleSemesterFieldChange = (id: string, field: 'seatNumbers' | 'secretNumbers' | 'committeeNumbers', value: string) => {
+    if (field === 'seatNumbers' || field === 'secretNumbers') {
+      userEditedExamNumbersRef.current = true;
+    }
     onChange(data.map(s => {
       if (s.id === id) {
         return {
@@ -1491,14 +1518,23 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         },
       }));
       const combined = assignAutoSeatAndSecretNumbers([...data, ...newStudents], true);
-      onChange(combined);
+      const { data: combinedWithCommittees } = applyCommitteeAssignments(combined);
+      onChange(combinedWithCommittees, true);
     }
     setModalText('');
     setIsModalOpen(false);
   };
 
   useEffect(() => {
-    if (!showExamFields || isEditingData || data.length === 0) return;
+    if (
+      !showExamFields ||
+      isEditingData ||
+      data.length === 0 ||
+      userEditedExamNumbersRef.current ||
+      skipAutoSyncSnapshotRef.current === data
+    ) {
+      return;
+    }
     const hasMissingNumbers = data.some(s => {
       const seatVal = (s.seatNumbers?.[semester] || (semester === 'first' ? s.seatNumber : '') || '').trim();
       const secretVal = (s.secretNumbers?.[semester] || (semester === 'first' ? s.secretNumber : '') || '').trim();
@@ -1506,9 +1542,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     });
     if (hasMissingNumbers) {
       const updated = assignAutoSeatAndSecretNumbers(data, false);
-      onChange(updated);
+      applySilentChange(updated);
     }
-  }, [data, semester, showExamFields, isEditingData, seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2, enableSkipMultiple1, enableSkipMultiple2]);
+  }, [data, semester, showExamFields, isEditingData, seatNumStart, secretNumStart, secretNumSkipMultiple, secretNumSkipMultiple2, enableSkipMultiple1, enableSkipMultiple2, applySilentChange]);
 
   const handleNationalIdModalAdd = () => {
     const lines = nationalIdModalText
@@ -1558,7 +1594,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           }
         });
       }
-      onChange(updatedData);
+      onChange(updatedData, true);
     }
     setNationalIdModalText('');
     setIsNationalIdModalOpen(false);
@@ -1590,7 +1626,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         }
         return next;
       });
-      onChange(updatedData);
+      onChange(updatedData, true);
     }
     setIsDefaultValuesModalOpen(false);
   };
@@ -1622,7 +1658,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       };
       localStorage.setItem('sheet_control_numbering_settings_by_grade', JSON.stringify(parsed));
     } catch {}
-    onChange(updatedData);
+    userEditedExamNumbersRef.current = true;
+    onChange(updatedData, true);
     setIsSeatNumModalOpen(false);
   };
 
@@ -1663,12 +1700,15 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       };
       localStorage.setItem('sheet_control_numbering_settings_by_grade', JSON.stringify(parsed));
     } catch {}
-    onChange(updatedData);
+    userEditedExamNumbersRef.current = true;
+    onChange(updatedData, true);
     setIsSecretNumModalOpen(false);
   };
 
-  useEffect(() => {
-    if (data.length === 0) return;
+  const applyCommitteeAssignments = React.useCallback((studentsList: StudentData[]) => {
+    if (studentsList.length === 0) {
+      return { data: studentsList, hasChanges: false };
+    }
 
     const sizeFirst = typeof committeeSizeFirst === 'number' && committeeSizeFirst >= 1 ? committeeSizeFirst : 20;
     const sizeSecond = typeof committeeSizeSecond === 'number' && committeeSizeSecond >= 1 ? committeeSizeSecond : 20;
@@ -1678,7 +1718,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       commSize: number,
       mergeLast: boolean
     ) => {
-      const orderedStudents = [...data].sort((a, b) => {
+      const orderedStudents = [...studentsList].sort((a, b) => {
         for (const criteria of sortBy) {
           const modifier = criteria.direction === 'desc' ? -1 : 1;
           if (criteria.id === 'alphabetical' || criteria.id === 'name') {
@@ -1697,12 +1737,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
             const cmp = (a.exemptionStatus || '').localeCompare(b.exemptionStatus || '', lang === 'ar' ? 'ar' : 'en');
             if (cmp !== 0) return cmp * modifier;
           }
-        if (criteria.id === 'studentStatus') {
-          const valA = a.studentStatus === 'دمج' ? 'دمج' : 'عادى';
-          const valB = b.studentStatus === 'دمج' ? 'دمج' : 'عادى';
-          const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en');
-          if (cmp !== 0) return cmp * modifier;
-        }
+          if (criteria.id === 'studentStatus') {
+            const valA = a.studentStatus === 'دمج' ? 'دمج' : 'عادى';
+            const valB = b.studentStatus === 'دمج' ? 'دمج' : 'عادى';
+            const cmp = valA.localeCompare(valB, lang === 'ar' ? 'ar' : 'en');
+            if (cmp !== 0) return cmp * modifier;
+          }
           if (criteria.id === 'enrollmentType') {
             const cmp = (a.enrollmentType || '').localeCompare(b.enrollmentType || '', lang === 'ar' ? 'ar' : 'en');
             if (cmp !== 0) return cmp * modifier;
@@ -1752,7 +1792,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     const commMapSecond = buildCommMap('second', sizeSecond, mergeLastCommitteeSecond);
 
     let hasChanges = false;
-    const updatedData = data.map(s => {
+    const updatedData = studentsList.map(s => {
       const targetCommFirst = commMapFirst.get(s.id) || '1';
       const targetCommSecond = commMapSecond.get(s.id) || '1';
       const currentCommFirst = s.committeeNumbers?.['first'] || '';
@@ -1778,8 +1818,60 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       return s;
     });
 
+    return { data: updatedData, hasChanges };
+  }, [
+    committeeSizeFirst,
+    mergeLastCommitteeFirst,
+    committeeSizeSecond,
+    mergeLastCommitteeSecond,
+    sortBy,
+    semester,
+    lang,
+  ]);
+
+  const prevCommitteeConfigKeyRef = React.useRef<string | null>(null);
+  const prevSortedOrderKeyRef = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    if (data.length === 0) return;
+
+    const committeeConfigKey = `${committeeSizeFirst}|${mergeLastCommitteeFirst}|${committeeSizeSecond}|${mergeLastCommitteeSecond}|${semester}|${lang}|${JSON.stringify(sortBy)}`;
+    const sortedOrderKey = `${sortStudentsList(data, 'first').map(s => s.id).join(',')}|${sortStudentsList(data, 'second').map(s => s.id).join(',')}`;
+
+    const isInitialRun = prevCommitteeConfigKeyRef.current === null;
+    const configOrOrderChanged =
+      prevCommitteeConfigKeyRef.current !== committeeConfigKey ||
+      prevSortedOrderKeyRef.current !== sortedOrderKey;
+
+    if (skipAutoSyncSnapshotRef.current === data) {
+      prevCommitteeConfigKeyRef.current = committeeConfigKey;
+      prevSortedOrderKeyRef.current = sortedOrderKey;
+      return;
+    }
+
+    if (isEditingData) {
+      return;
+    }
+
+    prevCommitteeConfigKeyRef.current = committeeConfigKey;
+    prevSortedOrderKeyRef.current = sortedOrderKey;
+
+    const hasMissingCommittee = data.some(s =>
+      !(s.committeeNumbers?.first || '').trim() ||
+      !(s.committeeNumbers?.second || '').trim() ||
+      !(s.committeeNumber || '').trim()
+    );
+
+    if (!isInitialRun && !configOrOrderChanged && !hasMissingCommittee) {
+      return;
+    }
+    if (!configOrOrderChanged && !isInitialRun) {
+      return;
+    }
+
+    const { data: updatedData, hasChanges } = applyCommitteeAssignments(data);
     if (hasChanges) {
-      onChange(updatedData);
+      applySilentChange(updatedData);
     }
   }, [
     committeeSizeFirst,
@@ -1790,7 +1882,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     sortBy,
     semester,
     lang,
-    onChange,
+    isEditingData,
+    applyCommitteeAssignments,
+    applySilentChange,
   ]);
 
   let filteredData = data.filter(s => {
@@ -2129,7 +2223,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         updatedData[dataIndex] = student;
         linesUsed++;
       }
-      onChange(updatedData);
+      if (field === 'seatNumbers' || field === 'secretNumbers') {
+        userEditedExamNumbersRef.current = true;
+      }
+      onChange(updatedData, true);
       
       const nextRow = Math.min(filteredData.length - 1, rowIndex + linesUsed);
       setTimeout(() => {
@@ -2268,8 +2365,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
           <div dir="ltr" className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={undo}
               disabled={!canUndo}
+              aria-label="تراجع عن آخر تعديل"
               className={`order-3 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canUndo
                   ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
@@ -2287,14 +2386,16 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={redo}
               disabled={!canRedo}
+              aria-label="العودة عن التراجع"
               className={`order-4 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canRedo
                   ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
                   : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
               }`}
-              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+              title={canRedo ? `العودة عن التراجع (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للعودة عن التراجع'}
             >
               <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
               {canRedo && (
@@ -5869,7 +5970,8 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         rowNumber={editingStudentState?.rowNumber}
         onClose={() => setEditingStudentState(null)}
         onSave={(updatedStudent) => {
-          onChange(data.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+          userEditedExamNumbersRef.current = true;
+          onChange(data.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)), true);
           setEditingStudentState(null);
         }}
         semester={semester}

@@ -123,6 +123,14 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
     redoCount,
   } = useStudentHistory(localData, propOnChange, {
     onApply: setLocalData,
+    onHistoryNavigate: (_direction, restoredData) => {
+      const prevIds = localData.map((s) => s.id).join(',');
+      const nextIds = restoredData.map((s) => s.id).join(',');
+      if (prevIds !== nextIds) {
+        frozenIdsRef.current = [];
+        setIsEditingData(false);
+      }
+    },
     enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
   const lastActiveSubjectKey = React.useRef<string | null>(
@@ -1422,7 +1430,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
       }
       return student;
     });
-    setLocalData(newData);
     onChange(newData);
   };
 
@@ -1700,8 +1707,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
 
   const handleClassChange = (studentId: string, newClass: string) => {
     const updated = localData.map(s => s.id === studentId ? { ...s, studentClass: newClass } : s);
-    setLocalData(updated);
-    onChange(updated);
+    onChange(updated, true);
   };
 
   const executePrintOption = async (
@@ -2857,8 +2863,10 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
           <div dir="ltr" className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0 relative justify-end flex-nowrap">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={undo}
               disabled={!canUndo}
+              aria-label="تراجع عن آخر تعديل"
               className={`order-3 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canUndo
                   ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
@@ -2876,14 +2884,16 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
 
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={redo}
               disabled={!canRedo}
+              aria-label="العودة عن التراجع"
               className={`order-4 flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canRedo
                   ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
                   : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
               }`}
-              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+              title={canRedo ? `العودة عن التراجع (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للعودة عن التراجع'}
             >
               <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
               {canRedo && (
@@ -2970,7 +2980,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                           <ActionMenuButton
                             onClick={() => {
                               setIsActionMenuOpen(false);
-                              onChange(localData);
                               if (onNavigateToSection) onNavigateToSection(4, 'first');
                               else onEditData('first');
                             }}
@@ -2982,7 +2991,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                           <ActionMenuButton
                             onClick={() => {
                               setIsActionMenuOpen(false);
-                              onChange(localData);
                               if (onNavigateToSection) onNavigateToSection(4, 'second');
                               else onEditData('second');
                             }}
@@ -3022,7 +3030,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                                       onClick={() => {
                                         if (isOfficialNoStudents) return;
                                         setIsActionMenuOpen(false);
-                                        onChange(localData);
                                         if (onNavigateToSection) onNavigateToSection(7, 'first');
                                         else if (onEditWrittenExams) onEditWrittenExams('first');
                                       }}
@@ -3040,7 +3047,6 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
                                       onClick={() => {
                                         if (isOfficialNoStudents) return;
                                         setIsActionMenuOpen(false);
-                                        onChange(localData);
                                         if (onNavigateToSection) onNavigateToSection(7, 'second');
                                         else if (onEditWrittenExams) onEditWrittenExams('second');
                                       }}
@@ -6042,8 +6048,7 @@ export const AssessmentsGradesScreen: React.FC<AssessmentsGradesScreenProps> = (
         onClose={() => setEditingStudentState(null)}
         onSave={(updatedStudent) => {
           const updated = localData.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
-          setLocalData(updated);
-          onChange(updated);
+          onChange(updated, true);
           setEditingStudentState(null);
         }}
         semester={semester}

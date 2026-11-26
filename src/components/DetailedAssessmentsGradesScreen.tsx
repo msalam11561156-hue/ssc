@@ -255,8 +255,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
   const auditHighlightTimerRef = React.useRef<number | null>(null);
   const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
+  const skipAutoSyncSnapshotRef = React.useRef<StudentData[] | null>(null);
   const {
     handleChange: onChange,
+    applySilentChange,
     undo,
     redo,
     canUndo,
@@ -265,6 +267,9 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     redoCount,
   } = useStudentHistory(localData, propOnChange, {
     onApply: setLocalData,
+    onHistoryNavigate: (_direction, restoredData) => {
+      skipAutoSyncSnapshotRef.current = restoredData;
+    },
     enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
 
@@ -838,7 +843,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   // مزامنة مبدئية: في حال وجود درجات للطلاب في التقييمات إجمالاً وعدم وجود تفصيل لها للمادة المحددة
   useEffect(() => {
-    if (!localData || localData.length === 0 || !selectedSubjectKey) return;
+    if (!localData || localData.length === 0 || !selectedSubjectKey || skipAutoSyncSnapshotRef.current === localData) return;
     let anyMissing = false;
     const updated = localData.map(student => {
       const detailedItem = student.detailedAssessments?.[semester]?.[selectedSubjectKey];
@@ -871,10 +876,9 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     });
 
     if (anyMissing) {
-      setLocalData(updated);
-      propOnChange(updated);
+      applySilentChange(updated);
     }
-  }, [selectedSubjectKey, semester, stage, currentSubject.maxGrade, isMiddleOrSecondary, isNoWrittenSubject, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]);
+  }, [selectedSubjectKey, semester, stage, currentSubject.maxGrade, isMiddleOrSecondary, isNoWrittenSubject, isPESubject, isNoWrittenExceptPe, isSecondary2Modern, applySilentChange]);
 
   // Helpers to calculate detailed assessment total
   const parseNum = (val?: string): number => {
@@ -1159,7 +1163,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       };
     });
 
-    setLocalData(updated);
     onChange(updated);
   };
 
@@ -1382,8 +1385,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
 
   const handleClassChange = (studentId: string, newClass: string) => {
     const updated = localData.map(s => s.id === studentId ? { ...s, studentClass: newClass } : s);
-    setLocalData(updated);
-    onChange(updated);
+    onChange(updated, true);
   };
 
   // Paste handling for multiple rows
@@ -1493,8 +1495,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
       };
     });
 
-    setLocalData(updated);
-    onChange(updated);
+    onChange(updated, true);
   };
 
   // Helper to print styled HTML documents via an isolated hidden iframe
@@ -1862,8 +1863,10 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             {/* 3. Undo Button */}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={undo}
               disabled={!canUndo}
+              aria-label="تراجع عن آخر تعديل"
               className={`flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canUndo
                   ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-slate-900 active:scale-[0.96] cursor-pointer'
@@ -1882,14 +1885,16 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
             {/* 4. Redo Button */}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={redo}
               disabled={!canRedo}
+              aria-label="العودة عن التراجع"
               className={`flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all relative ${
                 canRedo
                   ? 'bg-gradient-to-br from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 text-slate-900 active:scale-[0.96] cursor-pointer'
                   : 'bg-slate-100 text-slate-400 opacity-50 cursor-not-allowed'
               }`}
-              title={canRedo ? `إعادة التعديل المتراجع عنه (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للإعادة'}
+              title={canRedo ? `العودة عن التراجع (Ctrl+Y) - متاح ${redoCount}` : 'لا توجد تعديلات للعودة عن التراجع'}
             >
               <Redo2 className="w-5 h-5 sm:w-6 sm:h-6" />
               {canRedo && (
@@ -2824,7 +2829,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         onClick={() => {
                           setIsActionMenuOpen(false);
                           handleSelectSubject(selectedSubjectKey);
-                          onChange(localData);
                           if (onNavigateToSection) onNavigateToSection(4, 'first');
                           else if (onEditData) onEditData('first');
                         }}
@@ -2841,7 +2845,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         onClick={() => {
                           setIsActionMenuOpen(false);
                           handleSelectSubject(selectedSubjectKey);
-                          onChange(localData);
                           if (onNavigateToSection) onNavigateToSection(4, 'second');
                           else if (onEditData) onEditData('second');
                         }}
@@ -2885,7 +2888,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 if (isOfficialNoStudents) return;
                                 setIsActionMenuOpen(false);
                                 handleSelectSubject(selectedSubjectKey);
-                                onChange(localData);
                                 if (onNavigateToSection) onNavigateToSection(7, 'first');
                                 else if (onEditWrittenExams) onEditWrittenExams('first');
                               }}
@@ -2904,7 +2906,6 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                                 if (isOfficialNoStudents) return;
                                 setIsActionMenuOpen(false);
                                 handleSelectSubject(selectedSubjectKey);
-                                onChange(localData);
                                 if (onNavigateToSection) onNavigateToSection(7, 'second');
                                 else if (onEditWrittenExams) onEditWrittenExams('second');
                               }}
@@ -3756,8 +3757,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         onClose={() => setEditingStudentState(null)}
         onSave={(updatedStudent) => {
           const updated = localData.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
-          setLocalData(updated);
-          onChange(updated);
+          onChange(updated, true);
           setEditingStudentState(null);
         }}
         semester={semester}
