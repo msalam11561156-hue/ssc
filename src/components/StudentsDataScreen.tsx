@@ -5130,7 +5130,6 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <p className="flex gap-2 items-start"><span className="text-yellow-700 mt-1 shrink-0">●</span><span className="flex-1">{(t as any).sortInst3}</span></p>
                   <p className="flex gap-2 items-start"><span className="text-yellow-700 mt-1 shrink-0">●</span><span className="flex-1">{(t as any).sortInst4}</span></p>
                   <p className="flex gap-2 items-start"><span className="text-yellow-700 mt-1 shrink-0">●</span><span className="flex-1">{(t as any).sortInst5}</span></p>
-                  <p className="flex gap-2 items-start"><span className="text-yellow-700 mt-1 shrink-0">●</span><span className="flex-1">{(t as any).sortInst7}</span></p>
                   <p className="flex gap-2 items-start"><span className="text-red-600 mt-1 shrink-0">●</span><span className="flex-1">{(t as any).sortInst6}</span></p>
                 </div>
 

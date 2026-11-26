@@ -17,7 +17,6 @@ import { isMobilePhoneDevice } from './utils/deviceHelper';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, testConnection, isOfflineOrNetworkError } from './firebase';
 import { LoginScreen } from './components/LoginScreen';
-import { OfflineIndicator } from './components/OfflineIndicator';
 import { lazyWithRetry, prefetchAllScreensForOffline } from './utils/prefetchScreens';
 import {
   upsertUserProfile,
@@ -1487,7 +1486,6 @@ export default function App() {
             localStorage.setItem('sheet_control_step', '0');
           }}
         />
-        <OfflineIndicator />
       </>
     );
   }
@@ -2377,7 +2375,6 @@ export default function App() {
         <Suspense fallback={null}>
           <FooterBanner lang={lang} isFooterEnabled={isDefaultFooterEnabled} />
         </Suspense>
-        <OfflineIndicator />
       </div>
     </div>
   );
