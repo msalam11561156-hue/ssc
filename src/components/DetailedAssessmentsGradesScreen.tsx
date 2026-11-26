@@ -1204,7 +1204,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
         mode: 'detailed_assessments',
         students: filteredData,
         semester,
-        showExamFields: !isKindergarten && showSeatNumber,
+        showExamFields: !isKindergarten,
+        showSecretFields: !isKindergarten,
         isKindergarten,
         detailedContext: {
           subjectKey: selectedSubjectKey,
@@ -1215,7 +1216,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           isSecondary2Modern,
         },
       }),
-    [filteredData, semester, isKindergarten, showSeatNumber, selectedSubjectKey, currentSubject.label, stage, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]
+    [filteredData, semester, isKindergarten, selectedSubjectKey, currentSubject.label, stage, isPESubject, isNoWrittenExceptPe, isSecondary2Modern]
   );
 
   const handleOpenPrintWithAudit = () => {

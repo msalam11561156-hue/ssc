@@ -84,17 +84,23 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
         aria-label={`الدعم السريع - فحص الأخطاء قبل الطباعة ${tooltipStatusText}`}
         className={`${className} flex items-center justify-center w-10 h-10 sm:w-[50px] sm:h-[50px] rounded-full border-2 border-slate-900 shadow-sm shrink-0 transition-all active:scale-[0.96] relative cursor-pointer ${
           hasIssues
-            ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95'
+            ? 'bg-gradient-to-br from-rose-500 to-amber-500 text-white hover:opacity-95 animate-audit-btn-breathe'
             : 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white hover:opacity-95'
         }`}
       >
+        {hasIssues && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.85),rgba(253,224,71,0.35)_55%,transparent_75%)] animate-audit-btn-sheen"
+          />
+        )}
         {hasIssues ? (
-          <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+          <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm relative z-10" />
         ) : (
-          <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm" />
+          <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm relative z-10" />
         )}
         {hasIssues && (
-          <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
+          <span className="absolute -top-1 -right-1 z-20 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
             {issueCount > 99 ? '99+' : issueCount}
           </span>
         )}

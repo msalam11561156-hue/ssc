@@ -5,10 +5,9 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Printer,
-  ShieldAlert,
-  ShieldCheck,
   X,
 } from 'lucide-react';
+import quickSupportAuditIcon from '../assets/images/quick_support_audit_icon.png';
 import { FAST_BACKDROP_FADE, FAST_MODAL_FLIP } from '../utils/flipAnimation';
 import { AuditIssueCategory, PrePrintAuditResult } from '../utils/prePrintAudit';
 
@@ -37,7 +36,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
     switch (activeTab) {
       case 'duplicates':
         return auditResult.issues.filter(
-          (i) => i.category === 'duplicate_seat' || i.category === 'duplicate_secret'
+          (i) => i.category === 'duplicate_seat' || i.category === 'duplicate_secret' || i.category === 'duplicate_nid'
         );
       case 'anomalous':
         return auditResult.issues.filter((i) => i.category === 'anomalous_grade');
@@ -54,6 +53,8 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
         return 'تكرار جلوس';
       case 'duplicate_secret':
         return 'تكرار سري';
+      case 'duplicate_nid':
+        return 'تكرار رقم قومي';
       case 'anomalous_grade':
         return 'درجة شاذة';
       case 'missing_data':
@@ -93,12 +94,13 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-white/20 border border-slate-900/80 flex items-center justify-center shrink-0">
-                    {auditResult.issues.length === 0 ? (
-                      <ShieldCheck className="w-6 h-6 text-white" />
-                    ) : (
-                      <ShieldAlert className="w-6 h-6 text-white" />
-                    )}
+                  <div className="w-11 h-11 rounded-2xl bg-white/25 border border-slate-900/80 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                    <img
+                      src={quickSupportAuditIcon}
+                      alt="الدعم السريع - فحص الأخطاء قبل الطباعة"
+                      draggable={false}
+                      className="w-9 h-9 object-contain pointer-events-none select-none contrast-125 [filter:drop-shadow(0_0_2px_rgba(255,255,255,0.95))_drop-shadow(0_1px_2px_rgba(15,23,42,0.5))]"
+                    />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-base sm:text-lg font-black truncate">
@@ -145,7 +147,7 @@ export const PrePrintAuditModal: React.FC<PrePrintAuditModalProps> = ({
                         : 'bg-white text-rose-700 hover:bg-rose-50'
                     }`}
                   >
-                    تكرار الجلوس / السري ( {auditResult.duplicateCount} )
+                    تكرار الجلوس / السري / القومي ( {auditResult.duplicateCount} )
                   </button>
                   <button
                     type="button"

@@ -219,6 +219,34 @@ tr.audit-row-glow button * {
   color: #ffffff !important;
 }
 
+@keyframes audit-btn-breathe {
+  0%, 100% {
+    filter: brightness(0.88) saturate(0.95);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18), 0 0 4px rgba(244, 63, 94, 0.25);
+  }
+  50% {
+    filter: brightness(1.18) saturate(1.18);
+    box-shadow: 0 0 18px 4px rgba(244, 63, 94, 0.72), 0 0 32px 8px rgba(251, 191, 36, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes audit-btn-sheen {
+  0%, 100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.animate-audit-btn-breathe {
+  animation: audit-btn-breathe 2.2s ease-in-out infinite;
+}
+
+.animate-audit-btn-sheen {
+  animation: audit-btn-sheen 2.2s ease-in-out infinite;
+}
+
 @keyframes button-marquee-ltr {
   0% {
     transform: translateX(-50%);

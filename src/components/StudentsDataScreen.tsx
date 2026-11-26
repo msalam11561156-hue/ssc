@@ -1885,6 +1885,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         students: filteredData,
         semester,
         showExamFields,
+        showSecretFields: showExamFields,
         isKindergarten,
       }),
     [filteredData, semester, showExamFields, isKindergarten]
@@ -3933,7 +3934,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               }}
             >
               {filteredData.map((student, idx) => {
-                const isMissingData = !student.name || !student.nationalId || student.nationalId.length !== 14 || !student.gender || (!isKindergarten && !student.enrollmentStatus) || !student.religion || (showExamFields && (!student.seatNumbers?.[semester] && !student.seatNumber)) || (showExamFields && (!student.secretNumbers?.[semester] && !student.secretNumber));
+                const isMissingData = !student.name?.trim() || !student.nationalId || student.nationalId.length !== 14 || !student.gender?.trim() || (!isKindergarten && !student.enrollmentStatus?.trim()) || !student.enrollmentType?.trim() || !student.religion?.trim() || !student.studentClass?.trim() || (showExamFields && !isKindergarten && !student.seatNumbers?.[semester] && !student.seatNumber) || (showExamFields && !isKindergarten && !student.secretNumbers?.[semester] && !student.secretNumber) || (!isKindergarten && !(student.committeeNumbers?.[semester] || student.committeeNumber)?.trim());
                 const rowColorStyle = getTableRowColorStyle(editingRowTheme, idx % 2 !== 0);
                 const isAuditHighlighted = highlightedStudentId === student.id;
                 return (

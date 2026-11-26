@@ -2643,10 +2643,11 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
         students: filteredData,
         semester,
         showExamFields: !isKindergarten && gradingSettings.showSeatNumber,
+        showSecretFields: !isKindergarten && gradingSettings.showSecretNumber,
         isKindergarten,
         editableColumns: auditColumns,
       }),
-    [filteredData, semester, isKindergarten, gradingSettings.showSeatNumber, auditColumns]
+    [filteredData, semester, isKindergarten, gradingSettings.showSeatNumber, gradingSettings.showSecretNumber, auditColumns]
   );
 
   const handleOpenPrintWithAudit = () => {

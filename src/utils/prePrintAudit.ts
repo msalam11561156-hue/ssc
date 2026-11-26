@@ -9,6 +9,7 @@ export type AuditScreenMode =
 export type AuditIssueCategory =
   | 'duplicate_seat'
   | 'duplicate_secret'
+  | 'duplicate_nid'
   | 'missing_data'
   | 'anomalous_grade';
 
@@ -38,6 +39,7 @@ export interface PrePrintAuditParams {
   students: StudentData[];
   semester: string;
   showExamFields?: boolean;
+  showSecretFields?: boolean;
   isKindergarten?: boolean;
   editableColumns?: AuditEditableColumn[];
   detailedContext?: {
@@ -68,12 +70,42 @@ function normalizeDigits(val: unknown): string {
     .replace(/\s+/g, ' ');
 }
 
+function getSemesterKey(semester: string): string {
+  if (semester === 'second' || semester === 'الفصل الدراسي الثاني') return 'second';
+  if (semester === 'first' || semester === 'الفصل الدراسي الأول') return 'first';
+  return semester;
+}
+
 function getStudentSeat(student: StudentData, semester: string): string {
-  return normalizeDigits(student.seatNumbers?.[semester] ?? student.seatNumber ?? '');
+  const semKey = getSemesterKey(semester);
+  const raw =
+    student.seatNumbers?.[semester] ??
+    student.seatNumbers?.[semKey] ??
+    (semKey === 'first' ? student.seatNumber : undefined) ??
+    student.seatNumber ??
+    '';
+  return normalizeDigits(raw);
 }
 
 function getStudentSecret(student: StudentData, semester: string): string {
-  return normalizeDigits(student.secretNumbers?.[semester] ?? student.secretNumber ?? '');
+  const semKey = getSemesterKey(semester);
+  const raw =
+    student.secretNumbers?.[semester] ??
+    student.secretNumbers?.[semKey] ??
+    (semKey === 'first' ? student.secretNumber : undefined) ??
+    student.secretNumber ??
+    '';
+  return normalizeDigits(raw);
+}
+
+function getStudentCommittee(student: StudentData, semester: string): string {
+  const semKey = getSemesterKey(semester);
+  const raw =
+    student.committeeNumbers?.[semester] ??
+    student.committeeNumbers?.[semKey] ??
+    student.committeeNumber ??
+    '';
+  return normalizeDigits(raw);
 }
 
 function isAbsenceToken(raw: string): boolean {
@@ -104,35 +136,42 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
     students,
     semester,
     showExamFields = true,
+    showSecretFields,
     isKindergarten = false,
     editableColumns = [],
     detailedContext,
   } = params;
 
+  const checkSeat = showExamFields && !isKindergarten;
+  const checkSecret = (showSecretFields ?? showExamFields) && !isKindergarten;
+
   const issues: AuditIssue[] = [];
   const seatMap = new Map<string, { student: StudentData; rowNumber: number }[]>();
   const secretMap = new Map<string, { student: StudentData; rowNumber: number }[]>();
-
-  let anySeatAssigned = false;
-  let anySecretAssigned = false;
+  const nidMap = new Map<string, { student: StudentData; rowNumber: number }[]>();
 
   students.forEach((student, idx) => {
     const rowNumber = idx + 1;
     const seat = getStudentSeat(student, semester);
     const secret = getStudentSecret(student, semester);
+    const nid = normalizeDigits(student.nationalId).replace(/\s+/g, '');
 
-    if (seat) {
-      anySeatAssigned = true;
+    if (checkSeat && seat) {
       const list = seatMap.get(seat) || [];
       list.push({ student, rowNumber });
       seatMap.set(seat, list);
     }
 
-    if (secret) {
-      anySecretAssigned = true;
+    if (checkSecret && secret) {
       const list = secretMap.get(secret) || [];
       list.push({ student, rowNumber });
       secretMap.set(secret, list);
+    }
+
+    if (/^\d{14}$/.test(nid)) {
+      const list = nidMap.get(nid) || [];
+      list.push({ student, rowNumber });
+      nidMap.set(nid, list);
     }
   });
 
@@ -182,6 +221,29 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
     }
   });
 
+  // 2ب. الأرقام القومية المكررة
+  nidMap.forEach((entries, nidVal) => {
+    if (entries.length > 1) {
+      const otherNames = entries
+        .map((e) => e.student.name?.trim() || `طالب #${e.rowNumber}`)
+        .slice(0, 4)
+        .join(' ، ');
+      entries.forEach(({ student, rowNumber }) => {
+        issues.push({
+          id: `dup-nid-${student.id}`,
+          studentId: student.id,
+          studentName: student.name?.trim() || `طالب رقم ${rowNumber}`,
+          rowNumber,
+          seatNumber: getStudentSeat(student, semester),
+          category: 'duplicate_nid',
+          severity: 'error',
+          title: `رقم قومي مكرر ( ${nidVal} )`,
+          description: `الرقم القومي ( ${nidVal} ) مكرر لدى ${entries.length} طلاب : ${otherNames}${entries.length > 4 ? ' ...' : ''}`,
+        });
+      });
+    }
+  });
+
   // 3 & 4. فحص بيانات كل طالب ودرجاته
   students.forEach((student, idx) => {
     const rowNumber = idx + 1;
@@ -189,6 +251,7 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
     const displayName = rawName || (isKindergarten ? `تلميذ رقم ${rowNumber}` : `طالب رقم ${rowNumber}`);
     const seat = getStudentSeat(student, semester);
     const secret = getStudentSecret(student, semester);
+    const committee = getStudentCommittee(student, semester);
     const nonRegular = isStudentNonRegular(student);
 
     // فحص الاسم
@@ -218,37 +281,56 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
       });
     }
 
-    // فحص بيانات الطالب الأساسية في شاشة تحرير البيانات (أو بشكل موجز في الكل)
+    // فحص جميع بيانات الطالب الأساسية في كل الشاشات مع مراعاة المرحلة الدراسية
     const missingBasicFields: string[] = [];
     const nid = normalizeDigits(student.nationalId).replace(/\s+/g, '');
-    if (mode === 'students_data') {
-      if (!nid) {
-        missingBasicFields.push('الرقم القومي');
-      } else if (!/^\d{14}$/.test(nid)) {
-        issues.push({
-          id: `invalid-nid-${student.id}`,
-          studentId: student.id,
-          studentName: displayName,
-          rowNumber,
-          seatNumber: seat,
-          category: 'missing_data',
-          severity: 'warning',
-          title: 'رقم قومي غير مطابق ( 14 رقماً )',
-          description: `الرقم القومي المسجل ( ${nid} ) يتكون من ${nid.length} رقم بدلاً من 14 رقماً.`,
-        });
-      }
-      if (!student.gender?.trim()) missingBasicFields.push('النوع');
-      if (!student.religion?.trim()) missingBasicFields.push('الديانة');
-      if (!student.enrollmentStatus?.trim()) missingBasicFields.push('حالة القيد');
+
+    if (!nid) {
+      missingBasicFields.push('الرقم القومي');
+    } else if (!/^\d{14}$/.test(nid)) {
+      issues.push({
+        id: `invalid-nid-${student.id}`,
+        studentId: student.id,
+        studentName: displayName,
+        rowNumber,
+        seatNumber: seat,
+        category: 'missing_data',
+        severity: 'warning',
+        title: 'رقم قومي غير مطابق ( 14 رقماً )',
+        description: `الرقم القومي المسجل ( ${nid} ) يتكون من ${nid.length} رقم بدلاً من 14 رقماً.`,
+      });
     }
 
-    if (showExamFields && !isKindergarten) {
-      if (anySeatAssigned && !seat) {
-        missingBasicFields.push('رقم الجلوس');
-      }
-      if (anySecretAssigned && !secret) {
-        missingBasicFields.push('الرقم السري');
-      }
+    if (!student.gender?.trim()) {
+      missingBasicFields.push('النوع');
+    }
+
+    if (!isKindergarten && !student.enrollmentStatus?.trim()) {
+      missingBasicFields.push('حالة القيد');
+    }
+
+    if (!student.enrollmentType?.trim()) {
+      missingBasicFields.push('نوعية القيد');
+    }
+
+    if (!student.religion?.trim()) {
+      missingBasicFields.push('الديانة');
+    }
+
+    if (!student.studentClass?.trim()) {
+      missingBasicFields.push('الفصل');
+    }
+
+    if (checkSeat && !seat) {
+      missingBasicFields.push('رقم الجلوس');
+    }
+
+    if (checkSecret && !secret) {
+      missingBasicFields.push('الرقم السري');
+    }
+
+    if (!isKindergarten && !committee) {
+      missingBasicFields.push('رقم اللجنة');
     }
 
     if (missingBasicFields.length > 0) {
@@ -261,7 +343,7 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
         category: 'missing_data',
         severity: missingBasicFields.includes('رقم الجلوس') ? 'error' : 'warning',
         title: 'بيانات أساسية ناقصة',
-        description: `ينقص الطالب الحقول التالية : ${missingBasicFields.join(' ، ')}.`,
+        description: `ينقص ${isKindergarten ? 'التلميذ' : 'الطالب'} الحقول التالية : ${missingBasicFields.join(' ، ')}.`,
       });
     }
 
@@ -551,7 +633,7 @@ export function runPrePrintAudit(params: PrePrintAuditParams): PrePrintAuditResu
   const errorCount = issues.filter((i) => i.severity === 'error').length;
   const warningCount = issues.filter((i) => i.severity === 'warning').length;
   const duplicateCount = issues.filter(
-    (i) => i.category === 'duplicate_seat' || i.category === 'duplicate_secret'
+    (i) => i.category === 'duplicate_seat' || i.category === 'duplicate_secret' || i.category === 'duplicate_nid'
   ).length;
   const missingCount = issues.filter((i) => i.category === 'missing_data').length;
   const anomalousCount = issues.filter((i) => i.category === 'anomalous_grade').length;
