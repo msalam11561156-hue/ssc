@@ -1102,8 +1102,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({ schoolData, controlData,
                   قريباً
                 </h3>
 
-                <p className="text-sm font-bold text-slate-600 leading-relaxed">
-                  قسم مدارس التعليم الفنى غير مفعل حالياً، وسيكون متاحاً قريباً.
+                <hr className="w-full border-t-2 border-slate-200 my-1" />
+
+                <p className="text-lg font-black text-indigo-600 uppercase tracking-widest leading-relaxed">
+                  SOON
                 </p>
 
                 <button
