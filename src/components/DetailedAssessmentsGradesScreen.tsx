@@ -1661,8 +1661,8 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
           const level = hasScore
             ? isPassFail
               ? scoreNum >= 7.5
-                ? { text: 'اجتاز', color: '#047857', bg: '#d1fae5' }
-                : { text: 'لم يجتاز', color: '#b91c1c', bg: '#fee2e2' }
+                ? { text: applyTechnicalAssessmentTerms('اجتاز', educationType, stage), color: '#047857', bg: '#d1fae5' }
+                : { text: applyTechnicalAssessmentTerms('لم يجتاز', educationType, stage), color: '#b91c1c', bg: '#fee2e2' }
               : getGradeLevel(scoreNum)
             : { text: '-', color: '#64748b', bg: '#ffffff' };
 
@@ -2224,7 +2224,7 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                           className="p-3 border-2 border-slate-900 text-center whitespace-pre min-w-[360px] max-w-[360px] w-[360px] sticky z-[29] bg-inherit relative overflow-visible sticky-cell-border"
                         >
                           <div className="separator-line"></div>
-                          <span className="relative z-10 text-slate-900 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-11 pr-3 font-bold text-lg">
+                          <span className="relative z-10 text-slate-900 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-[54px] pr-3 font-bold text-lg">
                             {student.name || '-'}
                           </span>
                           <button
@@ -2234,9 +2234,9 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                               setEditingStudentState({ student, rowNumber: rowIndex + 1 });
                             }}
                             title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-[39px] h-[39px] rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-5 h-5" />
                           </button>
                         </td>
 

@@ -1296,6 +1296,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   const [newFieldMaxAssessmentsGrade, setNewFieldMaxAssessmentsGrade] = useState(() => getDefaultAssessmentsGrade(stage));
   const [newFieldHasWrittenExam, setNewFieldHasWrittenExam] = useState(stage !== 'kindergarten');
   const [newFieldMaxWrittenGrade, setNewFieldMaxWrittenGrade] = useState(() => getDefaultWrittenGrade(stage));
+  const [newFieldHasPracticalExam, setNewFieldHasPracticalExam] = useState(false);
+  const [newFieldMaxPracticalGrade, setNewFieldMaxPracticalGrade] = useState('');
   const [newFieldMinPassPercentage, setNewFieldMinPassPercentage] = useState(stage === 'kindergarten' ? '50' : '30');
   const [newFieldMinTotalPassPercentage, setNewFieldMinTotalPassPercentage] = useState('50');
   const [newFieldActualMaxGrade, setNewFieldActualMaxGrade] = useState('100');
@@ -1319,6 +1321,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     setNewFieldActualMaxGrade('100');
     setNewFieldMaxAssessmentsGrade(getDefaultAssessmentsGrade(stage));
     setNewFieldMaxWrittenGrade(getDefaultWrittenGrade(stage));
+    setNewFieldHasPracticalExam(false);
+    setNewFieldMaxPracticalGrade('');
   }, [stage, systemType, title]);
 
   const [isSelectEditFieldModalOpen, setIsSelectEditFieldModalOpen] = useState(false);
@@ -1351,6 +1355,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
   const [editFieldMaxAssessmentsGrade, setEditFieldMaxAssessmentsGrade] = useState('');
   const [editFieldHasWrittenExam, setEditFieldHasWrittenExam] = useState(true);
   const [editFieldMaxWrittenGrade, setEditFieldMaxWrittenGrade] = useState('');
+  const [editFieldHasPracticalExam, setEditFieldHasPracticalExam] = useState(false);
+  const [editFieldMaxPracticalGrade, setEditFieldMaxPracticalGrade] = useState('');
   const [editFieldMinPassPercentage, setEditFieldMinPassPercentage] = useState('');
   const [editFieldMinTotalPassPercentage, setEditFieldMinTotalPassPercentage] = useState('50');
   const [editFieldActualMaxGrade, setEditFieldActualMaxGrade] = useState('100');
@@ -3242,6 +3248,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               text="مستخرج رسمي لبيان درجات طالب"
                               bgGradient="bg-[linear-gradient(to_right,#dc2626,#1e3a8a,#dc2626)]"
                             />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('student_success_statement_principal_only')}
+                              icon={<Award className="w-4 h-4" />}
+                              text="مستخرج رسمي لبيان درجات طالب - بتوقيع مدير المدرسة فقط"
+                              bgGradient="bg-[linear-gradient(to_right,#1e3a8a,#0f766e,#1e3a8a)]"
+                            />
                           </>
                         )}
                         <ActionMenuButton
@@ -3782,7 +3794,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className={`p-3 border-2 border-slate-900 text-center whitespace-pre min-w-[400px] max-w-[400px] w-[400px] sticky z-[29] bg-inherit relative overflow-visible sticky-cell-border sticky-col ${lastStickyCol === 'name' ? 'shadow-[-6px_0_12px_rgba(0,0,0,0.08)] rtl:shadow-[-6px_0_12px_rgba(0,0,0,0.08)] ltr:shadow-[6px_0_12px_rgba(0,0,0,0.08)]' : ''}`}
                             >
                               <div className="separator-line"></div>
-                              <span className="relative z-10 text-slate-800 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-11 pr-3">{student.name ? (student.name.length > 40 ? student.name.substring(0, 40) + '  ' : student.name) : ''}</span>
+                              <span className="relative z-10 text-slate-800 flex items-center justify-center w-full h-full text-center overflow-hidden whitespace-pre pl-[54px] pr-3">{student.name ? (student.name.length > 40 ? student.name.substring(0, 40) + '  ' : student.name) : ''}</span>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -3790,9 +3802,9 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   setEditingStudentState({ student, rowNumber: index + 1 });
                                 }}
                                 title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-[39px] h-[39px] rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <Pencil className="w-5 h-5" />
                               </button>
                             </td>
                           )}
@@ -4091,7 +4103,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className="p-0 border-2 border-slate-900 bg-transparent text-slate-800 text-center relative group"
                             >
                               <div 
-                                className="w-full h-full flex items-center justify-center py-2 px-2 text-center cursor-default select-none relative"
+                                className="w-full h-full min-h-[52px] flex items-center justify-center py-2 px-2 text-center cursor-default select-none relative"
                                 dir="rtl"
                               >
                                 {hasFailingDetails && (
@@ -4129,18 +4141,18 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                     }}
                                     title={isKindergarten ? "معلومات وتفاصيل مواد برامج علاجية" : "معلومات وتفاصيل مواد الدور الثاني"}
                                     aria-label={isKindergarten ? "معلومات وتفاصيل مواد برامج علاجية" : "معلومات وتفاصيل مواد الدور الثاني"}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-[30px] h-[30px] rounded-full flex items-center justify-center z-10 cursor-pointer select-none transition-all duration-200 ease-out bg-gradient-to-b from-[#FFF275] via-[#FFCA00] via-45% to-[#E58300] border-2 border-[#FFFBEB] shadow-[0_3px_7px_rgba(180,83,9,0.45),0_1px_2px_rgba(0,0,0,0.25),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] hover:scale-115 hover:brightness-110 hover:shadow-[0_0_14px_rgba(245,158,11,0.9),0_4px_8px_rgba(180,83,9,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.95),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] active:scale-95 active:translate-y-0.5 active:shadow-[0_1px_2px_rgba(180,83,9,0.4),inset_0_2.5px_4px_rgba(146,64,14,0.85)] overflow-hidden group/btn"
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-[45px] h-[45px] rounded-full flex items-center justify-center z-10 cursor-pointer select-none transition-all duration-200 ease-out bg-gradient-to-b from-[#FFF275] via-[#FFCA00] via-45% to-[#E58300] border-2 border-[#FFFBEB] shadow-[0_3px_7px_rgba(180,83,9,0.45),0_1px_2px_rgba(0,0,0,0.25),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] hover:scale-115 hover:brightness-110 hover:shadow-[0_0_14px_rgba(245,158,11,0.9),0_4px_8px_rgba(180,83,9,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.95),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] active:scale-95 active:translate-y-0.5 active:shadow-[0_1px_2px_rgba(180,83,9,0.4),inset_0_2.5px_4px_rgba(146,64,14,0.85)] overflow-hidden group/btn"
                                   >
                                     {/* 3D Glass Dome Specular Highlight */}
-                                    <div className="absolute top-[1.5px] inset-x-1 h-[10px] rounded-t-full bg-gradient-to-b from-white/90 via-white/40 to-transparent pointer-events-none" />
+                                    <div className="absolute top-[2px] inset-x-1.5 h-[15px] rounded-t-full bg-gradient-to-b from-white/90 via-white/40 to-transparent pointer-events-none" />
                                     
                                     {/* 3D Embossed Info Icon */}
                                     <div className="relative z-10 flex items-center justify-center">
-                                      <Info className="w-4 h-4 stroke-[2.75] text-[#451A03] drop-shadow-[0_1px_0_rgba(255,255,255,0.7)] group-hover/btn:scale-105 transition-transform" />
+                                      <Info className="w-6 h-6 stroke-[2.75] text-[#451A03] drop-shadow-[0_1px_0_rgba(255,255,255,0.7)] group-hover/btn:scale-105 transition-transform" />
                                     </div>
                                   </button>
                                 )}
-                                <div className={`w-full whitespace-nowrap overflow-hidden text-ellipsis ${hasFailingDetails ? 'pl-12' : ''} ${subjectsText === '-' ? 'text-2xl font-black text-slate-600' : 'text-xs md:text-sm font-bold text-red-700'}`}>
+                                <div className={`w-full whitespace-nowrap overflow-hidden text-ellipsis ${hasFailingDetails ? 'pl-[60px]' : ''} ${subjectsText === '-' ? 'text-2xl font-black text-slate-600' : 'text-xs md:text-sm font-bold text-red-700'}`}>
                                   {displayText}
                                 </div>
                               </div>
@@ -4185,7 +4197,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               className="p-0 border-2 border-slate-900 bg-transparent text-slate-800 text-center relative group"
                             >
                               <div 
-                                className="w-full h-full flex items-center justify-center py-2 px-2 text-center cursor-default select-none relative"
+                                className="w-full h-full min-h-[52px] flex items-center justify-center py-2 px-2 text-center cursor-default select-none relative"
                                 dir="rtl"
                               >
                                 {hasFailingDetails && (
@@ -4223,18 +4235,18 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                     }}
                                     title={isKindergarten ? "معلومات وتفاصيل مواد برامج علاجية" : "معلومات وتفاصيل مواد الرسوب"}
                                     aria-label={isKindergarten ? "معلومات وتفاصيل مواد برامج علاجية" : "معلومات وتفاصيل مواد الرسوب"}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-[30px] h-[30px] rounded-full flex items-center justify-center z-10 cursor-pointer select-none transition-all duration-200 ease-out bg-gradient-to-b from-[#FFF275] via-[#FFCA00] via-45% to-[#E58300] border-2 border-[#FFFBEB] shadow-[0_3px_7px_rgba(180,83,9,0.45),0_1px_2px_rgba(0,0,0,0.25),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] hover:scale-115 hover:brightness-110 hover:shadow-[0_0_14px_rgba(245,158,11,0.9),0_4px_8px_rgba(180,83,9,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.95),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] active:scale-95 active:translate-y-0.5 active:shadow-[0_1px_2px_rgba(180,83,9,0.4),inset_0_2.5px_4px_rgba(146,64,14,0.85)] overflow-hidden group/btn"
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-[45px] h-[45px] rounded-full flex items-center justify-center z-10 cursor-pointer select-none transition-all duration-200 ease-out bg-gradient-to-b from-[#FFF275] via-[#FFCA00] via-45% to-[#E58300] border-2 border-[#FFFBEB] shadow-[0_3px_7px_rgba(180,83,9,0.45),0_1px_2px_rgba(0,0,0,0.25),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] hover:scale-115 hover:brightness-110 hover:shadow-[0_0_14px_rgba(245,158,11,0.9),0_4px_8px_rgba(180,83,9,0.5),inset_0_1.5px_2px_rgba(255,255,255,0.95),inset_0_-2.5px_4px_rgba(146,64,14,0.65)] active:scale-95 active:translate-y-0.5 active:shadow-[0_1px_2px_rgba(180,83,9,0.4),inset_0_2.5px_4px_rgba(146,64,14,0.85)] overflow-hidden group/btn"
                                   >
                                     {/* 3D Glass Dome Specular Highlight */}
-                                    <div className="absolute top-[1.5px] inset-x-1 h-[10px] rounded-t-full bg-gradient-to-b from-white/90 via-white/40 to-transparent pointer-events-none" />
+                                    <div className="absolute top-[2px] inset-x-1.5 h-[15px] rounded-t-full bg-gradient-to-b from-white/90 via-white/40 to-transparent pointer-events-none" />
                                     
                                     {/* 3D Embossed Info Icon */}
                                     <div className="relative z-10 flex items-center justify-center">
-                                      <Info className="w-4 h-4 stroke-[2.75] text-[#451A03] drop-shadow-[0_1px_0_rgba(255,255,255,0.7)] group-hover/btn:scale-105 transition-transform" />
+                                      <Info className="w-6 h-6 stroke-[2.75] text-[#451A03] drop-shadow-[0_1px_0_rgba(255,255,255,0.7)] group-hover/btn:scale-105 transition-transform" />
                                     </div>
                                   </button>
                                 )}
-                                <div className={`w-full whitespace-nowrap overflow-hidden text-ellipsis ${hasFailingDetails ? 'pl-12' : ''} ${subjectsText === '-' ? 'text-2xl font-black text-slate-600' : 'text-xs md:text-sm font-bold text-red-700'}`}>
+                                <div className={`w-full whitespace-nowrap overflow-hidden text-ellipsis ${hasFailingDetails ? 'pl-[60px]' : ''} ${subjectsText === '-' ? 'text-2xl font-black text-slate-600' : 'text-xs md:text-sm font-bold text-red-700'}`}>
                                   {displayText}
                                 </div>
                               </div>
@@ -4447,7 +4459,7 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
               <div className="absolute inset-[-100%] animate-[spin_10s_linear_infinite] bg-[conic-gradient(from_0deg,#000000_0%,#ffffff_25%,#000000_50%,#ffffff_75%,#000000_100%)] pointer-events-none" />
               <div className="relative bg-[linear-gradient(135deg,#e0e7ff,#f3e8ff,#fae8ff,#e0e7ff)] bg-[length:300%_300%] animate-shine rounded-[26px] w-full h-full border border-white/60">
                 <div className="p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                  <motion.h3 animate={{ rotate: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="text-2xl text-center font-bold text-indigo-950 mb-2 drop-shadow-sm">{(t as any).addNewField}</motion.h3>
+                  <motion.h3 animate={{ rotate: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="text-2xl text-center font-bold text-indigo-950 mb-2 drop-shadow-sm">{applyTechnicalAssessmentTerms((t as any).addNewField || 'إضافة مادة دراسية', educationType, stage)}</motion.h3>
                   <div className="h-1 w-full bg-[linear-gradient(90deg,#6366f1,#c7d2fe,#ffffff,#c7d2fe,#6366f1)] bg-[length:200%_100%] animate-shine shadow-[0_0_8px_rgba(99,102,241,0.6)] rounded-full mb-6" style={{ animationDuration: "5s" }}></div>
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -4626,6 +4638,37 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
             />
         </div>
+
+              <div className="mt-4 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newFieldHasPracticalExam}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setNewFieldHasPracticalExam(checked);
+                      if (!checked) {
+                        setNewFieldMaxPracticalGrade('');
+                      }
+                    }}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-bold text-black opacity-80">المادة لها امتحان عملى</span>
+                </label>
+              </div>
+              <div className={`mb-3 ${!newFieldHasPracticalExam ? "opacity-50" : ""}`}>
+                <label className="block text-sm font-bold text-black mb-1.5 opacity-80">
+                  الدرجة العظمى للإمتحان العملى
+                </label>
+                <input
+                  type="number"
+                  disabled={!newFieldHasPracticalExam}
+                  value={newFieldMaxPracticalGrade}
+                  onChange={(e) => setNewFieldMaxPracticalGrade(e.target.value)}
+                  placeholder={!newFieldHasPracticalExam ? "غير مفعل (حدد الخيار أعلاه للتفعيل)" : "أدخل الدرجة العظمى للإمتحان العملى"}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner disabled:cursor-not-allowed disabled:bg-slate-100/60"
+                />
+              </div>
                             <div className={!newFieldHasWrittenExam ? "opacity-50 pointer-events-none" : ""}>
             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">
               {((t as any).minPassPercentage || 'النسبة المئوية للدرجة الأدنى لنجاح الطالب فى الامتحان التحريرى للمادة فى الفصل الدراسي الثانى')}
@@ -4685,7 +4728,9 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   className="w-5 h-5 text-indigo-600 border-amber-300 focus:ring-indigo-500 cursor-pointer"
                                 />
                                 <span className="font-bold text-indigo-900 text-sm">
-                                  {(t as any).learningOutcomesPassFail || 'إجتاز - لم يجتاز'}
+                                  {isTechnicalEducationSchool(educationType, stage)
+                                    ? 'جدير - غير جدير'
+                                    : applyTechnicalAssessmentTerms((t as any).learningOutcomesPassFail || 'إجتاز - لم يجتاز', educationType, stage)}
                                 </span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
@@ -4768,7 +4813,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               ? true
                               : (newFieldMaxAssessmentsGrade.trim() && !isNaN(parseFloat(newFieldMaxAssessmentsGrade)));
                             const isValidWritten = !newFieldHasWrittenExam || (newFieldMaxWrittenGrade.trim() && !isNaN(parseFloat(newFieldMaxWrittenGrade)) && (!isMax40 || (newFieldMinPassPercentage.trim() && !isNaN(parseFloat(newFieldMinPassPercentage)))));
-                            if (isValidAssessments && isValidWritten) {
+                            const isValidPractical = !newFieldHasPracticalExam || (newFieldMaxPracticalGrade.trim() !== '' && !isNaN(parseFloat(newFieldMaxPracticalGrade)));
+                            if (isValidAssessments && isValidWritten && isValidPractical) {
                                 
                                 setCustomCols(prev => [...prev, {
                                   key: newKey, 
@@ -4778,6 +4824,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   maxAssessmentsGrade: isMiddleHomeschool ? 0 : parseFloat(newFieldMaxAssessmentsGrade),
                                   maxWrittenGrade: newFieldHasWrittenExam ? parseFloat(newFieldMaxWrittenGrade) : undefined,
                                   hasWrittenExam: newFieldHasWrittenExam,
+                                  hasPracticalExam: newFieldHasPracticalExam,
+                                  maxPracticalGrade: newFieldHasPracticalExam && newFieldMaxPracticalGrade.trim() && !isNaN(parseFloat(newFieldMaxPracticalGrade)) ? parseFloat(newFieldMaxPracticalGrade) : undefined,
                                   actualMaxGrade: newFieldActualMaxGrade.trim() && !isNaN(parseFloat(newFieldActualMaxGrade)) ? parseFloat(newFieldActualMaxGrade) : 100,
                                   minPassPercentage: newFieldHasWrittenExam && newFieldMinPassPercentage.trim() && !isNaN(parseFloat(newFieldMinPassPercentage)) ? parseFloat(newFieldMinPassPercentage) : undefined,
                                   minTotalPassPercentage: newFieldMinTotalPassPercentage.trim() && !isNaN(parseFloat(newFieldMinTotalPassPercentage)) ? parseFloat(newFieldMinTotalPassPercentage) : (newFieldName.includes('دين') ? 70 : 50),
@@ -4789,6 +4837,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 setNewFieldMaxAssessmentsGrade(getDefaultAssessmentsGrade(stage));
                                 setNewFieldHasWrittenExam(true);
                                 setNewFieldMaxWrittenGrade(getDefaultWrittenGrade(stage));
+                                setNewFieldHasPracticalExam(false);
+                                setNewFieldMaxPracticalGrade('');
                                 setNewFieldMinPassPercentage('30');
                                 setNewFieldMinTotalPassPercentage('50');
                                 setNewFieldLearningOutcomes('grades');
@@ -4888,6 +4938,14 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                 setEditFieldNameEn(enName || '');
                                 setEditFieldIsAddedToTotal(isAdded);
                                 setEditFieldHasWrittenExam(hasExam);
+                                const hasPractical = (targetCol as any)?.hasPracticalExam ?? (ovr as any)?.hasPracticalExam ?? false;
+                                const maxPractical = (targetCol as any)?.maxPracticalGrade !== undefined
+                                  ? String((targetCol as any).maxPracticalGrade)
+                                  : (ovr as any)?.maxPracticalGrade !== undefined
+                                  ? String((ovr as any).maxPracticalGrade)
+                                  : '';
+                                setEditFieldHasPracticalExam(hasPractical);
+                                setEditFieldMaxPracticalGrade(maxPractical);
                                 setEditFieldMaxAssessmentsGrade(maxAssess);
                                 setEditFieldMaxWrittenGrade(maxWritten);
                                 setEditFieldMinPassPercentage(minPass);
@@ -5124,6 +5182,37 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
             />
         </div>
+
+              <div className="mt-4 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFieldHasPracticalExam}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditFieldHasPracticalExam(checked);
+                      if (!checked) {
+                        setEditFieldMaxPracticalGrade('');
+                      }
+                    }}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-bold text-black opacity-80">المادة لها امتحان عملى</span>
+                </label>
+              </div>
+              <div className={`mb-3 ${!editFieldHasPracticalExam ? "opacity-50" : ""}`}>
+                <label className="block text-sm font-bold text-black mb-1.5 opacity-80">
+                  الدرجة العظمى للإمتحان العملى
+                </label>
+                <input
+                  type="number"
+                  disabled={!editFieldHasPracticalExam}
+                  value={editFieldMaxPracticalGrade}
+                  onChange={(e) => setEditFieldMaxPracticalGrade(e.target.value)}
+                  placeholder={!editFieldHasPracticalExam ? "غير مفعل (حدد الخيار أعلاه للتفعيل)" : "أدخل الدرجة العظمى للإمتحان العملى"}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner disabled:cursor-not-allowed disabled:bg-slate-100/60"
+                />
+              </div>
                           <div className={!editFieldHasWrittenExam ? "opacity-50 pointer-events-none" : ""}>
                             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">
                               {((t as any).minPassPercentage || 'النسبة المئوية للدرجة الأدنى لنجاح الطالب فى الامتحان التحريرى للمادة فى الفصل الدراسي الثانى')}
@@ -5183,7 +5272,9 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   className="w-5 h-5 text-amber-600 border-amber-300 focus:ring-amber-500 cursor-pointer"
                                 />
                                 <span className="font-bold text-amber-950 text-sm">
-                                  {(t as any).learningOutcomesPassFail || 'إجتاز - لم يجتاز'}
+                                  {isTechnicalEducationSchool(educationType, stage)
+                                    ? 'جدير - غير جدير'
+                                    : applyTechnicalAssessmentTerms((t as any).learningOutcomesPassFail || 'إجتاز - لم يجتاز', educationType, stage)}
                                 </span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
@@ -5276,14 +5367,20 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               editFieldMaxWrittenGrade.trim() !== '' && !isNaN(parseFloat(editFieldMaxWrittenGrade)) &&
                               (!editFieldMinPassPercentage.trim() || !isNaN(parseFloat(editFieldMinPassPercentage)))
                             );
+                            const isValidPractical = !editFieldHasPracticalExam || (
+                              editFieldMaxPracticalGrade.trim() !== '' && !isNaN(parseFloat(editFieldMaxPracticalGrade))
+                            );
 
-                            if (isValidAssessments && isValidWritten) {
+                            if (isValidAssessments && isValidWritten && isValidPractical) {
                               const maxA = isMiddleHomeschool ? 0 : parseFloat(editFieldMaxAssessmentsGrade);
                               const maxW = editFieldHasWrittenExam ? parseFloat(editFieldMaxWrittenGrade) : undefined;
+                              const maxP = editFieldHasPracticalExam && editFieldMaxPracticalGrade.trim() && !isNaN(parseFloat(editFieldMaxPracticalGrade))
+                                ? parseFloat(editFieldMaxPracticalGrade)
+                                : undefined;
                               const minP = editFieldHasWrittenExam && editFieldMinPassPercentage.trim() && !isNaN(parseFloat(editFieldMinPassPercentage)) ? parseFloat(editFieldMinPassPercentage) : (editFieldHasWrittenExam ? 30 : undefined);
                               const isRel = fieldToEdit === 'religion' || editFieldName.includes('دين');
                               const minTotalP = editFieldMinTotalPassPercentage.trim() && !isNaN(parseFloat(editFieldMinTotalPassPercentage)) ? parseFloat(editFieldMinTotalPassPercentage) : (isRel ? 70 : 50);
-                              const maxTotal = (stage === 'primary' && fieldToEdit === 'arabic') ? 100 : (maxA + (maxW || 0));
+                              const maxTotal = (stage === 'primary' && fieldToEdit === 'arabic') ? 100 : (maxA + (maxW || 0) + (maxP || 0));
 
                               setCustomCols(prev => {
                                 const updated = prev.map(col => col.key === fieldToEdit ? {
@@ -5294,6 +5391,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                   maxAssessmentsGrade: maxA,
                                   maxWrittenGrade: maxW,
                                   hasWrittenExam: editFieldHasWrittenExam,
+                                  hasPracticalExam: editFieldHasPracticalExam,
+                                  maxPracticalGrade: maxP,
                                   actualMaxGrade: editFieldActualMaxGrade.trim() && !isNaN(parseFloat(editFieldActualMaxGrade)) ? parseFloat(editFieldActualMaxGrade) : (col.actualMaxGrade !== undefined ? col.actualMaxGrade : 100),
                                   minPassPercentage: minP,
                                   minTotalPassPercentage: minTotalP,
@@ -5316,6 +5415,8 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                                       maxAssessmentsGrade: maxA,
                                       maxWrittenGrade: maxW,
                                       hasWrittenExam: editFieldHasWrittenExam,
+                                      hasPracticalExam: editFieldHasPracticalExam,
+                                      maxPracticalGrade: maxP,
                                       actualMaxGrade: editFieldActualMaxGrade.trim() && !isNaN(parseFloat(editFieldActualMaxGrade)) ? parseFloat(editFieldActualMaxGrade) : 100,
                                       minPassPercentage: minP,
                                       minTotalPassPercentage: minTotalP,

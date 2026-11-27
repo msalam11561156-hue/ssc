@@ -8,7 +8,7 @@ import { getActiveFooterTagline } from './adFilter';
 import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 import { isFemaleStudent } from './topTenCertificatesHelper';
-import { isTechnicalEducationSchool } from '../i18n';
+import { isTechnicalEducationSchool, applyTechnicalAssessmentTerms } from '../i18n';
 
 function drawCrispImage(
   ctx: CanvasRenderingContext2D,
@@ -5199,8 +5199,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
           const sem1Pct = subjMax > 0 ? (numericTotalSem1 / subjMax) * 100 : 0;
           if (isPassFail) {
             evalLabel = sem1Pct >= (isReligion ? 70 : 50)
-              ? (isEn ? 'Pass' : 'اجتاز')
-              : (isEn ? 'Fail' : 'لم يجتز');
+              ? (isEn ? 'Pass' : (isTechSemCert ? 'جدير' : 'اجتاز'))
+              : (isEn ? 'Fail' : (isTechSemCert ? 'غير جدير' : 'لم يجتز'));
           } else {
             evalLabel = getEvaluationLabel(sem1Pct);
           }
@@ -5242,8 +5242,8 @@ export async function exportStudentSemesterGradesCertificatePdf(
               const passMax = effectiveActualMax;
               const pPct = passMax > 0 ? (rawActual / passMax) * 100 : 0;
               evalLabel = pPct >= (isReligion ? 70 : 50)
-                ? (isEn ? 'Pass' : 'اجتاز')
-                : (isEn ? 'Fail' : 'لم يجتز');
+                ? (isEn ? 'Pass' : (isTechSemCert ? 'جدير' : 'اجتاز'))
+                : (isEn ? 'Fail' : (isTechSemCert ? 'غير جدير' : 'لم يجتز'));
             }
           }
         }
@@ -6246,6 +6246,7 @@ export interface ExportStudentSuccessStatementPdfOptions {
   customCols?: any[];
   defaultSubjectsOverrides?: Record<string, any>;
   title?: string;
+  principalOnlySignatures?: boolean;
 }
 
 export async function exportStudentSuccessStatementPdf(
@@ -6262,6 +6263,7 @@ export async function exportStudentSuccessStatementPdf(
     controlHead: propControlHead,
     committeeHead: propCommitteeHead,
     customCols: propCustomCols,
+    principalOnlySignatures = false,
   } = options;
 
   try {
@@ -6732,27 +6734,32 @@ export async function exportStudentSuccessStatementPdf(
       ctx.restore();
     };
 
-    drawMixedDetailLine(
-      [{ text: 'تم استخراج هذا المحرر بعد سداد الرسوم المقررة .' }],
-      photoY + 28,
-      21
-    );
+    if (principalOnlySignatures) {
+      drawDottedDetailLine('بناء على طلب ولى الأمر : ', photoY + 80);
+      drawDottedDetailLine('وذلك لتقديم هذا البيان الى : ', photoY + 145);
+    } else {
+      drawMixedDetailLine(
+        [{ text: 'تم استخراج هذا المحرر بعد سداد الرسوم المقررة .' }],
+        photoY + 28,
+        21
+      );
 
-    drawMixedDetailLine(
-      [
-        { text: 'قسيمة سداد رقم ' },
-        { text: '..........................', isDots: true },
-        { text: ' مجموعة ' },
-        { text: '.........................', isDots: true },
-        { text: ' بمبلغ ' },
-        { text: '....................', isDots: true },
-        { text: ' جنيها مصريا' },
-      ],
-      photoY + 84
-    );
+      drawMixedDetailLine(
+        [
+          { text: 'قسيمة سداد رقم ' },
+          { text: '..........................', isDots: true },
+          { text: ' مجموعة ' },
+          { text: '.........................', isDots: true },
+          { text: ' بمبلغ ' },
+          { text: '....................', isDots: true },
+          { text: ' جنيها مصريا' },
+        ],
+        photoY + 84
+      );
 
-    drawDottedDetailLine('بناء على طلب ولى الأمر : ', photoY + 140);
-    drawDottedDetailLine('وذلك لتقديم هذا البيان الى : ', photoY + 196);
+      drawDottedDetailLine('بناء على طلب ولى الأمر : ', photoY + 140);
+      drawDottedDetailLine('وذلك لتقديم هذا البيان الى : ', photoY + 196);
+    }
 
     // Student Info Box
     const boxY = photoY + photoH + 22;
@@ -6765,18 +6772,29 @@ export async function exportStudentSuccessStatementPdf(
     ctx.stroke();
 
     ctx.fillStyle = '#0a2240';
-    ctx.font = 'bold 21px "Cairo", sans-serif';
+    let infoFontSize = 21;
+    ctx.font = `bold ${infoFontSize}px "Cairo", sans-serif`;
     ctx.textBaseline = 'middle';
     const studentName = student.name || '........................';
-    const nationalId = student.nationalId || '........................';
+    const nationalId = (student.nationalId || '').trim() || '.'.repeat(48); // زيادة التنقيط 100% (48 نقطة بدلاً من 24)
+    const nameDisplay = `${studentLabel} : ${studentName}`;
+    const nidDisplay = `الرقم القومى : ${nationalId}`;
+    while (
+      infoFontSize > 14 &&
+      ctx.measureText(nameDisplay).width + ctx.measureText(nidDisplay).width > contentW - 80
+    ) {
+      infoFontSize -= 0.5;
+      ctx.font = `bold ${infoFontSize}px "Cairo", sans-serif`;
+    }
 
     // اسم الطالب / الطالبة فى أقصى اليمين
+    ctx.direction = 'rtl';
     ctx.textAlign = 'right';
-    ctx.fillText(`${studentLabel} : ${studentName}`, marginX + contentW - 25, boxY + boxH / 2);
+    ctx.fillText(nameDisplay, marginX + contentW - 25, boxY + boxH / 2);
 
     // الرقم القومى فى أقصى اليسار
     ctx.textAlign = 'left';
-    ctx.fillText(`الرقم القومى : ${nationalId}`, marginX + 25, boxY + boxH / 2);
+    ctx.fillText(nidDisplay, marginX + 25, boxY + boxH / 2);
 
     // Table Setup
     const tableX = marginX;
@@ -7269,29 +7287,6 @@ export async function exportStudentSuccessStatementPdf(
       ctx.restore();
     }
 
-    // Electronic Date (Africa/Cairo)
-    const now = new Date();
-    let eDay = now.getDate();
-    let eMonth = now.getMonth() + 1;
-    let eYear = now.getFullYear();
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Africa/Cairo',
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      }).formatToParts(now);
-      const d = parts.find((p) => p.type === 'day')?.value;
-      const m = parts.find((p) => p.type === 'month')?.value;
-      const y = parts.find((p) => p.type === 'year')?.value;
-      if (d && m && y) {
-        eDay = parseInt(d, 10);
-        eMonth = parseInt(m, 10);
-        eYear = parseInt(y, 10);
-      }
-    } catch {}
-    const paddedDay = String(eDay).padStart(2, '0');
-    const paddedMonth = String(eMonth).padStart(2, '0');
 
     // نتيجة الطالب / الطالبة أسفل الجدول بخط أكبر وفى وسط الصفحة
     if (studentResultStatus !== 'none') {
@@ -7324,7 +7319,7 @@ export async function exportStudentSuccessStatementPdf(
         ? tableY + tableTotalH + 135
         : tableY + tableTotalH + 75;
 
-    // تحريرا فى : اليوم - الشهر - 2026 م (رسم كل جزء بوضوح من اليمين لليسار لمنع تداخل اتجاه الأرقام)
+    // تحريرا فى : ..... / ..... / ........... م (رسم كل جزء بوضوح من اليمين لليسار)
     {
       ctx.save();
       ctx.textBaseline = 'middle';
@@ -7334,11 +7329,11 @@ export async function exportStudentSuccessStatementPdf(
 
       const dateTokens: { text: string; dir: 'rtl' | 'ltr' }[] = [
         { text: 'تحريرا فى : ', dir: 'rtl' },
-        { text: paddedDay, dir: 'ltr' },
-        { text: ' - ', dir: 'ltr' },
-        { text: paddedMonth, dir: 'ltr' },
-        { text: ' - ', dir: 'ltr' },
-        { text: `${eYear}`, dir: 'ltr' },
+        { text: '.....', dir: 'ltr' },
+        { text: ' / ', dir: 'ltr' },
+        { text: '.....', dir: 'ltr' },
+        { text: ' / ', dir: 'ltr' },
+        { text: '...........', dir: 'ltr' },
         { text: ' م', dir: 'rtl' },
       ];
 
@@ -7414,26 +7409,41 @@ export async function exportStudentSuccessStatementPdf(
     };
 
     // ضبط التموضع بتساوٍ مع حماية من التداخل في حال اختلاف قياس الخط
-    let activeSigDots = equalSignatureDots;
-    while (activeSigDots.length > 20) {
-      const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
-      const wCenter = measureSignatureBlock('مدير المدرسة', activeSigDots).totalW;
-      const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
-      if (wRight + wCenter + wLeft + 48 <= contentW) {
-        break;
+    if (principalOnlySignatures) {
+      let activeSigDots = equalSignatureDots;
+      while (activeSigDots.length > 20) {
+        const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
+        const wLeft = measureSignatureBlock('مدير المدرسة', activeSigDots).totalW;
+        if (wRight + wLeft + 48 <= contentW) {
+          break;
+        }
+        activeSigDots = activeSigDots.slice(0, -1);
       }
-      activeSigDots = activeSigDots.slice(0, -1);
+
+      drawStatementSignature('شئون الطلاب', marginX + contentW, 'right', activeSigDots);
+      drawStatementSignature('مدير المدرسة', marginX, 'left', activeSigDots);
+    } else {
+      let activeSigDots = equalSignatureDots;
+      while (activeSigDots.length > 20) {
+        const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
+        const wCenter = measureSignatureBlock('مدير المدرسة', activeSigDots).totalW;
+        const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
+        if (wRight + wCenter + wLeft + 48 <= contentW) {
+          break;
+        }
+        activeSigDots = activeSigDots.slice(0, -1);
+      }
+
+      const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
+      const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
+      const freeRightEdge = marginX + contentW - wRight;
+      const freeLeftEdge = marginX + wLeft;
+      const centerAnchorX = (freeRightEdge + freeLeftEdge) / 2;
+
+      drawStatementSignature('شئون الطلاب', marginX + contentW, 'right', activeSigDots);
+      drawStatementSignature('مدير المدرسة', centerAnchorX, 'center', activeSigDots);
+      drawStatementSignature('مدير الإدارة', marginX, 'left', activeSigDots);
     }
-
-    const wRight = measureSignatureBlock('شئون الطلاب', activeSigDots).totalW;
-    const wLeft = measureSignatureBlock('مدير الإدارة', activeSigDots).totalW;
-    const freeRightEdge = marginX + contentW - wRight;
-    const freeLeftEdge = marginX + wLeft;
-    const centerAnchorX = (freeRightEdge + freeLeftEdge) / 2;
-
-    drawStatementSignature('شئون الطلاب', marginX + contentW, 'right', activeSigDots);
-    drawStatementSignature('مدير المدرسة', centerAnchorX, 'center', activeSigDots);
-    drawStatementSignature('مدير الإدارة', marginX, 'left', activeSigDots);
 
     // 7. Footer matching Calling List (including QR Code)
     const footerLineY = 1530;
@@ -7464,20 +7474,13 @@ export async function exportStudentSuccessStatementPdf(
 
     const footerTextY = footerLineY + 36;
 
-    // التاريخ على يسار التذييل
-    const dateDisplay = `${eDay} - ${eMonth} - ${eYear} م`;
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 14px "Cairo", sans-serif';
+    // سطر التوقيعات على يمين التذييل بجوار الـ QR Code (بدون التاريخ الإلكتروني)
+    ctx.direction = 'rtl';
     ctx.fillStyle = '#0f172a';
     ctx.textBaseline = 'middle';
-    ctx.fillText(dateDisplay, marginX + 10, footerTextY);
-    const dateRightEdge = marginX + 10 + ctx.measureText(dateDisplay).width;
-
-    // سطر التوقيعات على يمين التذييل بجوار الـ QR Code
-    ctx.direction = 'rtl';
     const signaturesFooterText = `مسئول البيانات والمعلومات : ${dataOfficer}   رئيس الكنترول : ${controlHead}   رئيس اللجنة : ${committeeHead}`;
     const rightTargetX = marginX + footerAvailW - 10;
-    const maxSigW = Math.max(300, rightTargetX - (dateRightEdge + 30));
+    const maxSigW = Math.max(300, footerAvailW - 20);
     let footerFontSize = 15;
     ctx.font = `bold ${footerFontSize}px "Cairo", sans-serif`;
     while (footerFontSize > 9 && ctx.measureText(signaturesFooterText).width > maxSigW) {
@@ -7518,7 +7521,9 @@ export async function exportStudentSuccessStatementPdf(
 
   const safeGrade = (selectedGrade || '').replace(/[\\/:*?"<>|]/g, '_').trim();
   const allFemales = (students || []).every((s) => isFemaleStudent(s));
-  link.download = `مستخرج_رسمي_لبيان_درجات_${allFemales ? 'طالبة' : 'طالب'}_${safeGrade}.pdf`;
+  link.download = principalOnlySignatures
+    ? `مستخرج_رسمي_لبيان_درجات_${allFemales ? 'طالبة' : 'طالب'}_بتوقيع_شئون_الطلاب_وتوقيع_مدير_المدرسة_فقط_${safeGrade}.pdf`
+    : `مستخرج_رسمي_لبيان_درجات_${allFemales ? 'طالبة' : 'طالب'}_${safeGrade}.pdf`;
 
   document.body.appendChild(link);
   link.click();

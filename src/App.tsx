@@ -1626,7 +1626,16 @@ export default function App() {
                     className="font-bold text-base md:text-lg animate-header-title-color"
                     dir={lang === 'ar' ? 'rtl' : 'ltr'}
                   >
-                    {t.appTitle}
+                    {t.appTitle.split('SMART CONTROL 0.1').map((part, idx, arr) => (
+                      <React.Fragment key={idx}>
+                        {part}
+                        {idx < arr.length - 1 && (
+                          <span className="text-[1.4em] leading-none font-black align-baseline">
+                            SMART CONTROL 0.1
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
                   </h1>
                 </div>
               </div>

@@ -21,7 +21,7 @@ export const FooterBanner: React.FC<FooterBannerProps> = ({ lang, isFooterEnable
       {tenSpaces}
       <span dir="ltr" className="inline-block text-[1.5em] leading-none align-middle">
         <span className="text-black">SMART</span> CONTROL{' '}
-        <span className="text-red-600">NEWS</span>
+        <span className="text-red-600 font-black [-webkit-text-stroke:1.25px_#ffffff] [paint-order:stroke_fill] [stroke-linejoin:round]">NEWS</span>
       </span>
       {tenSpaces}
     </>

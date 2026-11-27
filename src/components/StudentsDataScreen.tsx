@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { translations, applyEntityTerms, isInternationalSchool, applyTechnicalAssessmentTerms } from '../i18n';
 import { Language, StudentData, EducationType } from '../types';
 import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, Search, Menu, ChevronDown, ArrowDownUp, Check, X, ArrowUp, ArrowDown, Info, Printer, PieChart, Edit, Calendar, PenTool, AlertTriangle, Palette, Sliders, BarChart3, Award, FileDown, Undo2, Redo2, Pencil, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -20,6 +20,7 @@ import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
 import { EditStudentDataModal } from './EditStudentDataModal';
 import { QuickSupportAuditButton } from './QuickSupportAuditButton';
+import { importStudentNamesFromFile, importNationalIdsFromFile } from '../utils/importStudentsFromFile';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
@@ -270,11 +271,18 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [filters, setFilters] = useState<FilterState>({});
   const [isEditingData, setIsEditingData] = useState(false);
   const frozenIdsRef = React.useRef<string[]>([]);
+  const filteredDataRef = React.useRef<StudentData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalText, setModalText] = useState('');
+  const studentFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isImportingFile, setIsImportingFile] = useState(false);
+  const [importFileFeedback, setImportFileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<StudentData | null>(null);
   const [isNationalIdModalOpen, setIsNationalIdModalOpen] = useState(false);
   const [nationalIdModalText, setNationalIdModalText] = useState('');
+  const nidFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isImportingNidFile, setIsImportingNidFile] = useState(false);
+  const [importNidFileFeedback, setImportNidFileFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isDefaultValuesModalOpen, setIsDefaultValuesModalOpen] = useState(false);
   const [defaultEnrollmentStatus, setDefaultEnrollmentStatus] = useState<'منقول' | ''>('منقول');
   const [defaultExemptionStatus, setDefaultExemptionStatus] = useState<'كلى' | 'تدريجى' | ''>(() => (showExemptionStatus ? 'كلى' : ''));
@@ -1522,7 +1530,55 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       onChange(combinedWithCommittees, true);
     }
     setModalText('');
+    setImportFileFeedback(null);
     setIsModalOpen(false);
+  };
+
+  const handleImportStudentsFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsImportingFile(true);
+    setImportFileFeedback(null);
+
+    try {
+      const result = await importStudentNamesFromFile(file);
+      if (result.error || result.names.length === 0) {
+        setImportFileFeedback({
+          type: 'error',
+          message: result.error || 'لم يتم العثور على أسماء صالحة داخل الملف.',
+        });
+        return;
+      }
+
+      const existingLines = modalText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const existingSet = new Set(existingLines);
+      const merged = [...existingLines];
+      let addedCount = 0;
+
+      for (const name of result.names) {
+        if (!existingSet.has(name)) {
+          existingSet.add(name);
+          merged.push(name);
+          addedCount++;
+        }
+      }
+
+      setModalText(merged.join('\n'));
+      setImportFileFeedback({
+        type: 'success',
+        message:
+          existingLines.length > 0
+            ? `تم جلب ${result.names.length} اسماً من (${result.fileName}) — أُضيف ${addedCount} اسماً جديداً إلى القائمة.`
+            : `تم جلب ${result.names.length} اسماً بدقة من (${result.fileName}). راجع القائمة ثم اضغط إضافة.`,
+      });
+    } finally {
+      setIsImportingFile(false);
+    }
   };
 
   useEffect(() => {
@@ -1555,49 +1611,127 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       .filter(line => line.length > 0);
     if (lines.length > 0) {
       const updatedData = [...data];
-      const targetIndices: number[] = [];
+      const dataIndexById = new Map<string, number>();
       updatedData.forEach((s, idx) => {
-        if (s.studentClass === selectedClassForNid) {
+        dataIndexById.set(s.id, idx);
+      });
+
+      const distinctClasses = Array.from(
+        new Set(updatedData.map((s) => (s.studentClass || '').trim()).filter(Boolean))
+      );
+      const allowEmptyClassMatch = distinctClasses.length <= 1;
+
+      const isTargetClassMatch = (s: StudentData) => {
+        const cls = (s.studentClass || '').trim();
+        if (cls === selectedClassForNid) return true;
+        if (allowEmptyClassMatch && !cls) return true;
+        return false;
+      };
+
+      const targetIndices: number[] = [];
+      const seenIndices = new Set<number>();
+      const pushIfUnseen = (idx: number | undefined) => {
+        if (idx !== undefined && !seenIndices.has(idx)) {
+          seenIndices.add(idx);
           targetIndices.push(idx);
+        }
+      };
+
+      // 1. Follow exact visible table order (filteredData) so the 1st student displayed gets National ID #1
+      filteredDataRef.current.forEach((s) => {
+        if (isTargetClassMatch(s)) {
+          pushIfUnseen(dataIndexById.get(s.id));
         }
       });
 
-      if (targetIndices.length > 0) {
-        lines.forEach((nid, i) => {
-          if (i < targetIndices.length) {
-            const targetIdx = targetIndices[i];
-            updatedData[targetIdx] = { ...updatedData[targetIdx], nationalId: nid };
-            if (nid.length === 14) {
-              const digit13 = parseInt(nid.charAt(12), 10);
-              const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
-              updatedData[targetIdx].gender = newGender;
-              updatedData[targetIdx].enrollmentStatus = convertStatus(updatedData[targetIdx].enrollmentStatus, newGender);
-              updatedData[targetIdx].religion = convertReligion(updatedData[targetIdx].religion, newGender);
-            }
-          }
+      // 2. Append any remaining students of the selected class outside current filter
+      updatedData.forEach((s, idx) => {
+        if (isTargetClassMatch(s)) {
+          pushIfUnseen(idx);
+        }
+      });
+
+      // 3. Fallback if no students matched selectedClassForNid
+      if (targetIndices.length === 0) {
+        filteredDataRef.current.forEach((s) => {
+          pushIfUnseen(dataIndexById.get(s.id));
         });
-      } else {
-        lines.forEach((nid, index) => {
-          if (index < updatedData.length) {
-            updatedData[index] = {
-              ...updatedData[index],
-              nationalId: nid,
-              studentClass: updatedData[index].studentClass || selectedClassForNid,
-            };
-            if (nid.length === 14) {
-              const digit13 = parseInt(nid.charAt(12), 10);
-              const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
-              updatedData[index].gender = newGender;
-              updatedData[index].enrollmentStatus = convertStatus(updatedData[index].enrollmentStatus, newGender);
-              updatedData[index].religion = convertReligion(updatedData[index].religion, newGender);
-            }
-          }
+        updatedData.forEach((_, idx) => {
+          pushIfUnseen(idx);
         });
       }
+
+      lines.forEach((nid, i) => {
+        if (i < targetIndices.length) {
+          const targetIdx = targetIndices[i];
+          updatedData[targetIdx] = {
+            ...updatedData[targetIdx],
+            nationalId: nid,
+            studentClass: updatedData[targetIdx].studentClass || selectedClassForNid,
+          };
+          if (nid.length === 14) {
+            const digit13 = parseInt(nid.charAt(12), 10);
+            const newGender = (digit13 % 2 !== 0) ? 'male' : 'female';
+            updatedData[targetIdx].gender = newGender;
+            updatedData[targetIdx].enrollmentStatus = convertStatus(updatedData[targetIdx].enrollmentStatus, newGender);
+            updatedData[targetIdx].religion = convertReligion(updatedData[targetIdx].religion, newGender);
+          }
+        }
+      });
       onChange(updatedData, true);
     }
     setNationalIdModalText('');
+    setImportNidFileFeedback(null);
     setIsNationalIdModalOpen(false);
+  };
+
+  const handleImportNationalIdsFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsImportingNidFile(true);
+    setImportNidFileFeedback(null);
+
+    try {
+      const result = await importNationalIdsFromFile(file);
+      if (result.error || result.nationalIds.length === 0) {
+        setImportNidFileFeedback({
+          type: 'error',
+          message:
+            result.error ||
+            'الملف المحدد لا يحتوي على قائمة أرقام قومية صالحة (14 رقماً).',
+        });
+        return;
+      }
+
+      const existingLines = nationalIdModalText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const existingSet = new Set(existingLines);
+      const merged = [...existingLines];
+      let addedCount = 0;
+
+      for (const nid of result.nationalIds) {
+        if (!existingSet.has(nid)) {
+          existingSet.add(nid);
+          merged.push(nid);
+          addedCount++;
+        }
+      }
+
+      setNationalIdModalText(merged.join('\n'));
+      setImportNidFileFeedback({
+        type: 'success',
+        message:
+          existingLines.length > 0
+            ? `تم التحقق وجلب ${result.nationalIds.length} رقماً قومياً من (${result.fileName}) — أُضيف ${addedCount} رقماً جديداً إلى القائمة.`
+            : `تم التحقق من قائمة الأرقام القومية وجلب ${result.nationalIds.length} رقماً بدقة من (${result.fileName}). راجع القائمة ثم اضغط إضافة.`,
+      });
+    } finally {
+      setIsImportingNidFile(false);
+    }
   };
 
   const handleApplyDefaultValues = () => {
@@ -1971,6 +2105,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   } else {
     frozenIdsRef.current = filteredData.map(s => s.id);
   }
+  filteredDataRef.current = filteredData;
 
   const auditResult = useMemo(
     () =>
@@ -2445,7 +2580,20 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         />
                         
                         <ActionMenuButton
-                          onClick={() => { setIsToolsMenuOpen(false); setIsNationalIdModalOpen(true); }}
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setImportNidFileFeedback(null);
+                            if (filters.studentClass) {
+                              setSelectedClassForNid(filters.studentClass);
+                            } else {
+                              const hasCurrentClass = data.some(s => s.studentClass === selectedClassForNid);
+                              const firstClassInTable = filteredData.find(s => s.studentClass?.trim())?.studentClass?.trim();
+                              if (!hasCurrentClass && firstClassInTable) {
+                                setSelectedClassForNid(firstClassInTable);
+                              }
+                            }
+                            setIsNationalIdModalOpen(true);
+                          }}
                           icon={<Plus className="w-4 h-4" />}
                           text={t.addNationalIds}
                           bgGradient="bg-[linear-gradient(to_right,#d946ef,#f43f5e,#d946ef)]"
@@ -2804,6 +2952,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                               icon={<Award className="w-4 h-4" />}
                               text="مستخرج رسمي لبيان درجات طالب"
                               bgGradient="bg-[linear-gradient(to_right,#dc2626,#1e3a8a,#dc2626)]"
+                            />
+                            <ActionMenuButton
+                              onClick={() => handlePrintOption('student_success_statement_principal_only')}
+                              icon={<Award className="w-4 h-4" />}
+                              text="مستخرج رسمي لبيان درجات طالب - بتوقيع مدير المدرسة فقط"
+                              bgGradient="bg-[linear-gradient(to_right,#1e3a8a,#0f766e,#1e3a8a)]"
                             />
                           </>
                         )}
@@ -4069,7 +4223,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         ensureCellVisible(e.target);
                       }}
                       onPaste={(e) => handlePaste(e, student.id, "name", idx, 0)}
-                      className="w-full h-full bg-transparent border-none pl-11 pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
+                      className="w-full h-full bg-transparent border-none pl-[54px] pr-3 py-3 text-center text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 relative z-10"
                     />
                     <button
                       type="button"
@@ -4078,9 +4232,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         setEditingStudentState({ student, rowNumber: idx + 1 });
                       }}
                       title={isKindergarten ? 'تعديل بيانات التلميذ' : 'تعديل بيانات الطالب'}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-[39px] h-[39px] rounded-lg border border-slate-900 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-5 h-5" />
                     </button>
                   </td>
                   <td className={`p-0 border-2 border-slate-900 relative group/cell focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 ${showExamFields ? 'min-w-[210px] max-w-[210px] w-[210px]' : 'min-w-[192px] max-w-[192px] w-[192px]'}`}>
@@ -4430,14 +4584,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {/* Slow Moving Light Glow */}
               <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_30%,#ffffff_50%,#ffffff_70%,transparent_100%)] pointer-events-none" />
               
-              <div className="relative z-10 flex flex-col w-full h-full rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
-                <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-8 flex flex-col items-center justify-center text-center">
+              <div className="relative z-10 flex flex-col w-full max-h-[92vh] rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
+                <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-6 sm:p-8 flex flex-col items-center justify-center text-center shrink-0">
                   <h3 className="text-2xl font-black text-white mb-2">{t.studentsModalTitle}</h3>
                   <p className="text-indigo-100 font-bold text-sm mb-1">{t.studentsModalSub1}</p>
                   <p className="text-indigo-200/80 font-medium text-xs">{t.studentsModalSub2}</p>
                 </div>
                 
-                <div className="p-8 flex flex-col gap-6 bg-[linear-gradient(to_right,#e0e7ff,#c7d2fe,#e0e7ff)] bg-[length:200%_auto] animate-shine w-full">
+                <div className="p-6 sm:p-8 flex flex-col gap-5 bg-[linear-gradient(to_right,#e0e7ff,#c7d2fe,#e0e7ff)] bg-[length:200%_auto] animate-shine w-full overflow-y-auto">
                   <div className="flex flex-col gap-3 w-full text-right">
                     <label className="text-slate-800 font-black text-sm flex items-center gap-2 pr-1">
                       <span className="w-2 h-2 rounded-full bg-indigo-600" />
@@ -4470,15 +4624,52 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </div>
 
                   <div className="flex flex-col gap-2 w-full text-right">
-                    <div className="flex flex-col gap-1 pr-1">
-                      <label className="text-slate-800 font-black text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                        {t.studentsModalSub1}
-                      </label>
-                      <p className="text-indigo-950/80 font-bold text-xs pr-4">
-                        {t.studentsModalSub2}
-                      </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pr-1">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-800 font-black text-sm flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                          {t.studentsModalSub1}
+                        </label>
+                        <p className="text-indigo-950/80 font-bold text-xs pr-4">
+                          {t.studentsModalSub2}
+                        </p>
+                      </div>
+
+                      <input
+                        ref={studentFileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.ods,.docx,.doc"
+                        onChange={handleImportStudentsFile}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={isImportingFile}
+                        onClick={() => studentFileInputRef.current?.click()}
+                        title="جلب أسماء القوائم من ملف Excel أو Word"
+                        className="h-10 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-black text-xs sm:text-sm border-2 border-slate-900 shadow-sm transition-all active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
+                      >
+                        {isImportingFile ? (
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        ) : (
+                          <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{isImportingFile ? 'جاري الاستيراد...' : 'استيراد من ملف'}</span>
+                      </button>
                     </div>
+
+                    {importFileFeedback && (
+                      <div
+                        className={`px-3 py-2 rounded-xl border text-xs font-bold leading-relaxed ${
+                          importFileFeedback.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900'
+                            : 'bg-rose-50 border-rose-600 text-rose-900'
+                        }`}
+                      >
+                        {importFileFeedback.message}
+                      </div>
+                    )}
+
                     <textarea
                       value={modalText}
                       onChange={(e) => setModalText(e.target.value)}
@@ -4489,7 +4680,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </div>
                 </div>
                 
-                <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
+                <div className="bg-[linear-gradient(to_right,#4f46e5,#9333ea,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-5 sm:p-6 flex justify-end gap-3 items-center shrink-0">
                   <button
                     onClick={handleModalAdd}
                     className="flex-[2] h-14 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
@@ -4498,7 +4689,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     {t.add}
                   </button>
                   <button
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => {
+                      setImportFileFeedback(null);
+                      setIsModalOpen(false);
+                    }}
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
                   >
                     <X className="w-8 h-8" strokeWidth={3} />
@@ -4524,14 +4718,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
               {/* Slow Moving Light Glow */}
               <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_30%,#ffffff_50%,#ffffff_70%,transparent_100%)] pointer-events-none" />
               
-              <div className="relative z-10 flex flex-col w-full h-full rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
-                <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-8 flex flex-col items-center justify-center text-center">
+              <div className="relative z-10 flex flex-col w-full max-h-[92vh] rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
+                <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-6 sm:p-8 flex flex-col items-center justify-center text-center shrink-0">
                   <h3 className="text-2xl font-black text-white mb-2">{t.nationalIdsModalTitle}</h3>
                   <p className="text-blue-100 font-bold text-sm mb-1">{t.nationalIdsModalSub1}</p>
                   <p className="text-blue-200/80 font-medium text-xs">{t.studentsModalSub2}</p>
                 </div>
                 
-                <div className="p-8 flex flex-col gap-6 bg-[linear-gradient(to_right,#dbeafe,#cffafe,#dbeafe)] bg-[length:200%_auto] animate-shine w-full">
+                <div className="p-6 sm:p-8 flex flex-col gap-5 bg-[linear-gradient(to_right,#dbeafe,#cffafe,#dbeafe)] bg-[length:200%_auto] animate-shine w-full overflow-y-auto">
                   <div className="flex flex-col gap-3 w-full text-right">
                     <label className="text-slate-800 font-black text-sm flex items-center gap-2 pr-1">
                       <span className="w-2 h-2 rounded-full bg-blue-600" />
@@ -4555,15 +4749,52 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </div>
 
                   <div className="flex flex-col gap-2 w-full text-right">
-                    <div className="flex flex-col gap-1 pr-1">
-                      <label className="text-slate-800 font-black text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-600" />
-                        {t.nationalIdsModalSub1}
-                      </label>
-                      <p className="text-blue-950/80 font-bold text-xs pr-4">
-                        {t.studentsModalSub2}
-                      </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pr-1">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-800 font-black text-sm flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-600" />
+                          {t.nationalIdsModalSub1}
+                        </label>
+                        <p className="text-blue-950/80 font-bold text-xs pr-4">
+                          {t.studentsModalSub2}
+                        </p>
+                      </div>
+
+                      <input
+                        ref={nidFileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.ods,.docx,.doc"
+                        onChange={handleImportNationalIdsFile}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={isImportingNidFile}
+                        onClick={() => nidFileInputRef.current?.click()}
+                        title="التحقق وجلب قائمة الأرقام القومية من ملف Excel أو Word"
+                        className="h-10 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-black text-xs sm:text-sm border-2 border-slate-900 shadow-sm transition-all active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
+                      >
+                        {isImportingNidFile ? (
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        ) : (
+                          <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{isImportingNidFile ? 'جاري التحقق والاستيراد...' : 'استيراد من ملف'}</span>
+                      </button>
                     </div>
+
+                    {importNidFileFeedback && (
+                      <div
+                        className={`px-3 py-2 rounded-xl border text-xs font-bold leading-relaxed ${
+                          importNidFileFeedback.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900'
+                            : 'bg-rose-50 border-rose-600 text-rose-900'
+                        }`}
+                      >
+                        {importNidFileFeedback.message}
+                      </div>
+                    )}
+
                     <textarea
                       value={nationalIdModalText}
                       onChange={(e) => {
@@ -4583,7 +4814,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   </div>
                 </div>
                 
-                <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-6 flex justify-end gap-3 items-center">
+                <div className="bg-[linear-gradient(to_right,#3b82f6,#06b6d4,#3b82f6)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-5 sm:p-6 flex justify-end gap-3 items-center shrink-0">
                   <button
                     onClick={handleNationalIdModalAdd}
                     className="flex-[2] h-14 px-6 rounded-xl font-black text-slate-900 bg-white hover:bg-slate-100 transition-all shadow-md border-2 border-slate-900 active:scale-95 text-lg flex items-center justify-center gap-2"
@@ -4592,7 +4823,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     {t.add}
                   </button>
                   <button
-                    onClick={() => setIsNationalIdModalOpen(false)}
+                    onClick={() => {
+                      setImportNidFileFeedback(null);
+                      setIsNationalIdModalOpen(false);
+                    }}
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
                   >
                     <X className="w-8 h-8" strokeWidth={3} />

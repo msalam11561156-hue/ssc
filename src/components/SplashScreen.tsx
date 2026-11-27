@@ -492,7 +492,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 }}
                 dir="rtl"
               >
-                <span>{translations.ar.appTitle}</span>
+                <span>
+                  {translations.ar.appTitle.split('SMART CONTROL 0.1').map((part, idx, arr) => (
+                    <React.Fragment key={idx}>
+                      {part}
+                      {idx < arr.length - 1 && (
+                        <span className="text-[1.4em] leading-none font-black align-baseline">
+                          SMART CONTROL 0.1
+                        </span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </span>
               </motion.h1>
             </div>
           </motion.div>

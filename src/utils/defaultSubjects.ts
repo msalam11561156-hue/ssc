@@ -1,4 +1,5 @@
 import { getSubjectsConfigForStageGrade } from './exportPdf';
+import { isTechnicalEducationSchool } from '../i18n';
 
 export interface SubjectColConfig {
   key: string;
@@ -10,6 +11,8 @@ export interface SubjectColConfig {
   maxAssessmentsGrade?: number;
   maxWrittenGrade?: number;
   hasWrittenExam?: boolean;
+  hasPracticalExam?: boolean;
+  maxPracticalGrade?: number;
   minPassPercentage?: number;
   minTotalPassPercentage?: number;
   learningOutcomesType?: 'pass_fail' | 'grades';
@@ -79,10 +82,40 @@ export function getDefaultSubjectCols(params: {
       (selectedGrade.includes('الثانى') && selectedGrade.includes('literary')) ||
       (selectedGrade.toLowerCase().includes('2nd') && selectedGrade.includes('literary')));
 
+  const isTechnicalStage = isTechnicalEducationSchool(undefined, stage);
+  const isTechGrade1 = isTechnicalStage && (
+    selectedGrade === 'الصف الأول' ||
+    selectedGrade === 'الصف الاول' ||
+    selectedGrade?.includes('الأول') ||
+    selectedGrade?.includes('الاول')
+  );
+
   const isMax40 = stage === 'primary';
   let defaultSubjects: SubjectColConfig[] = [];
 
-  if (isKindergarten) {
+  if (isTechnicalStage) {
+    if (isTechGrade1) {
+      defaultSubjects = [
+        { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'technical_math', label: 'الرياضيات الفنية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'technical_science', label: 'العلوم الأساسية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'tech_grade1_competency', label: 'جدارات المقرر المهنى التخصصى (الصف الأول)', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'religion', label: 'التربية الدينية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 70, learningOutcomesType: 'grades' },
+        { key: 'computer', label: 'الحاسب الآلي وتطبيقاته', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+      ];
+    } else {
+      defaultSubjects = [
+        { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'applied_math', label: 'الرياضيات التطبيقية الفنية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'advanced_tech', label: 'التكنولوجيا التخصصية المتقدمة', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'tech_grade2_competency', label: 'جدارات المقرر المهنى التطبيقى (الصف الثاني)', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'religion', label: 'التربية الدينية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 70, learningOutcomesType: 'grades' },
+        { key: 'practical_training', label: 'التدريب المهنى والعملى', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+      ];
+    }
+  } else if (isKindergarten) {
     defaultSubjects = [
       { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
       { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },

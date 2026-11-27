@@ -224,7 +224,8 @@ export type PdfReportType =
   | 'top_ten_damg_students_certificate'
   | 'top_ten_damg_students_certificates'
   | 'all_students_certificates'
-  | 'student_success_statement';
+  | 'student_success_statement'
+  | 'student_success_statement_principal_only';
 
 export interface CustomControlSheetOptions {
   includeMainData: boolean;
@@ -1749,8 +1750,38 @@ export function getSubjectsConfigForStageGrade(stage?: string, selectedGrade?: s
       selectedGrade?.includes('الاداب')
     );
 
+  const isTechnicalStage = isTechnicalEducationSchool(undefined, stage);
+  const isTechGrade1 = isTechnicalStage && (
+    selectedGrade === 'الصف الأول' ||
+    selectedGrade === 'الصف الاول' ||
+    selectedGrade?.includes('الأول') ||
+    selectedGrade?.includes('الاول')
+  );
+
   let defaultSubjects: any[] = [];
-  if (isKindergarten) {
+  if (isTechnicalStage) {
+    if (isTechGrade1) {
+      defaultSubjects = [
+        { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'technical_math', label: 'الرياضيات الفنية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'technical_science', label: 'العلوم الأساسية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'tech_grade1_competency', label: 'جدارات المقرر المهنى التخصصى (الصف الأول)', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'religion', label: 'التربية الدينية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 70, learningOutcomesType: 'grades' },
+        { key: 'computer', label: 'الحاسب الآلي وتطبيقاته', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+      ];
+    } else {
+      defaultSubjects = [
+        { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'applied_math', label: 'الرياضيات التطبيقية الفنية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'advanced_tech', label: 'التكنولوجيا التخصصية المتقدمة', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'tech_grade2_competency', label: 'جدارات المقرر المهنى التطبيقى (الصف الثاني)', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+        { key: 'religion', label: 'التربية الدينية', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 70, maxWrittenGrade: 30, hasWrittenExam: true, minPassPercentage: 25, minTotalPassPercentage: 70, learningOutcomesType: 'grades' },
+        { key: 'practical_training', label: 'التدريب المهنى والعملى', isAddedToTotal: false, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50, minTotalPassPercentage: 50, learningOutcomesType: 'grades' },
+      ];
+    }
+  } else if (isKindergarten) {
     defaultSubjects = [
       { key: 'arabic', label: 'اللغة العربية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
       { key: 'english', label: 'اللغة الإنجليزية', isAddedToTotal: true, maxGrade: 100, maxAssessmentsGrade: 100, hasWrittenExam: false, minPassPercentage: 50 },
@@ -3148,6 +3179,7 @@ function evaluateStudentSingleSubjectSummary(
     }
 
     const isKgStage = stage === 'kindergarten';
+    const isTechSubject = isTechnicalEducationSchool(undefined, stage);
     return {
       status: isFail ? 'fail' : 'pass',
       finalResult: isFail
@@ -3155,7 +3187,9 @@ function evaluateStudentSingleSubjectSummary(
         : isFemale
         ? 'ناجحة'
         : 'ناجح',
-      evaluation: isPassFailSubject ? (isFail ? 'لم يجتاز' : 'اجتاز') : getEvalFromPct(pct),
+      evaluation: isPassFailSubject
+        ? (isFail ? (isTechSubject ? 'غير جدير' : 'لم يجتاز') : (isTechSubject ? 'جدير' : 'اجتاز'))
+        : getEvalFromPct(pct),
       percentage: `${roundToOneDecimal(pct)} %`,
       addedTotal: roundToOneDecimal(sem1Total),
       nonAddedTotal: 0,
@@ -3221,10 +3255,11 @@ function evaluateStudentSingleSubjectSummary(
     }
 
     if (passedSubj) {
+      const isTechSubject = isTechnicalEducationSchool(undefined, stage);
       return {
         status: 'pass',
         finalResult: isFemale ? 'ناجحة' : 'ناجح',
-        evaluation: isPassFailSubject ? 'اجتاز' : getEvalFromPct(pct),
+        evaluation: isPassFailSubject ? (isTechSubject ? 'جدير' : 'اجتاز') : getEvalFromPct(pct),
         percentage: `${roundToOneDecimal(pct)} %`,
         addedTotal: roundToOneDecimal(finalSubjectScore),
         nonAddedTotal: 0,
@@ -3308,6 +3343,7 @@ function evaluateStudentSingleSubjectSummary(
     });
 
     const isKgStage = stage === 'kindergarten';
+    const isTechSubject = isTechnicalEducationSchool(undefined, stage);
     if (stage !== 'primary' && totalFailedRecordedSubjects >= 3) {
       return {
         status: isKgStage ? 'second_round' : 'fail',
@@ -3316,7 +3352,7 @@ function evaluateStudentSingleSubjectSummary(
           : isFemale
           ? 'راسبة'
           : 'راسب',
-        evaluation: isPassFailSubject ? 'لم يجتاز' : getEvalFromPct(pct),
+        evaluation: isPassFailSubject ? (isTechSubject ? 'غير جدير' : 'لم يجتاز') : getEvalFromPct(pct),
         percentage: `${roundToOneDecimal(pct)} %`,
         addedTotal: roundToOneDecimal(finalSubjectScore),
         nonAddedTotal: 0,
@@ -3328,7 +3364,7 @@ function evaluateStudentSingleSubjectSummary(
     return {
       status: 'second_round',
       finalResult: isKgStage ? (isFemale ? 'لها برنامج علاجى' : 'له برنامج علاجى') : 'دور ثان',
-      evaluation: isPassFailSubject ? 'لم يجتاز' : getEvalFromPct(pct),
+      evaluation: isPassFailSubject ? (isTechSubject ? 'غير جدير' : 'لم يجتاز') : getEvalFromPct(pct),
       percentage: `${roundToOneDecimal(pct)} %`,
       addedTotal: roundToOneDecimal(finalSubjectScore),
       nonAddedTotal: 0,
@@ -3560,7 +3596,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
     return;
   }
 
-  if (reportType === 'student_success_statement') {
+  if (reportType === 'student_success_statement' || reportType === 'student_success_statement_principal_only') {
     const isInvalidOrEmpty = (val?: string): boolean => {
       if (!val) return true;
       const s = val.trim();
@@ -3658,6 +3694,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       defaultSubjectsOverrides: options.defaultSubjectsOverrides,
       rowTheme: options.rowTheme,
       title: options.title,
+      principalOnlySignatures: reportType === 'student_success_statement_principal_only',
     });
     return;
   }
@@ -5246,7 +5283,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
       };
 
       mCtx.font = `bold ${subjEvalFontSize}px "Cairo", sans-serif`;
-      const evalLabels = ['دون المستوى', 'جيد جداً', 'لم يجتاز', 'مقبول', 'ممتاز', 'اجتاز', 'جيد'];
+      const evalLabels = ['دون المستوى', 'جيد جداً', 'لم يجتاز', 'غير جدير', 'مقبول', 'ممتاز', 'اجتاز', 'جدير', 'جيد'];
       const maxEvalLabelW = Math.max(...evalLabels.map(measureExactTextW));
       const reqEvalSubW = Math.ceil(maxEvalLabelW) + 14;
 
@@ -9468,7 +9505,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
           const getSubjectEvalLabel = (pct: number, isFail: boolean, isPassFail: boolean): string => {
             if (isPassFail) {
-              return isFail ? 'لم يجتاز' : 'اجتاز';
+              return isFail ? (isTechPdf ? 'غير جدير' : 'لم يجتاز') : (isTechPdf ? 'جدير' : 'اجتاز');
             }
             if (pct >= 85) return 'ممتاز';
             if (pct >= 75) return 'جيد جداً';
@@ -11000,9 +11037,9 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         };
         students.forEach((st) => {
           const ev = summariesById.get(st.id)?.evaluation;
-          if (ev === 'اجتاز') {
+          if (ev === 'اجتاز' || ev === 'جدير') {
             passOutcomesCount++;
-          } else if (ev === 'لم يجتاز') {
+          } else if (ev === 'لم يجتاز' || ev === 'غير جدير') {
             failOutcomesCount++;
           } else if (ev && evalCounts[ev] !== undefined) {
             evalCounts[ev]++;
@@ -11012,8 +11049,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         const evalTableTitle = isSubjectPassFail
           ? reportType === 'subject_failed_first_semester' ||
             reportType === 'subject_failed_second_semester'
-            ? 'إحصائيات الطلاب الراسبين (لم يجتاز)'
-            : 'إحصائيات نواتج التعلم (اجتاز - لم يجتاز)'
+            ? (isTechPdf ? 'إحصائيات الطلاب الراسبين (غير جدير)' : 'إحصائيات الطلاب الراسبين (لم يجتاز)')
+            : (isTechPdf ? 'إحصائيات نواتج التعلم (جدير - غير جدير)' : 'إحصائيات نواتج التعلم (اجتاز - لم يجتاز)')
           : isKindergartenStage
           ? 'إحصائيات تقييمات التلاميذ'
           : reportType === 'subject_failed_first_semester' ||
@@ -11025,8 +11062,8 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
 
         const fileEvalCols = isSubjectPassFail
           ? [
-              { label: 'اجتاز', value: String(passOutcomesCount) },
-              { label: 'لم يجتاز', value: String(failOutcomesCount) },
+              { label: isTechPdf ? 'جدير' : 'اجتاز', value: String(passOutcomesCount) },
+              { label: isTechPdf ? 'غير جدير' : 'لم يجتاز', value: String(failOutcomesCount) },
             ]
           : isKindergartenStage
           ? [

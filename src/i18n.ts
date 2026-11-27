@@ -35,14 +35,14 @@ export function setCurrentEducationContext(educationType?: string, stage?: strin
 }
 
 export function isTechnicalEducationSchool(educationType?: string, stage?: string): boolean {
-  if (educationType !== undefined || stage !== undefined) {
-    if (educationType === 'technical') return true;
-    if (stage && TECHNICAL_STAGES.has(stage)) return true;
-    if (educationType !== undefined) return false;
-    if (currentEducationType) return currentEducationType === 'technical';
-  } else {
-    if (currentEducationType === 'technical' || TECHNICAL_STAGES.has(currentStage)) return true;
-    if (currentEducationType) return false;
+  if (educationType === 'technical') return true;
+  if (stage && TECHNICAL_STAGES.has(stage)) return true;
+  if (educationType && educationType !== 'technical') {
+    if (!stage || !TECHNICAL_STAGES.has(stage)) return false;
+  }
+  if (currentEducationType === 'technical' || TECHNICAL_STAGES.has(currentStage)) return true;
+  if (currentEducationType && currentEducationType !== 'technical' && currentStage && !TECHNICAL_STAGES.has(currentStage)) {
+    return false;
   }
   try {
     const saved = localStorage.getItem('sheet_control_school_data');
@@ -59,6 +59,18 @@ export function isTechnicalEducationSchool(educationType?: string, stage?: strin
 export function applyTechnicalAssessmentTerms(text: string, educationType?: string, stage?: string): string {
   if (!text || !isTechnicalEducationSchool(educationType, stage)) return text;
   return text
+    .replace(/(?:إجتاز|اجتاز)\s*[-–—/]\s*(?:لم يجتاز|لم يجتز)/g, 'جدير - غير جدير')
+    .replace(/(?:لم يجتاز|لم يجتز)\s*[-–—/]\s*(?:إجتاز|اجتاز)/g, 'غير جدير - جدير')
+    .replace(/واجتازت/g, 'وحققت جدارة')
+    .replace(/واجتاز/g, 'وحقق جدارة')
+    .replace(/إجتازت/g, 'حققت جدارة')
+    .replace(/اجتازت/g, 'حققت جدارة')
+    .replace(/لم يجتز/g, 'غير جدير')
+    .replace(/لم يجتاز/g, 'غير جدير')
+    .replace(/إجتاز/g, 'جدير')
+    .replace(/اجتاز/g, 'جدير')
+    .replace(/إضافة مادة دراسية/g, 'إضافة جدارات المقررات الدراسية')
+    .replace(/إضافة مادة/g, 'إضافة جدارات المقررات')
     .replace(/تقييماتها/g, 'أعمال السنة لها')
     .replace(/لتقييماتها/g, 'لأعمال السنة لها')
     .replace(/للتقييمات/g, 'لأعمال السنة')
@@ -139,7 +151,7 @@ const baseArTranslations = {
     intellectualSchools: 'مدارس فكرية',
     vocationalSchools: 'مدارس مهنية',
     otherSchools: 'أخرى',
-    educationalStage: 'المرحلة الدراسية',
+    educationalStage: 'إختر المرحلة الدراسية',
     stageNamePrefix: 'المرحلة',
     selectStage: 'اختر المرحلة الدراسية...',
     kindergarten: 'رياض أطفال',
