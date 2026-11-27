@@ -21,6 +21,17 @@ import { PrePrintAuditModal } from './PrePrintAuditModal';
 import { EditStudentDataModal } from './EditStudentDataModal';
 import { QuickSupportAuditButton } from './QuickSupportAuditButton';
 import { importStudentNamesFromFile, importNationalIdsFromFile } from '../utils/importStudentsFromFile';
+import {
+  buildAvailableClasses,
+  cleanClassName,
+  deleteCustomClass,
+  findMatchingExistingClass,
+  getClassColumnWidthPx,
+  getSavedCustomClasses,
+  normalizeClassNameForCompare,
+  renameCustomClass,
+  saveCustomClass,
+} from '../utils/customClasses';
 
 const GradingSettingsModal = lazy(() => import('./GradingSettingsModal').then(m => ({ default: m.GradingSettingsModal })));
 const SeatNumbersModal = lazy(() => import('./SeatNumbersModal').then(m => ({ default: m.SeatNumbersModal })));
@@ -176,6 +187,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
   const auditHighlightTimerRef = React.useRef<number | null>(null);
   const [editingStudentState, setEditingStudentState] = useState<{ student: StudentData; rowNumber: number } | null>(null);
+  const [editClassModalState, setEditClassModalState] = useState<{
+    originalName: string;
+    newName: string;
+    error: string | null;
+    confirmDelete: boolean;
+  } | null>(null);
   const skipAutoSyncSnapshotRef = React.useRef<StudentData[] | null>(null);
   const userEditedExamNumbersRef = React.useRef(false);
   const {
@@ -197,7 +214,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         setIsEditingData(false);
       }
     },
-    enableShortcuts: !auditModalState.isOpen && !editingStudentState,
+    enableShortcuts: !auditModalState.isOpen && !editingStudentState && !editClassModalState,
   });
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
     return (localStorage.getItem('sheet_control_number_lang') as NumberLang) || 'ar';
@@ -223,27 +240,33 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
     return trimmed === 'الصف الأول' || trimmed.includes('الأول') || trimmed === '1st Grade';
   })();
 
-  const availableClasses = React.useMemo(() => {
-    const gradeNum = (() => {
-      if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
-      if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
-      if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
-      if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
-      if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
-      if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
-      return '1';
-    })();
-    const defaults = Array.from({ length: 16 }, (_, i) => `${gradeNum} / ${i + 1}`);
-    const inData = Array.from(new Set(data.map(s => s.studentClass).filter(Boolean))) as string[];
-    return Array.from(new Set([...defaults, ...inData])).sort((a, b) => {
-      const getNum = (s: string) => {
-        const parts = s.split('/');
-        if (parts.length < 2) return 0;
-        return parseInt(parts[1].trim()) || 0;
-      };
-      return getNum(a) - getNum(b);
-    });
-  }, [selectedGrade, data]);
+  const [savedCustomClasses, setSavedCustomClasses] = useState<string[]>(() =>
+    getSavedCustomClasses(stage, selectedGrade)
+  );
+
+  useEffect(() => {
+    setSavedCustomClasses(getSavedCustomClasses(stage, selectedGrade));
+  }, [stage, selectedGrade]);
+
+  const {
+    defaultClasses: defaultClassesList,
+    customClasses: customClassesList,
+    allClasses: availableClasses,
+  } = React.useMemo(
+    () =>
+      buildAvailableClasses({
+        stage,
+        selectedGrade,
+        data,
+        savedCustomClasses,
+      }),
+    [stage, selectedGrade, data, savedCustomClasses]
+  );
+
+  const classColWidth = React.useMemo(
+    () => getClassColumnWidthPx(customClassesList, 128),
+    [customClassesList]
+  );
 
   const normalizeStatusForGrade = (status: string, isFirst: boolean, gender?: string): string => {
     if (!status) return '';
@@ -1486,6 +1509,138 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
 
   const [selectedClass, setSelectedClass] = useState<string>(() => `${gradeNumForClass} / 1`);
   const [selectedClassForNid, setSelectedClassForNid] = useState<string>(() => `${gradeNumForClass} / 1`);
+  const [addClassMode, setAddClassMode] = useState<'select' | 'custom'>('select');
+  const [customClassNameInput, setCustomClassNameInput] = useState<string>('');
+  const [customClassError, setCustomClassError] = useState<string | null>(null);
+  const [isAddClassDropdownOpen, setIsAddClassDropdownOpen] = useState(false);
+  const addClassDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isAddClassDropdownOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (addClassDropdownRef.current && !addClassDropdownRef.current.contains(e.target as Node)) {
+        setIsAddClassDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isAddClassDropdownOpen]);
+
+  const openEditClassModal = (className: string) => {
+    setIsAddClassDropdownOpen(false);
+    setEditClassModalState({
+      originalName: className,
+      newName: className,
+      error: null,
+      confirmDelete: false,
+    });
+  };
+
+  const handleSaveEditedClassName = () => {
+    if (!editClassModalState) return;
+    const { originalName, newName } = editClassModalState;
+    const cleanedNew = cleanClassName(newName);
+    if (!cleanedNew) {
+      setEditClassModalState((prev) =>
+        prev ? { ...prev, error: 'يرجى كتابة اسم الفصل.' } : null
+      );
+      return;
+    }
+    if (cleanedNew.length >= 15) {
+      setEditClassModalState((prev) =>
+        prev ? { ...prev, error: 'يجب أن يكون عدد حروف اسم الفصل أقل من 15 حرفاً.' } : null
+      );
+      return;
+    }
+    const origNorm = normalizeClassNameForCompare(originalName);
+    const otherClasses = availableClasses.filter(
+      (cls) => normalizeClassNameForCompare(cls) !== origNorm
+    );
+    const conflict = findMatchingExistingClass(cleanedNew, otherClasses);
+    if (conflict) {
+      setEditClassModalState((prev) =>
+        prev
+          ? {
+              ...prev,
+              error: `اسم الفصل «${conflict}» موجود بالفعل في القائمة! يُرجى كتابة اسم آخر.`,
+            }
+          : null
+      );
+      return;
+    }
+
+    const updatedSaved = renameCustomClass(originalName, cleanedNew, stage, selectedGrade);
+    setSavedCustomClasses(updatedSaved);
+
+    const hasAffectedStudents = data.some(
+      (s) => normalizeClassNameForCompare(s.studentClass || '') === origNorm
+    );
+    if (hasAffectedStudents) {
+      const updatedStudents = data.map((s) =>
+        normalizeClassNameForCompare(s.studentClass || '') === origNorm
+          ? { ...s, studentClass: cleanedNew }
+          : s
+      );
+      onChange(updatedStudents, true);
+    }
+
+    if (normalizeClassNameForCompare(selectedClass) === origNorm) {
+      setSelectedClass(cleanedNew);
+    }
+    if (normalizeClassNameForCompare(selectedClassForNid) === origNorm) {
+      setSelectedClassForNid(cleanedNew);
+    }
+    if (filters.studentClass && normalizeClassNameForCompare(filters.studentClass) === origNorm) {
+      setFilters((prev) => ({ ...prev, studentClass: cleanedNew }));
+    }
+
+    setEditClassModalState(null);
+  };
+
+  const handleConfirmDeleteClass = () => {
+    if (!editClassModalState) return;
+    const { originalName } = editClassModalState;
+    const targetNorm = normalizeClassNameForCompare(originalName);
+
+    const updatedSaved = deleteCustomClass(originalName, stage, selectedGrade);
+    setSavedCustomClasses(updatedSaved);
+
+    const hasAffectedStudents = data.some(
+      (s) => normalizeClassNameForCompare(s.studentClass || '') === targetNorm
+    );
+    if (hasAffectedStudents) {
+      const updatedStudents = data.map((s) =>
+        normalizeClassNameForCompare(s.studentClass || '') === targetNorm
+          ? { ...s, studentClass: '' }
+          : s
+      );
+      onChange(updatedStudents, true);
+    }
+
+    const fallbackClass = `${gradeNumForClass} / 1`;
+    if (normalizeClassNameForCompare(selectedClass) === targetNorm) {
+      setSelectedClass(fallbackClass);
+    }
+    if (normalizeClassNameForCompare(selectedClassForNid) === targetNorm) {
+      setSelectedClassForNid(fallbackClass);
+    }
+    if (filters.studentClass && normalizeClassNameForCompare(filters.studentClass) === targetNorm) {
+      setFilters((prev) => {
+        const next = { ...prev };
+        delete next.studentClass;
+        return next;
+      });
+    }
+
+    setEditClassModalState(null);
+  };
+
+  const matchedExistingClassForCustom = React.useMemo(() => {
+    if (addClassMode !== 'custom') return null;
+    const cleaned = cleanClassName(customClassNameInput);
+    if (!cleaned) return null;
+    return findMatchingExistingClass(cleaned, availableClasses);
+  }, [addClassMode, customClassNameInput, availableClasses]);
 
   useEffect(() => {
     setSelectedClass(`${gradeNumForClass} / 1`);
@@ -1493,6 +1648,28 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
   }, [gradeNumForClass]);
 
   const handleModalAdd = () => {
+    let targetClass = selectedClass;
+    if (addClassMode === 'custom') {
+      const cleanedCustom = cleanClassName(customClassNameInput);
+      if (!cleanedCustom) {
+        setCustomClassError('يرجى كتابة اسم الفصل أو اختيار فصل من القائمة أعلاه.');
+        return;
+      }
+      if (cleanedCustom.length >= 15) {
+        setCustomClassError('يجب أن يكون عدد حروف اسم الفصل أقل من 15 حرفاً.');
+        return;
+      }
+      const existingMatch = findMatchingExistingClass(cleanedCustom, availableClasses);
+      if (existingMatch) {
+        setCustomClassError(`اسم الفصل «${existingMatch}» موجود بالفعل في القائمة! اختره من القائمة أعلاه لضمان عدم التكرار.`);
+        return;
+      }
+      const updatedSaved = saveCustomClass(cleanedCustom, stage, selectedGrade);
+      setSavedCustomClasses(updatedSaved);
+      targetClass = cleanedCustom;
+      setSelectedClass(cleanedCustom);
+    }
+
     const lines = modalText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     if (lines.length > 0) {
       const newStudents: StudentData[] = lines.map(name => ({
@@ -1505,7 +1682,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
         studentStatus: isKindergarten ? 'عادى' : undefined,
         enrollmentType: '',
         religion: '',
-        studentClass: selectedClass,
+        studentClass: targetClass,
         assessments: {
           first: {},
           second: {},
@@ -1530,6 +1707,9 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
       onChange(combinedWithCommittees, true);
     }
     setModalText('');
+    setCustomClassNameInput('');
+    setCustomClassError(null);
+    setAddClassMode('select');
     setImportFileFeedback(null);
     setIsModalOpen(false);
   };
@@ -2571,7 +2751,14 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       <div className="bg-white rounded-[22px] p-6 flex flex-col gap-3 relative z-10 max-h-[80vh] overflow-y-auto custom-scrollbar">
                         <BrandHeader />
                         <ActionMenuButton
-                          onClick={() => { setIsToolsMenuOpen(false); setIsModalOpen(true); }}
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setAddClassMode('select');
+                            setIsAddClassDropdownOpen(false);
+                            setCustomClassNameInput('');
+                            setCustomClassError(null);
+                            setIsModalOpen(true);
+                          }}
                           icon={<Plus className="w-4 h-4" />}
                           text={isKindergarten ? 'إضافة تلميذ' : t.addStudent}
                           bgGradient="bg-[linear-gradient(to_right,#3b82f6,#8b5cf6,#3b82f6)]"
@@ -4167,7 +4354,12 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 )}
                 <th className="py-[18px] px-3 w-44 border-2 border-slate-900 bg-transparent">{(t as any).enrollmentType || 'نوعية القيد'}</th>
                 <th className={`py-[18px] px-3 border-2 border-slate-900 bg-transparent ${showExamFields ? 'min-w-[130px] max-w-[130px] w-[130px]' : 'w-32'}`}>{t.religion}</th>
-                <th className="py-[18px] px-3 w-32 border-2 border-slate-900 bg-transparent">الفصل</th>
+                <th
+                  style={{ minWidth: `${classColWidth}px`, width: `${classColWidth}px` }}
+                  className="py-[18px] px-3 border-2 border-slate-900 bg-transparent whitespace-nowrap"
+                >
+                  الفصل
+                </th>
                 {showExamFields && (
                   <>
                     <th className="py-[18px] px-3 w-32 border-2 border-slate-900 bg-transparent">{(t as any).seatNumber}</th>
@@ -4407,7 +4599,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       </option>
                     </select>
                   </td>
-                  <td className="p-0 border-2 border-slate-900 relative focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60 w-32">
+                  <td
+                    style={{ minWidth: `${classColWidth}px`, width: `${classColWidth}px` }}
+                    className="p-0 border-2 border-slate-900 relative focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 focus-within:z-20 focus-within:bg-blue-50/60"
+                  >
                     <select 
                       id={`cell-${idx}-${6 + colOffset}`}
                       value={student.studentClass || ''}
@@ -4416,7 +4611,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       onFocus={(e) => {
                         ensureCellVisible(e.target);
                       }}
-                      className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-800 focus:outline-none appearance-none cursor-pointer"
+                      className="w-full h-full bg-transparent border-none px-2 py-3 text-center text-slate-800 focus:outline-none appearance-none cursor-pointer"
                       style={{ textAlignLast: 'center' }}
                     >
                       <option value=""></option>
@@ -4593,34 +4788,244 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                 
                 <div className="p-6 sm:p-8 flex flex-col gap-5 bg-[linear-gradient(to_right,#e0e7ff,#c7d2fe,#e0e7ff)] bg-[length:200%_auto] animate-shine w-full overflow-y-auto">
                   <div className="flex flex-col gap-3 w-full text-right">
-                    <label className="text-slate-800 font-black text-sm flex items-center gap-2 pr-1">
-                      <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                      إختر ( الفصل ) للطلاب الذين ستقوم بإضافتهم :
-                    </label>
-                    <select
-                      value={selectedClass}
-                      onChange={(e) => setSelectedClass(e.target.value)}
-                      className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black text-lg focus:outline-none focus:border-indigo-600 focus:ring-4 ring-indigo-500/20 appearance-none text-center cursor-pointer shadow-sm transition-all hover:bg-slate-50"
-                      style={{ textAlignLast: 'center' }}
+                    {/* الخيار الأول: الاختيار من القائمة المحفوظة أو التقليدية */}
+                    <div
+                      className={`flex flex-col gap-2 p-3 rounded-xl border-2 transition-all ${
+                        addClassMode === 'select'
+                          ? 'bg-white/95 border-indigo-600 shadow-sm'
+                          : 'bg-white/55 border-slate-900/30 opacity-80'
+                      }`}
                     >
-                      {Array.from({ length: 16 }, (_, i) => {
-                        const gradeNum = (() => {
-                          if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
-                          if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
-                          if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
-                          if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
-                          if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
-                          if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
-                          return '1';
-                        })();
-                        const classLabel = `${gradeNum} / ${i + 1}`;
-                        return (
-                          <option key={classLabel} value={classLabel} className="font-bold">
-                            {formatNumberDigits(classLabel, numberLang)}
-                          </option>
-                        );
-                      })}
-                    </select>
+                      <label className="text-slate-800 font-black text-sm flex items-center gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="radio"
+                          name="addStudentsClassMode"
+                          checked={addClassMode === 'select'}
+                          onChange={() => {
+                            setAddClassMode('select');
+                            setCustomClassError(null);
+                          }}
+                          className="w-4 h-4 text-indigo-600 border-slate-900 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                        />
+                        <span>إختر ( الفصل ) للطلاب الذين ستقوم بإضافتهم :</span>
+                      </label>
+                      <div ref={addClassDropdownRef} className="relative w-full">
+                        <div className="flex items-stretch gap-2 w-full">
+                          <button
+                            type="button"
+                            disabled={addClassMode !== 'select'}
+                            onClick={() => setIsAddClassDropdownOpen((prev) => !prev)}
+                            className="flex-1 py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black text-base sm:text-lg focus:outline-none focus:border-indigo-600 focus:ring-4 ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-100 flex items-center justify-between gap-2"
+                          >
+                            <span className="w-4 shrink-0" />
+                            <span className="flex-1 text-center truncate">
+                              {formatNumberDigits(selectedClass, numberLang)}
+                            </span>
+                            <ChevronDown
+                              className={`w-5 h-5 text-slate-700 shrink-0 transition-transform duration-200 ${
+                                isAddClassDropdownOpen && addClassMode === 'select' ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+
+                          {customClassesList.includes(selectedClass) && (
+                            <button
+                              type="button"
+                              disabled={addClassMode !== 'select'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditClassModal(selectedClass);
+                              }}
+                              title="تعديل أو حذف اسم الفصل"
+                              aria-label="تعديل أو حذف اسم الفصل"
+                              className="px-3 rounded-xl border-2 border-slate-900 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0 cursor-pointer"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {isAddClassDropdownOpen && addClassMode === 'select' && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border-2 border-slate-900 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar">
+                            {customClassesList.length > 0 && (
+                              <div>
+                                <div className="min-h-[44px] px-3 py-3 text-[11px] font-black text-indigo-800 bg-indigo-50 border-b border-indigo-200 sticky top-0 z-10 flex items-center justify-center text-center">
+                                  الفصول المخصصة المحفوظة
+                                </div>
+                                {customClassesList.map((classLabel) => {
+                                  const isSelected = selectedClass === classLabel;
+                                  return (
+                                    <div
+                                      key={`custom-${classLabel}`}
+                                      className={`flex items-center justify-between gap-2 px-3 py-2 border-b border-slate-100 transition-colors ${
+                                        isSelected ? 'bg-indigo-50/90' : 'hover:bg-slate-50'
+                                      }`}
+                                    >
+                                      <span className="w-[30px] shrink-0" aria-hidden="true" />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedClass(classLabel);
+                                          setIsAddClassDropdownOpen(false);
+                                        }}
+                                        className="flex-1 text-center font-bold text-sm sm:text-base text-slate-900 flex items-center justify-center gap-2 cursor-pointer min-w-0"
+                                      >
+                                        <span className="truncate">{formatNumberDigits(classLabel, numberLang)}</span>
+                                        {isSelected && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEditClassModal(classLabel);
+                                        }}
+                                        title="تعديل أو حذف اسم الفصل"
+                                        aria-label={`تعديل أو حذف ${classLabel}`}
+                                        className="w-[30px] h-[30px] rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-slate-900/50 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            <div>
+                              {customClassesList.length > 0 && (
+                                <div className="min-h-[44px] px-3 py-3 text-[11px] font-black text-slate-600 bg-slate-100 border-b border-slate-200 sticky top-0 z-10 flex items-center justify-center text-center">
+                                  الفصول التقليدية
+                                </div>
+                              )}
+                              {defaultClassesList.map((classLabel) => {
+                                const isSelected = selectedClass === classLabel;
+                                return (
+                                  <button
+                                    key={classLabel}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedClass(classLabel);
+                                      setIsAddClassDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-3 py-2 border-b border-slate-100 last:border-b-0 text-center font-bold text-sm sm:text-base text-slate-800 flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                                      isSelected ? 'bg-indigo-50 text-indigo-900 font-black' : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <span>{formatNumberDigits(classLabel, numberLang)}</span>
+                                    {isSelected && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* الخيار الثاني (اختياري): تحرير اسم مخصص للفصل */}
+                    <div
+                      className={`flex flex-col gap-2 p-3 rounded-xl border-2 transition-all ${
+                        addClassMode === 'custom'
+                          ? 'bg-white/95 border-indigo-600 shadow-sm'
+                          : 'bg-white/55 border-slate-900/30 opacity-85'
+                      }`}
+                    >
+                      <label className="w-full text-slate-800 font-black text-sm flex items-center justify-between gap-2 cursor-pointer select-none">
+                        <span className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="radio"
+                            name="addStudentsClassMode"
+                            checked={addClassMode === 'custom'}
+                            onChange={() => {
+                              setAddClassMode('custom');
+                              setIsAddClassDropdownOpen(false);
+                              setCustomClassError(null);
+                            }}
+                            className="w-4 h-4 text-indigo-600 border-slate-900 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
+                          />
+                          <span>تحرير اسم الفصل بدلا من الأرقام التقليدية</span>
+                        </span>
+                        <span className="inline-flex items-center justify-center min-h-[32px] text-[11px] font-bold px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-800 border-2 border-black shrink-0">
+                          اختياري
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={14}
+                        disabled={addClassMode !== 'custom'}
+                        value={customClassNameInput}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw.length >= 15) {
+                            setCustomClassNameInput(raw.slice(0, 14));
+                            setCustomClassError('يجب أن يكون عدد الحروف أقل من 15 حرفاً (الحد الأقصى 14 حرفاً).');
+                          } else {
+                            setCustomClassNameInput(raw);
+                            if (customClassError) setCustomClassError(null);
+                          }
+                        }}
+                        placeholder="EX : Sunflowers, Daisies, Tulips, ......"
+                        className={`w-full py-2.5 px-4 rounded-xl border-2 bg-white text-slate-900 font-bold text-base focus:outline-none focus:ring-4 transition-all text-center placeholder:text-slate-400 placeholder:font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-100 ${
+                          matchedExistingClassForCustom || customClassError
+                            ? 'border-rose-600 focus:border-rose-600 ring-rose-500/20'
+                            : 'border-slate-900 focus:border-indigo-600 ring-indigo-500/20'
+                        }`}
+                        dir="auto"
+                      />
+                      {addClassMode === 'custom' && (
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-1">
+                          <span>يجب أن يكون عدد الحروف أقل من {formatNumberDigits(15, numberLang)} حرفاً</span>
+                          <span className={customClassNameInput.length >= 14 ? 'text-amber-700 font-black' : 'text-slate-600'}>
+                            {formatNumberDigits(customClassNameInput.length, numberLang)} / {formatNumberDigits(14, numberLang)}
+                          </span>
+                        </div>
+                      )}
+
+                      {addClassMode === 'custom' && matchedExistingClassForCustom && (
+                        <div className="flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-950 text-xs font-bold leading-relaxed">
+                          <span>
+                            هذا الفصل موجود أصلاً في القائمة باسم «{formatNumberDigits(matchedExistingClassForCustom, numberLang)}» — يُرجى اختياره من القائمة أعلاه لضمان عدم الخطأ أو التكرار.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedClass(matchedExistingClassForCustom);
+                              setAddClassMode('select');
+                              setCustomClassNameInput('');
+                              setCustomClassError(null);
+                            }}
+                            className="self-start px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-colors cursor-pointer"
+                          >
+                            اختيار «{formatNumberDigits(matchedExistingClassForCustom, numberLang)}» من القائمة
+                          </button>
+                        </div>
+                      )}
+
+                      {addClassMode === 'custom' && customClassError && !matchedExistingClassForCustom && (
+                        <div className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-500 text-rose-900 text-xs font-bold">
+                          {customClassError}
+                        </div>
+                      )}
+
+                      {addClassMode === 'custom' &&
+                        cleanClassName(customClassNameInput) &&
+                        !matchedExistingClassForCustom &&
+                        !customClassError && (
+                          <p className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg px-2.5 py-1.5">
+                            سيتم حفظ اسم الفصل في القائمة تلقائياً لاختياره لاحقاً بسهولة.
+                          </p>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="w-full py-2.5 flex flex-col justify-center" aria-hidden="true">
+                    <div className="relative w-full">
+                      <hr className="w-full h-[3px] border-0 rounded-full bg-indigo-950/85" />
+                      <div
+                        className="pointer-events-none absolute -top-[2px] inset-x-0 h-[5px] rounded-full bg-[linear-gradient(90deg,transparent_0%,rgba(99,102,241,0.35)_30%,#ffffff_50%,rgba(99,102,241,0.35)_70%,transparent_100%)] bg-[length:200%_100%] animate-shine shadow-[0_0_12px_rgba(255,255,255,0.95)]"
+                        style={{ animationDuration: '3.2s' }}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-2 w-full text-right">
@@ -4691,6 +5096,10 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                   <button
                     onClick={() => {
                       setImportFileFeedback(null);
+                      setAddClassMode('select');
+                      setIsAddClassDropdownOpen(false);
+                      setCustomClassNameInput('');
+                      setCustomClassError(null);
                       setIsModalOpen(false);
                     }}
                     className="w-14 h-14 flex items-center justify-center rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors border-2 border-slate-900 shadow-md active:scale-95 shrink-0"
@@ -4698,6 +5107,176 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                     <X className="w-8 h-8" strokeWidth={3} />
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit / Delete Custom Class Modal */}
+      <AnimatePresence>
+        {editClassModalState && (
+          <motion.div
+            {...FAST_BACKDROP_FADE}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm [perspective:1000px]"
+            dir="rtl"
+            onClick={() => setEditClassModalState(null)}
+          >
+            <motion.div
+              {...FAST_MODAL_FLIP}
+              onClick={(e) => e.stopPropagation()}
+              className={`relative w-full rounded-[24px] shadow-2xl overflow-hidden p-[4px] flex flex-col transition-all duration-200 ${
+                editClassModalState.confirmDelete ? 'max-w-[584px]' : 'max-w-[560px]'
+              }`}
+            >
+              <div className="absolute inset-[-100%] animate-[spin_12s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_30%,#ffffff_50%,#ffffff_70%,transparent_100%)] pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col w-full rounded-[20px] overflow-hidden border-2 border-slate-900 bg-white">
+                <div
+                  className={`bg-[length:200%_auto] animate-shine border-b-2 border-slate-900 p-5 flex items-center justify-center text-center ${
+                    editClassModalState.confirmDelete
+                      ? 'bg-[linear-gradient(to_right,#dc2626,#e11d48,#dc2626)]'
+                      : 'bg-[linear-gradient(to_right,#4f46e5,#7c3aed,#4f46e5)]'
+                  }`}
+                >
+                  <h3 className="text-xl font-black text-white">
+                    {editClassModalState.confirmDelete ? 'حذف الفصل' : 'تعديل اسم الفصل'}
+                  </h3>
+                </div>
+
+                {!editClassModalState.confirmDelete ? (
+                  <>
+                    <div className="p-6 flex flex-col gap-3 bg-[linear-gradient(to_right,#eef2ff,#e0e7ff,#eef2ff)] bg-[length:200%_auto] animate-shine">
+                      <label className="text-slate-800 font-black text-sm text-right">
+                        تعديل اسم الفصل
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={14}
+                        autoFocus
+                        value={editClassModalState.newName}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw.length >= 15) {
+                            setEditClassModalState((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    newName: raw.slice(0, 14),
+                                    error: 'يجب أن يكون عدد الحروف أقل من 15 حرفاً (الحد الأقصى 14 حرفاً).',
+                                  }
+                                : null
+                            );
+                          } else {
+                            setEditClassModalState((prev) =>
+                              prev ? { ...prev, newName: raw, error: null } : null
+                            );
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveEditedClassName();
+                          }
+                        }}
+                        placeholder="EX : Sunflowers, Daisies, Tulips, ......"
+                        className={`w-full py-2.5 px-4 rounded-xl border-2 bg-white text-slate-900 font-bold text-base focus:outline-none focus:ring-4 transition-all text-center ${
+                          editClassModalState.error
+                            ? 'border-rose-600 focus:border-rose-600 ring-rose-500/20'
+                            : 'border-slate-900 focus:border-indigo-600 ring-indigo-500/20'
+                        }`}
+                        dir="auto"
+                      />
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-1">
+                        <span>يجب أن يكون عدد الحروف أقل من {formatNumberDigits(15, numberLang)} حرفاً</span>
+                        <span
+                          className={
+                            editClassModalState.newName.length >= 14
+                              ? 'text-amber-700 font-black'
+                              : 'text-slate-600'
+                          }
+                        >
+                          {formatNumberDigits(editClassModalState.newName.length, numberLang)} /{' '}
+                          {formatNumberDigits(14, numberLang)}
+                        </span>
+                      </div>
+
+                      {editClassModalState.error && (
+                        <div className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-500 text-rose-900 text-xs font-bold">
+                          {editClassModalState.error}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-[linear-gradient(to_right,#4f46e5,#7c3aed,#4f46e5)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-4 flex items-center justify-between gap-2.5">
+                      <button
+                        type="button"
+                        onClick={handleSaveEditedClassName}
+                        className="flex-1 py-2.5 px-3 sm:px-4 rounded-xl font-black text-sm sm:text-base text-slate-900 bg-white hover:bg-slate-100 border-2 border-slate-900 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <Save className="w-4 h-4 shrink-0" />
+                        <span>حفظ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditClassModalState(null)}
+                        className="flex-1 py-2.5 px-3 sm:px-4 rounded-xl font-black text-sm sm:text-base text-white bg-slate-700 hover:bg-slate-800 border-2 border-white shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer"
+                      >
+                        الغاء الأمر
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditClassModalState((prev) =>
+                            prev ? { ...prev, confirmDelete: true, error: null } : null
+                          )
+                        }
+                        className="flex-1 py-2.5 px-3 sm:px-4 rounded-xl font-black text-sm sm:text-base text-white bg-rose-600 hover:bg-rose-700 border-2 border-white shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                        <span>حذف الفصل</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-6 flex flex-col gap-3 bg-rose-50">
+                      <div className="flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-950 shadow-sm">
+                        <AlertTriangle className="w-8 h-8 text-amber-600 shrink-0" />
+                        <div className="flex flex-col items-center gap-2 text-center">
+                          <p className="font-black text-sm sm:text-base leading-relaxed">
+                            سيتم حذف اسم الفصل مع بقاء الطلاب به بدون فصل
+                          </p>
+                          <p className="font-bold text-xs sm:text-sm text-amber-900 leading-relaxed">
+                            يمكنك اختيار الفصل للطلاب المشار اليهم مجددا من القائمة المنسدلة الموجودة فى حقل الفصل فى نافذة تحرير البيانات لهذا الصف الدراسي.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[linear-gradient(to_right,#dc2626,#e11d48,#dc2626)] bg-[length:200%_auto] animate-shine border-t-2 border-slate-900 p-4 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={handleConfirmDeleteClass}
+                        className="flex-1 min-h-[58px] sm:min-h-[60px] py-4 px-4 rounded-xl font-black text-sm sm:text-base text-rose-700 bg-white hover:bg-rose-50 border-2 border-slate-900 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                        <span>تأكيد حذف الفصل</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditClassModalState((prev) =>
+                            prev ? { ...prev, confirmDelete: false } : null
+                          )
+                        }
+                        className="flex-1 min-h-[58px] sm:min-h-[60px] py-4 px-4 rounded-xl font-black text-sm sm:text-base text-white bg-slate-800 hover:bg-slate-900 border-2 border-white shadow-sm active:scale-95 transition-all flex items-center justify-center whitespace-nowrap cursor-pointer"
+                      >
+                        الغاء الأمر
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -4737,14 +5316,30 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                       className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-white text-slate-900 font-black text-lg focus:outline-none focus:border-blue-600 focus:ring-4 ring-blue-500/20 appearance-none text-center cursor-pointer shadow-sm transition-all hover:bg-slate-50"
                       style={{ textAlignLast: 'center' }}
                     >
-                      {Array.from({ length: 16 }, (_, i) => {
-                        const classLabel = `${gradeNumForClass} / ${i + 1}`;
-                        return (
+                      {customClassesList.length > 0 ? (
+                        <>
+                          <optgroup label="الفصول المخصصة المحفوظة">
+                            {customClassesList.map((classLabel) => (
+                              <option key={`nid-custom-${classLabel}`} value={classLabel} className="font-bold">
+                                {formatNumberDigits(classLabel, numberLang)}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="الفصول التقليدية">
+                            {defaultClassesList.map((classLabel) => (
+                              <option key={classLabel} value={classLabel} className="font-bold">
+                                {formatNumberDigits(classLabel, numberLang)}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      ) : (
+                        defaultClassesList.map((classLabel) => (
                           <option key={classLabel} value={classLabel} className="font-bold">
                             {formatNumberDigits(classLabel, numberLang)}
                           </option>
-                        );
-                      })}
+                        ))
+                      )}
                     </select>
                   </div>
 

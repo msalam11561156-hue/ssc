@@ -42,6 +42,7 @@ import { runPrePrintAudit } from '../utils/prePrintAudit';
 import { PrePrintAuditModal } from './PrePrintAuditModal';
 import { EditStudentDataModal } from './EditStudentDataModal';
 import { QuickSupportAuditButton } from './QuickSupportAuditButton';
+import { buildAvailableClasses, getClassColumnWidthPx } from '../utils/customClasses';
 
 const TopTenCertificatesModal = lazy(() => import('./TopTenCertificatesModal').then(m => ({ default: m.TopTenCertificatesModal })));
 const AllStudentsCertificatesModal = lazy(() => import('./AllStudentsCertificatesModal').then(m => ({ default: m.AllStudentsCertificatesModal })));
@@ -275,27 +276,14 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
     enableShortcuts: !auditModalState.isOpen && !editingStudentState,
   });
 
-  const availableClasses = React.useMemo(() => {
-    const gradeNum = (() => {
-      if (selectedGrade?.includes('الأول') || selectedGrade?.includes('1')) return '1';
-      if (selectedGrade?.includes('الثاني') || selectedGrade?.includes('الثانى') || selectedGrade?.includes('2')) return '2';
-      if (selectedGrade?.includes('الثالث') || selectedGrade?.includes('3')) return '3';
-      if (selectedGrade?.includes('الرابع') || selectedGrade?.includes('4')) return '4';
-      if (selectedGrade?.includes('الخامس') || selectedGrade?.includes('5')) return '5';
-      if (selectedGrade?.includes('السادس') || selectedGrade?.includes('6')) return '6';
-      return '1';
-    })();
-    const defaults = Array.from({ length: 16 }, (_, i) => `${gradeNum} / ${i + 1}`);
-    const inData = Array.from(new Set(data.map(s => s.studentClass).filter(Boolean))) as string[];
-    return Array.from(new Set([...defaults, ...inData])).sort((a, b) => {
-      const getNum = (s: string) => {
-        const parts = s.split('/');
-        if (parts.length < 2) return 0;
-        return parseInt(parts[1].trim()) || 0;
-      };
-      return getNum(a) - getNum(b);
-    });
-  }, [selectedGrade, data]);
+  const { customClasses: customClassesList, allClasses: availableClasses } = React.useMemo(
+    () => buildAvailableClasses({ stage, selectedGrade, data }),
+    [stage, selectedGrade, data]
+  );
+  const classColWidth = React.useMemo(
+    () => getClassColumnWidthPx(customClassesList, 120),
+    [customClassesList]
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({});
   const [numberLang, setNumberLang] = useState<NumberLang>(() => {
@@ -2029,8 +2017,13 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                   )}
                   <th 
                     rowSpan={3} 
-                    style={{ insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px') }}
-                    className="py-[16px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[46] min-w-[120px] max-w-[120px] w-[120px] text-lg font-bold relative overflow-visible sticky-cell-border text-center align-middle"
+                    style={{
+                      insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px'),
+                      minWidth: `${classColWidth}px`,
+                      maxWidth: `${classColWidth}px`,
+                      width: `${classColWidth}px`,
+                    }}
+                    className="py-[16px] px-3 border-2 border-slate-900 bg-slate-200 sticky z-[46] text-lg font-bold relative overflow-visible sticky-cell-border text-center align-middle"
                   >
                     الفصل
                     <div className="separator-line"></div>
@@ -2277,14 +2270,19 @@ export const DetailedAssessmentsGradesScreen: React.FC<DetailedAssessmentsGrades
                         )}
 
                         <td 
-                          style={{ insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px') }}
-                          className="p-0 border-2 border-slate-900 text-center sticky z-[26] bg-inherit min-w-[120px] max-w-[120px] w-[120px] relative overflow-visible sticky-cell-border"
+                          style={{
+                            insetInlineStart: showSecretNumber ? (showSeatNumber ? '704px' : '564px') : (showSeatNumber ? '564px' : '424px'),
+                            minWidth: `${classColWidth}px`,
+                            maxWidth: `${classColWidth}px`,
+                            width: `${classColWidth}px`,
+                          }}
+                          className="p-0 border-2 border-slate-900 text-center sticky z-[26] bg-inherit relative overflow-visible sticky-cell-border"
                         >
                           <div className="separator-line"></div>
                           <select 
                             value={student.studentClass || ''}
                             onChange={(e) => handleClassChange(student.id, e.target.value)}
-                            className="w-full h-full bg-transparent border-none px-3 py-3 text-center text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none cursor-pointer font-bold text-lg"
+                            className="w-full h-full bg-transparent border-none px-2 py-3 text-center text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-blue-500 appearance-none cursor-pointer font-bold text-lg"
                             style={{ textAlignLast: 'center' }}
                           >
                             <option value=""></option>

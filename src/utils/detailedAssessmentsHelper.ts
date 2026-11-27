@@ -9,6 +9,7 @@ import ministryLogoUrl from '../assets/images/ministry_logo.png';
 import signaturePenUrl from '../assets/images/signature_pen.png';
 import { isFemaleStudent } from './topTenCertificatesHelper';
 import { isTechnicalEducationSchool, applyTechnicalAssessmentTerms } from '../i18n';
+import { cleanClassName } from './customClasses';
 
 function drawCrispImage(
   ctx: CanvasRenderingContext2D,
@@ -1714,6 +1715,13 @@ export async function exportDetailedAssessmentsCertificatesPdf(
       ''
     ).trim() || '........';
 
+    const rawStudentClass = cleanClassName(student.studentClass || '');
+    const studentClassVal = rawStudentClass || '........';
+    const formattedClassVal =
+      rawStudentClass && !/[\u0600-\u06FF]/.test(rawStudentClass) && /[A-Za-z]/.test(rawStudentClass)
+        ? `\u200E${rawStudentClass}\u200E`
+        : studentClassVal;
+
     // احتساب المجموع الكلي للطالب في الاختبار الشهري
     let certTotalScore = 0;
     let certTotalMax = 0;
@@ -1877,16 +1885,16 @@ export async function exportDetailedAssessmentsCertificatesPdf(
     }
 
     // تعديل سطر الصف فى المرحلة الثانوية - الصف الثانى إلى:
-    // الصف - الشعبة باللغة العربية - المرحلة - رقم اللجنة رقم الجلوس
+    // الصف - الشعبة باللغة العربية - المرحلة - رقم اللجنة - رقم الجلوس - الفصل
     const infoItemsText = isSec2 && divisionArabic
-      ? `${gradeDisplayFormatted}   •   ${divisionArabic}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}`
-      : `${gradeDisplayFormatted}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}`;
+      ? `${gradeDisplayFormatted}   •   ${divisionArabic}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}   •   الفصل : ${formattedClassVal}`
+      : `${gradeDisplayFormatted}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}   •   الفصل : ${formattedClassVal}`;
     ctx.fillStyle = '#0f172a';
     let itemsFontSize = 19;
     ctx.font = `bold ${itemsFontSize}px "Cairo", sans-serif`;
     ctx.textAlign = 'left';
     const maxItemsW = contentW - measuredRightW - 24;
-    while (itemsFontSize > 11 && ctx.measureText(infoItemsText).width > maxItemsW) {
+    while (itemsFontSize > 9.5 && ctx.measureText(infoItemsText).width > maxItemsW) {
       itemsFontSize -= 0.5;
       ctx.font = `bold ${itemsFontSize}px "Cairo", sans-serif`;
     }
@@ -4238,6 +4246,13 @@ export async function exportStudentSemesterGradesCertificatePdf(
       ''
     ).trim() || '........';
 
+    const rawStudentClass = cleanClassName(student.studentClass || '');
+    const studentClassVal = rawStudentClass || '........';
+    const formattedClassVal =
+      rawStudentClass && !/[\u0600-\u06FF]/.test(rawStudentClass) && /[A-Za-z]/.test(rawStudentClass)
+        ? `\u200E${rawStudentClass}\u200E`
+        : studentClassVal;
+
     // سطر بيانات الطالب: اسم الطالب فى أقصى اليمين، والصف والمرحلة ورقم اللجنة ورقم الجلوس فى أقصى اليسار
     const infoY = !isKgStage ? (bannerY + bannerH + 26) : (decreeY + 34);
 
@@ -4364,12 +4379,12 @@ export async function exportStudentSemesterGradesCertificatePdf(
       }
       const enDiv = divisionArabic.includes('علم') ? 'Scientific Section' : (divisionArabic.includes('أدب') ? 'Literary Section' : '');
       infoItemsText = isSec2 && enDiv
-        ? `${enGrade}   •   ${enDiv}   •   ${cleanStage}   •   Committee No. : ${committeeNumberVal}   •   Seat No. : ${seatNumberVal}`
-        : `${enGrade}   •   ${cleanStage}   •   Committee No. : ${committeeNumberVal}   •   Seat No. : ${seatNumberVal}`;
+        ? `${enGrade}   •   ${enDiv}   •   ${cleanStage}   •   Committee No. : ${committeeNumberVal}   •   Seat No. : ${seatNumberVal}   •   Class : ${studentClassVal}`
+        : `${enGrade}   •   ${cleanStage}   •   Committee No. : ${committeeNumberVal}   •   Seat No. : ${seatNumberVal}   •   Class : ${studentClassVal}`;
     } else {
       infoItemsText = isSec2 && divisionArabic
-        ? `${gradeDisplayFormatted}   •   ${divisionArabic}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}`
-        : `${gradeDisplayFormatted}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}`;
+        ? `${gradeDisplayFormatted}   •   ${divisionArabic}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}   •   الفصل : ${formattedClassVal}`
+        : `${gradeDisplayFormatted}   •   ${cleanStage}   •   رقم اللجنة : ${committeeNumberVal}   •   رقم الجلوس : ${seatNumberVal}   •   الفصل : ${formattedClassVal}`;
     }
     ctx.direction = isEn ? 'ltr' : 'rtl';
     ctx.fillStyle = '#0f172a';
@@ -4377,7 +4392,7 @@ export async function exportStudentSemesterGradesCertificatePdf(
     ctx.font = `bold ${itemsFontSize}px "Cairo", sans-serif`;
     ctx.textAlign = 'left';
     const maxItemsW = contentW - measuredRightW - 28;
-    while (itemsFontSize > 12 && ctx.measureText(infoItemsText).width > maxItemsW) {
+    while (itemsFontSize > 9.5 && ctx.measureText(infoItemsText).width > maxItemsW) {
       itemsFontSize -= 0.5;
       ctx.font = `bold ${itemsFontSize}px "Cairo", sans-serif`;
     }

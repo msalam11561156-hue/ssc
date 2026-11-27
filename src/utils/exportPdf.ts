@@ -4518,7 +4518,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
         ? [{ key: 'exemptionStatus', header: effectiveLabels.exemptionStatus, weight: 1.15, dir: 'rtl' as const }]
         : []),
       { key: 'religion', header: effectiveLabels.religion, weight: 1.1, dir: 'rtl' },
-      { key: 'notes', header: 'ملاحظات', weight: showExemptionStatus ? 1.75 : 2.0, dir: 'rtl' },
+      { key: 'studentClass', header: 'الفصل', weight: showExemptionStatus ? 1.75 : 2.0, dir: 'rtl' },
     ];
   } else if (reportType === 'secret_numbers') {
     columns = [
@@ -9412,6 +9412,7 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           exemptionStatus: isBlankRow ? '' : exemptionText,
           enrollmentType: isBlankRow ? '' : enrollmentTypeText,
           religion: isBlankRow ? '' : religionText,
+          studentClass: isBlankRow ? '' : (student.studentClass || '').trim(),
           seatNumber: isBlankRow ? '' : seatNumText,
           secretNumber: isBlankRow ? '' : secretNumText,
           committeeNumber: isBlankRow ? '' : committeeNumText,
@@ -10425,7 +10426,11 @@ export async function exportStudentsDataToPdf(options: ExportStudentsPdfOptions)
           const val = isCustomBlankGradeCol ? '' : (cellValues[col.key] || '');
           const isSubjOrTotalCol = col.key === 'addedTotal' || col.key.startsWith('subj_');
           const isArabicVal = /[\u0600-\u06FF]/.test(val);
-          ctx.direction = isArabicVal ? 'rtl' : col.dir || 'rtl';
+          ctx.direction = isArabicVal
+            ? 'rtl'
+            : col.key === 'studentClass' && /[A-Za-z]/.test(val)
+            ? 'ltr'
+            : col.dir || 'rtl';
           ctx.fillStyle = isDarkRow ? '#ffffff' : '#1e293b';
           const isMonoCol =
             col.key === 'nationalId' ||
