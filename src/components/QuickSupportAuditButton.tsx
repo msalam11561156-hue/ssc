@@ -95,12 +95,7 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
             className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.85),rgba(253,224,71,0.35)_55%,transparent_75%)] animate-audit-btn-sheen"
           />
         )}
-        <img
-          src={quickSupportAuditIcon}
-          alt="الدعم السريع - فحص الأخطاء"
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover rounded-full pointer-events-none select-none"
-        />
+        {/* تم إزالة الأيقونة بناءً على رغبة المستخدم */}
         {hasIssues && (
           <span className="absolute -top-1 -right-1 z-20 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
             {issueCount > 99 ? '99+' : issueCount}
