@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
+import quickSupportAuditIcon from '../assets/images/quick_support_audit_icon.png';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 interface QuickSupportAuditButtonProps {
@@ -94,11 +95,12 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
             className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.85),rgba(253,224,71,0.35)_55%,transparent_75%)] animate-audit-btn-sheen"
           />
         )}
-        {hasIssues ? (
-          <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm relative z-10" />
-        ) : (
-          <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-sm relative z-10" />
-        )}
+        <img
+          src={quickSupportAuditIcon}
+          alt="الدعم السريع - فحص الأخطاء"
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover rounded-full pointer-events-none select-none"
+        />
         {hasIssues && (
           <span className="absolute -top-1 -right-1 z-20 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow">
             {issueCount > 99 ? '99+' : issueCount}
@@ -154,11 +156,14 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
                             : 'bg-emerald-100 border-emerald-400 text-emerald-700'
                         }`}
                       >
-                        {hasIssues ? (
-                          <ShieldAlert className="w-4 h-4 animate-pulse" />
-                        ) : (
-                          <ShieldCheck className="w-4 h-4 animate-pulse" />
-                        )}
+                      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
+                        <img
+                          src={quickSupportAuditIcon}
+                          alt="الدعم السريع"
+                          draggable={false}
+                          className="w-5 h-5 object-contain pointer-events-none select-none contrast-125"
+                        />
+                      </div>
                       </span>
 
                       <span className="text-sm sm:text-base font-black tracking-wide text-black">

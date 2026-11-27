@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { LifeBuoy, X } from 'lucide-react';
+import quickSupportAuditIcon from '../assets/images/quick_support_audit_icon.png';
+import { X } from 'lucide-react';
 
 const QUICK_SUPPORT_POP_STORAGE_KEY = 'smart_control_quick_support_pop_views_v1';
 const MAX_POP_VIEWS = 15;
@@ -153,9 +154,14 @@ export const QuickSupportPop: React.FC<QuickSupportPopProps> = ({
             className="relative z-10 flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 text-white border-2 border-amber-400 shadow-[0_10px_28px_rgba(15,23,42,0.45),0_0_16px_rgba(251,191,36,0.35)] cursor-pointer hover:brightness-110 transition-all"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm border border-slate-900">
-                <LifeBuoy className="w-4 h-4 animate-spin" style={{ animationDuration: '6s' }} />
-              </span>
+              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
+                <img
+                  src={quickSupportAuditIcon}
+                  alt="الدعم السريع"
+                  draggable={false}
+                  className="w-5 h-5 object-contain pointer-events-none select-none contrast-125"
+                />
+              </div>
               <span className="text-xs font-black tracking-wide whitespace-nowrap text-amber-100">
                 الدعم السريع
               </span>
