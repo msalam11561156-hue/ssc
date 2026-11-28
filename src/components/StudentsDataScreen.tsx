@@ -5245,7 +5245,7 @@ export const StudentsDataScreen: React.FC<StudentsDataScreenProps> = ({
                         <AlertTriangle className="w-8 h-8 text-amber-600 shrink-0" />
                         <div className="flex flex-col items-center gap-2 text-center">
                           <p className="font-black text-sm sm:text-base leading-relaxed">
-                            سيتم حذف اسم الفصل مع بقاء الطلاب به بدون فصل
+                            سيتم حذف اسم الفصل مع بقاء طلابه بدون فصل
                           </p>
                           <p className="font-bold text-xs sm:text-sm text-amber-900 leading-relaxed">
                             يمكنك اختيار الفصل للطلاب المشار اليهم مجددا من القائمة المنسدلة الموجودة فى حقل الفصل فى نافذة تحرير البيانات لهذا الصف الدراسي.

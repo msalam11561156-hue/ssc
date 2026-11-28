@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FAST_MODAL_FLIP, FAST_BACKDROP_FADE } from '../utils/flipAnimation';
 import { ArrowRight, ArrowLeft, Search, CheckCircle2, Check, Plus, X, Trash2, RotateCcw, Info, Printer, Edit, Menu, ClipboardList, Sliders, Calendar, PenTool, PieChart, Palette, Languages, BarChart3, Award, Smartphone, FileDown, Undo2, Redo2, Pencil } from 'lucide-react';
 import { Language, StudentData, AssessmentGrades, EducationType } from '../types';
-import { formatNumberDigits, NumberLang } from '../utils/numberLangHelper';
+import { formatNumberDigits, NumberLang, parseNumberDigits } from '../utils/numberLangHelper';
 import { translations, applyTechnicalAssessmentTerms, isTechnicalEducationSchool } from '../i18n';
 import { getGradingSettings, GradingSettings, getPrimaryStudentMercyBoosts, roundToOneDecimal } from '../utils/gradingSettings';
 import { ActionMenuButton } from './ActionMenuButton';
@@ -1274,6 +1274,13 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
     if (s === 'primary') return '60';
     if (s === 'middle' || s === 'prep' || s === 'secondary' || s.includes('technical')) return '30';
     return '60';
+  };
+
+  const handleSubjectModalNumberInput = (raw: string, setter: (val: string) => void) => {
+    const parsed = parseNumberDigits(raw);
+    if (parsed === '' || /^[0-9]*\.?[0-9]*$/.test(parsed)) {
+      setter(parsed);
+    }
   };
 
   const [isAddFieldModalOpen, setIsAddFieldModalOpen] = useState(false);
@@ -4535,9 +4542,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           <div>
                             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxGrade}</label>
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 value={newFieldMaxGrade}
-                                onChange={(e) => setNewFieldMaxGrade(e.target.value)}
+                                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMaxGrade)}
                                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                             />
                           </div>
@@ -4548,9 +4556,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             </label>
                             <div className="relative flex items-center">
                               <input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={newFieldMinPassPercentage}
-                                  onChange={(e) => setNewFieldMinPassPercentage(e.target.value)}
+                                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMinPassPercentage)}
                                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                               />
                               <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -4562,9 +4571,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               {((t as any).actualSubjectGrade || 'الدرجة الفعلية للمادة')}
                             </label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={newFieldActualMaxGrade}
-                              onChange={(e) => setNewFieldActualMaxGrade(e.target.value)}
+                              onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldActualMaxGrade)}
                               className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                             />
                           </div>
@@ -4608,9 +4618,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             <div>
                               <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxAssessmentsGrade}</label>
                               <input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={newFieldMaxAssessmentsGrade}
-                                  onChange={(e) => setNewFieldMaxAssessmentsGrade(e.target.value)}
+                                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMaxAssessmentsGrade)}
                                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                               />
                             </div>
@@ -4630,9 +4641,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           <div className={!newFieldHasWrittenExam ? "opacity-50 pointer-events-none" : ""}>
             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxWrittenGrade}</label>
             <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={newFieldMaxWrittenGrade}
-                onChange={(e) => setNewFieldMaxWrittenGrade(e.target.value)}
+                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMaxWrittenGrade)}
                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
             />
         </div>
@@ -4659,11 +4671,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                   الدرجة العظمى للإمتحان العملى
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   disabled={!newFieldHasPracticalExam}
                   value={newFieldMaxPracticalGrade}
-                  onChange={(e) => setNewFieldMaxPracticalGrade(e.target.value)}
-                  placeholder={!newFieldHasPracticalExam ? "غير مفعل (حدد الخيار أعلاه للتفعيل)" : "أدخل الدرجة العظمى للإمتحان العملى"}
+                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMaxPracticalGrade)}
+                  placeholder={!newFieldHasPracticalExam ? "غير مفعل ( حدد الخيار أعلاه للتفعيل )" : "أدخل الدرجة العظمى للإمتحان العملى"}
                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner disabled:cursor-not-allowed disabled:bg-slate-100/60"
                 />
               </div>
@@ -4673,10 +4686,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
             </label>
             <div className="relative flex items-center">
                 <input
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     value={newFieldMinPassPercentage}
-                    onChange={(e) => setNewFieldMinPassPercentage(e.target.value)}
+                    onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMinPassPercentage)}
                     className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                 />
                 <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -4689,10 +4702,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               </label>
                               <div className="relative flex items-center">
                                 <input
-                                  type="number"
-                                  step="any"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={newFieldMinTotalPassPercentage}
-                                  onChange={(e) => setNewFieldMinTotalPassPercentage(e.target.value)}
+                                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldMinTotalPassPercentage)}
                                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                                 />
                                 <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -4704,9 +4717,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               {((t as any).actualSubjectGrade || 'الدرجة الفعلية للمادة')}
                             </label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={newFieldActualMaxGrade}
-                              onChange={(e) => setNewFieldActualMaxGrade(e.target.value)}
+                              onChange={(e) => handleSubjectModalNumberInput(e.target.value, setNewFieldActualMaxGrade)}
                               className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-indigo-900 focus:outline-none focus:border-indigo-500 font-bold transition-colors shadow-inner"
                             />
                           </div>
@@ -5079,9 +5093,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                           <div>
                             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxGrade}</label>
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 value={editFieldMaxGrade}
-                                onChange={(e) => setEditFieldMaxGrade(e.target.value)}
+                                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMaxGrade)}
                                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                             />
                           </div>
@@ -5092,9 +5107,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             </label>
                             <div className="relative flex items-center">
                               <input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={editFieldMinPassPercentage}
-                                  onChange={(e) => setEditFieldMinPassPercentage(e.target.value)}
+                                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMinPassPercentage)}
                                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                               />
                               <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -5106,9 +5122,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               {((t as any).actualSubjectGrade || 'الدرجة الفعلية للمادة')}
                             </label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={editFieldActualMaxGrade}
-                              onChange={(e) => setEditFieldActualMaxGrade(e.target.value)}
+                              onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldActualMaxGrade)}
                               className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                             />
                           </div>
@@ -5152,9 +5169,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             <div>
                               <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxAssessmentsGrade}</label>
                               <input
-                                  type="number"
+                                  type="text"
+                                  inputMode="decimal"
                                   value={editFieldMaxAssessmentsGrade}
-                                  onChange={(e) => setEditFieldMaxAssessmentsGrade(e.target.value)}
+                                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMaxAssessmentsGrade)}
                                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                               />
                             </div>
@@ -5174,9 +5192,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
           <div className={!editFieldHasWrittenExam ? "opacity-50 pointer-events-none" : ""}>
             <label className="block text-sm font-bold text-black mb-1.5 opacity-80">{(t as any).maxWrittenGrade}</label>
             <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={editFieldMaxWrittenGrade}
-                onChange={(e) => setEditFieldMaxWrittenGrade(e.target.value)}
+                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMaxWrittenGrade)}
                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
             />
         </div>
@@ -5203,11 +5222,12 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                   الدرجة العظمى للإمتحان العملى
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   disabled={!editFieldHasPracticalExam}
                   value={editFieldMaxPracticalGrade}
-                  onChange={(e) => setEditFieldMaxPracticalGrade(e.target.value)}
-                  placeholder={!editFieldHasPracticalExam ? "غير مفعل (حدد الخيار أعلاه للتفعيل)" : "أدخل الدرجة العظمى للإمتحان العملى"}
+                  onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMaxPracticalGrade)}
+                  placeholder={!editFieldHasPracticalExam ? "غير مفعل ( حدد الخيار أعلاه للتفعيل )" : "أدخل الدرجة العظمى للإمتحان العملى"}
                   className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner disabled:cursor-not-allowed disabled:bg-slate-100/60"
                 />
               </div>
@@ -5217,10 +5237,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             </label>
                             <div className="relative flex items-center">
                               <input
-                                type="number"
-                                step="any"
+                                type="text"
+                                inputMode="decimal"
                                 value={editFieldMinPassPercentage}
-                                onChange={(e) => setEditFieldMinPassPercentage(e.target.value)}
+                                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMinPassPercentage)}
                                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                               />
                               <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -5233,10 +5253,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                             </label>
                             <div className="relative flex items-center">
                               <input
-                                type="number"
-                                step="any"
+                                type="text"
+                                inputMode="decimal"
                                 value={editFieldMinTotalPassPercentage}
-                                onChange={(e) => setEditFieldMinTotalPassPercentage(e.target.value)}
+                                onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldMinTotalPassPercentage)}
                                 className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                               />
                               <span className="absolute end-4 font-bold text-slate-900">%</span>
@@ -5248,9 +5268,10 @@ export const WrittenExamsGradesScreen: React.FC<WrittenExamsGradesScreenProps> =
                               {((t as any).actualSubjectGrade || 'الدرجة الفعلية للمادة')}
                             </label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={editFieldActualMaxGrade}
-                              onChange={(e) => setEditFieldActualMaxGrade(e.target.value)}
+                              onChange={(e) => handleSubjectModalNumberInput(e.target.value, setEditFieldActualMaxGrade)}
                               className="w-full bg-white/70 backdrop-blur-sm border border-slate-900 rounded-xl px-4 py-3.5 text-amber-900 focus:outline-none focus:border-amber-500 font-bold transition-colors shadow-inner"
                             />
                           </div>

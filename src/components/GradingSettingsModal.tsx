@@ -13,7 +13,7 @@ import {
 import { getSubjectsConfigForStageGrade } from '../utils/exportPdf';
 import { StudentData } from '../types';
 import { getBrandShieldSync } from '../utils/offlineAssetCache';
-import { formatNumberDigits } from '../utils/numberLangHelper';
+import { formatNumberDigits, parseNumberDigits } from '../utils/numberLangHelper';
 import { isTechnicalEducationSchool } from '../i18n';
 
 interface GradingSettingsModalProps {
@@ -655,10 +655,7 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                         </label>
                         <div className="relative flex items-center">
                           <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            step="1"
+                            type="text"
                             inputMode="numeric"
                             disabled={!isMercyEnabled}
                             value={mercyMaxSubjects}
@@ -668,7 +665,7 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                               }
                             }}
                             onChange={(e) => {
-                              const raw = e.target.value;
+                              const raw = parseNumberDigits(e.target.value);
                               if (raw === '') {
                                 setMercyMaxSubjects('');
                                 applyMercySettings(isMercyEnabled, '0', mercyMaxPercentage);
@@ -700,10 +697,7 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                         </label>
                         <div className="relative flex items-center">
                           <input
-                            type="number"
-                            min="0"
-                            max="50"
-                            step="1"
+                            type="text"
                             inputMode="numeric"
                             disabled={!isMercyEnabled}
                             value={mercyMaxPercentage}
@@ -713,7 +707,7 @@ export const GradingSettingsModal: React.FC<GradingSettingsModalProps> = ({
                               }
                             }}
                             onChange={(e) => {
-                              const raw = e.target.value;
+                              const raw = parseNumberDigits(e.target.value);
                               if (raw === '') {
                                 setMercyMaxPercentage('');
                                 applyMercySettings(isMercyEnabled, mercyMaxSubjects, '0');

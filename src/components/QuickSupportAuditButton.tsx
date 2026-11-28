@@ -143,20 +143,20 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
                         : 'bg-[linear-gradient(90deg,#10b981,#22d3ee,#a7f3d0,#22d3ee,#10b981)]'
                     }`}
                   >
-                    <div className="relative flex flex-wrap sm:flex-nowrap items-center justify-center gap-2.5 px-4 py-2.5 rounded-[14px] bg-white/95 backdrop-blur-md text-black sm:whitespace-nowrap">
+                    <div className="relative flex flex-wrap sm:flex-nowrap items-center justify-center gap-2.5 px-4.5 py-3.5 min-h-[58px] rounded-[14px] bg-white/95 backdrop-blur-md text-black sm:whitespace-nowrap">
                       <span
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border ${
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
                           hasIssues
                             ? 'bg-rose-100 border-rose-400 text-rose-700'
                             : 'bg-emerald-100 border-emerald-400 text-emerald-700'
                         }`}
                       >
-                      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
                         <img
                           src={quickSupportAuditIcon}
                           alt="الدعم السريع"
                           draggable={false}
-                          className="w-5 h-5 object-contain pointer-events-none select-none contrast-125"
+                          className="w-5.5 h-5.5 object-contain pointer-events-none select-none contrast-125"
                         />
                       </div>
                       </span>
@@ -166,7 +166,7 @@ export const QuickSupportAuditButton: React.FC<QuickSupportAuditButtonProps> = (
                       </span>
 
                       <span
-                        className={`text-sm sm:text-base font-black px-2.5 py-0.5 rounded-lg border ${
+                        className={`text-sm sm:text-base font-black px-2.5 py-1 rounded-lg border ${
                           hasIssues
                             ? 'bg-rose-100 border-rose-400 text-rose-800'
                             : 'bg-emerald-100 border-emerald-400 text-emerald-800'

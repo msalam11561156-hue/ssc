@@ -151,15 +151,15 @@ export const QuickSupportPop: React.FC<QuickSupportPopProps> = ({
                 onOpenAudit?.();
               }
             }}
-            className="relative z-10 flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 text-white border-2 border-amber-400 shadow-[0_10px_28px_rgba(15,23,42,0.45),0_0_16px_rgba(251,191,36,0.35)] cursor-pointer hover:brightness-110 transition-all"
+            className="relative z-10 flex items-center justify-between gap-2 px-3.5 py-2.5 min-h-[46px] rounded-2xl bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 text-white border-2 border-amber-400 shadow-[0_10px_28px_rgba(15,23,42,0.45),0_0_16px_rgba(251,191,36,0.35)] cursor-pointer hover:brightness-110 transition-all"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
+              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-slate-300 shrink-0">
                 <img
                   src={quickSupportAuditIcon}
                   alt="الدعم السريع"
                   draggable={false}
-                  className="w-5 h-5 object-contain pointer-events-none select-none contrast-125"
+                  className="w-5.5 h-5.5 object-contain pointer-events-none select-none contrast-125"
                 />
               </div>
               <span className="text-xs font-black tracking-wide whitespace-nowrap text-amber-100">
