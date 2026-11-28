@@ -322,7 +322,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {/* Arabic Name */}
                     <div className="sm:col-span-2 space-y-1.5">
-                      <label className="block text-xs font-black text-slate-800">
+                      <label className="h-7 flex items-center text-xs font-black text-slate-800">
                         {isKindergarten ? 'اسم التلميذ ( بالعربية )' : 'اسم الطالب ( بالعربية )'}
                       </label>
                       <input
@@ -337,13 +337,13 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                           setName(val);
                         }}
                         placeholder={isKindergarten ? 'أدخل اسم التلميذ رباعياً' : 'أدخل اسم الطالب رباعياً'}
-                        className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                        className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all"
                       />
                     </div>
 
                     {/* English Name */}
                     <div className="sm:col-span-2 space-y-1.5">
-                      <label className="flex items-center justify-between text-xs font-black text-slate-800">
+                      <label className="h-7 flex items-center justify-between text-xs font-black text-slate-800">
                         <span>{isKindergarten ? 'اسم التلميذ ( بالإنجليزية )' : 'اسم الطالب ( بالإنجليزية )'}</span>
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600">
                           <Languages className="w-3.5 h-3.5" />
@@ -356,16 +356,16 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                         value={nameEn}
                         onChange={(e) => setNameEn(capitalizeEachWord(e.target.value))}
                         placeholder="e.g. Mohamed Ahmed Mahmoud"
-                        className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3.5 text-left text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-left text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       />
                     </div>
 
                     {/* National ID */}
                     <div className="space-y-1.5">
-                      <label className="flex items-center justify-between text-xs font-black text-slate-800">
+                      <label className="h-7 flex items-center gap-2 text-xs font-black text-slate-800">
                         <span>{t.nationalId}</span>
                         <span
-                          className={`min-h-[26px] inline-flex items-center text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-slate-900 ${
+                          className={`h-5 inline-flex items-center text-[10px] font-extrabold px-2 rounded-full border border-slate-900 ${
                             nationalId.length === 14
                               ? 'bg-emerald-50 text-emerald-700'
                               : 'bg-amber-50 text-amber-800'
@@ -381,7 +381,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                         value={formatNumberDigits(nationalId, numberLang)}
                         onChange={(e) => handleNationalIdChange(e.target.value)}
                         placeholder="14 رقم"
-                        className={`w-full border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3.5 text-center font-mono text-sm font-bold outline-none transition-all ${
+                        className={`w-full h-11 border-[1.5px] border-slate-900 rounded-xl px-3.5 text-center font-mono text-sm font-bold outline-none transition-all ${
                           nationalId && nationalId.length !== 14
                             ? 'bg-red-50 text-red-900 focus:ring-2 focus:ring-red-500'
                             : 'bg-white text-slate-900 focus:ring-2 focus:ring-amber-500'
@@ -398,11 +398,11 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                     {/* Student Status (KG) or Enrollment Status */}
                     {isKindergarten ? (
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-black text-slate-800">حالة التلميذ</label>
+                        <label className="h-7 flex items-center text-xs font-black text-slate-800">حالة التلميذ</label>
                         <select
                           value={studentStatus}
                           onChange={(e) => setStudentStatus(e.target.value === 'دمج' ? 'دمج' : 'عادى')}
-                          className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                          className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                         >
                           <option value="عادى">عادى</option>
                           <option value="دمج">دمج</option>
@@ -410,11 +410,11 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                       </div>
                     ) : (
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-black text-slate-800">{t.enrollmentStatus}</label>
+                        <label className="h-7 flex items-center text-xs font-black text-slate-800">{t.enrollmentStatus}</label>
                         <select
                           value={enrollmentStatus}
                           onChange={(e) => setEnrollmentStatus(e.target.value)}
-                          className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                          className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                         >
                           <option value="">اختر حالة القيد</option>
                           {statusOptions.map((val) => (
@@ -429,13 +429,13 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                     {/* Exemption Status (International Non-KG) */}
                     {showExemptionStatus && (
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-black text-slate-800">
+                        <label className="h-7 flex items-center text-xs font-black text-slate-800">
                           {(t as any).exemptionStatus || 'حالة الإعفاء'}
                         </label>
                         <select
                           value={exemptionStatus}
                           onChange={(e) => setExemptionStatus(e.target.value)}
-                          className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                          className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                         >
                           <option value="">بدون إعفاء</option>
                           <option value="كلى">كلى</option>
@@ -446,13 +446,13 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
 
                     {/* Enrollment Type */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-black text-slate-800">
+                      <label className="h-7 flex items-center text-xs font-black text-slate-800">
                         {(t as any).enrollmentType || 'نوعية القيد'}
                       </label>
                       <select
                         value={enrollmentType}
                         onChange={(e) => setEnrollmentType(e.target.value)}
-                        className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                        className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                       >
                         <option value="">اختر نوعية القيد</option>
                         <option value="قيد عادى">{(t as any).enrollmentTypeRegular || 'قيد عادى'}</option>
@@ -464,11 +464,11 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
 
                     {/* Religion */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-black text-slate-800">{t.religion}</label>
+                      <label className="h-7 flex items-center text-xs font-black text-slate-800">{t.religion}</label>
                       <select
                         value={religion}
                         onChange={(e) => setReligion(e.target.value)}
-                        className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                        className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                       >
                         <option value="">اختر الديانة</option>
                         <option value="muslim">
@@ -481,12 +481,12 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                     </div>
 
                     {/* Class */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-black text-slate-800">الفصل</label>
+                    <div className={`${!showExemptionStatus ? 'sm:col-span-2' : ''} space-y-1.5`}>
+                      <label className="h-7 flex items-center text-xs font-black text-slate-800">الفصل</label>
                       <select
                         value={studentClass}
                         onChange={(e) => setStudentClass(e.target.value)}
-                        className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
+                        className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer appearance-none"
                       >
                         <option value="">اختر الفصل</option>
                         {classOptions.map((cls) => (
@@ -516,7 +516,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                       {effectiveShowExamFields && (
                         <>
                           <div className="space-y-1.5">
-                            <label className="block text-xs font-black text-slate-800">
+                            <label className="h-7 flex items-center text-xs font-black text-slate-800">
                               {(t as any).seatNumber || 'رقم الجلوس'}
                             </label>
                             <input
@@ -525,11 +525,11 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                               value={formatNumberDigits(seatNumberVal, numberLang)}
                               onChange={(e) => setSeatNumberVal(formatNumberDigits(e.target.value, 'en'))}
                               placeholder="رقم الجلوس"
-                              className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="block text-xs font-black text-slate-800">
+                            <label className="h-7 flex items-center text-xs font-black text-slate-800">
                               {(t as any).secretNumber || 'الرقم السري'}
                             </label>
                             <input
@@ -538,7 +538,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                               value={formatNumberDigits(secretNumberVal, numberLang)}
                               onChange={(e) => setSecretNumberVal(formatNumberDigits(e.target.value, 'en'))}
                               placeholder="الرقم السري"
-                              className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                              className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             />
                           </div>
                         </>
@@ -546,7 +546,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
 
                       {!isKindergarten && (
                         <div className="space-y-1.5">
-                          <label className="block text-xs font-black text-slate-800">
+                          <label className="h-7 flex items-center text-xs font-black text-slate-800">
                             {(t as any).committeeNumber || 'رقم اللجنة'}
                           </label>
                           <input
@@ -555,7 +555,7 @@ export const EditStudentDataModal: React.FC<EditStudentDataModalProps> = ({
                             value={formatNumberDigits(committeeNumberVal, numberLang)}
                             onChange={(e) => setCommitteeNumberVal(formatNumberDigits(e.target.value, 'en'))}
                             placeholder="رقم اللجنة"
-                            className="w-full bg-white border-[1.5px] border-slate-900 rounded-xl py-2.5 px-3 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            className="w-full h-11 bg-white border-[1.5px] border-slate-900 rounded-xl px-3.5 text-center font-mono text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                           />
                         </div>
                       )}
